@@ -1440,50 +1440,7 @@ class ExcelViewer(QWidget):
         dialog.setWindowTitle("SQL IN Clauses")
         dialog.setMinimumSize(600, 500)
         
-        # Apply dark theme
-        dialog.setStyleSheet("""
-            QDialog {
-                background-color: #2d2d2d;
-                color: #e0e0e0;
-            }
-            QTextEdit {
-                background-color: #333333;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-                font-family: Consolas, monospace;
-            }
-            QLabel {
-                color: #e0e0e0;
-                font-weight: bold;
-            }
-            QLabel.warning {
-                color: #ffaa00;
-            }
-            QPushButton {
-                background-color: #3a6ea5;
-                color: white;
-                border: 1px solid #555555;
-                border-radius: 3px;
-                padding: 6px 12px;
-            }
-            QPushButton:hover {
-                background-color: #4a7eb5;
-            }
-            QCheckBox {
-                color: #e0e0e0;
-            }
-            QListWidget {
-                background-color: #333333;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-            }
-            QListWidget::item {
-                padding: 4px;
-            }
-            QListWidget::item:selected {
-                background-color: #3a6ea5;
-            }
-        """)
+        # Use application theme for styling
         
         # Create layout
         layout = QVBoxLayout(dialog)

@@ -48,6 +48,8 @@ class MainWindow(QMainWindow):
         
         # Set up the UI
         self.init_ui()
+        # Apply theme after UI is created
+        self.apply_theme()
         
         # Connect to database
         self.connect_to_database()
@@ -816,45 +818,7 @@ class MainWindow(QMainWindow):
         dialog.setWindowTitle("Select Sheets to Compare")
         dialog.setMinimumSize(400, 300)
         
-        # Apply dark theme styling to match the rest of the app
-        dialog.setStyleSheet("""
-            QDialog { 
-                background-color: #2d2d2d; 
-                color: #e0e0e0; 
-            }
-            QListWidget { 
-                background-color: #333333; 
-                color: #e0e0e0; 
-                border: 1px solid #555555;
-            }
-            QLabel { 
-                color: #e0e0e0; 
-                font-weight: bold;
-                background: transparent;
-            }
-            QPushButton {
-                background-color: #3a6ea5;
-                color: white;
-                border: 1px solid #555555;
-                border-radius: 3px;
-                padding: 6px 12px;
-            }
-            QPushButton:hover {
-                background-color: #4a7eb5;
-            }
-            QComboBox {
-                background-color: #333333;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-                padding: 5px;
-            }
-            QLineEdit {
-                background-color: #333333;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-                padding: 5px;
-            }
-        """)
+        # Use application theme for styling
         
         layout = QVBoxLayout(dialog)
         
@@ -1166,6 +1130,8 @@ class MainWindow(QMainWindow):
                 tolerance = self.config.get("excel", "numerical_comparison_tolerance")
                 self.comparison_engine.set_tolerance(tolerance)
                 
+            # Apply updated theme
+            self.apply_theme()
             self.status_bar.showMessage("Settings updated")
     
     def show_about(self):
@@ -1451,3 +1417,18 @@ class MainWindow(QMainWindow):
 
     def update_button_states(self, has_data):
         self.export_pdf_button.setEnabled(has_data)
+
+    def apply_theme(self):
+        """Apply application-wide stylesheet based on configuration"""
+        theme = self.config.get("ui", "theme")
+        if not theme or theme.lower() == "system":
+            QApplication.instance().setStyleSheet("")
+            return
+
+        themes_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "themes")
+        theme_file = os.path.join(themes_dir, f"{theme.lower()}.qss")
+        if os.path.exists(theme_file):
+            with open(theme_file, "r", encoding="utf-8") as f:
+                QApplication.instance().setStyleSheet(f.read())
+        else:
+            QApplication.instance().setStyleSheet("")

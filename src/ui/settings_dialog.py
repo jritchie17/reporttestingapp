@@ -13,6 +13,7 @@ class SettingsDialog(QDialog):
     def __init__(self, config, parent=None):
         super().__init__(parent)
         self.config = config
+        self.parent_window = parent
         self.init_ui()
         self.load_settings()
         
@@ -184,6 +185,8 @@ class SettingsDialog(QDialog):
         theme_map = {"light": 0, "dark": 1, "system": 2}
         theme = self.config.get("ui", "theme")
         self.theme.setCurrentIndex(theme_map.get(theme.lower(), 0))
+        # Connect after setting initial value to avoid unnecessary update
+        self.theme.currentIndexChanged.connect(self._on_theme_changed)
         
         self.font_size.setValue(self.config.get("ui", "font_size"))
         self.show_line_numbers.setChecked(self.config.get("ui", "show_line_numbers"))
@@ -193,6 +196,13 @@ class SettingsDialog(QDialog):
         self.auto_generate.setChecked(self.config.get("testing", "auto_generate_queries"))
         self.show_suggestions.setChecked(self.config.get("testing", "show_suggestions"))
         self.comparison_threshold.setValue(self.config.get("testing", "comparison_threshold") * 100)  # Convert to percentage
+
+    def _on_theme_changed(self, index):
+        """Apply theme immediately when the user selects a new option"""
+        theme_options = ["light", "dark", "system"]
+        self.config.set("ui", "theme", theme_options[index])
+        if self.parent_window and hasattr(self.parent_window, "apply_theme"):
+            self.parent_window.apply_theme()
     
     def save_settings(self):
         """Save settings to configuration"""
