@@ -1,0 +1,16 @@
+SQLAlchemy>=1.4.0
+PyQt6>=6.2.0
+pandas>=1.3.0
+pyodbc>=4.0.32
+qtawesome>=1.1.1
+openpyxl>=3.0.9
+markdown>=3.3.7
+pytest>=7.0.0
+python-dateutil>=2.8.2
+numpy>=1.21.0
+matplotlib==3.8.2
+seaborn==0.13.0
+python-dotenv==1.0.0
+jinja2
+weasyprint
+plotly 
