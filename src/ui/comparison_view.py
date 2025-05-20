@@ -119,44 +119,40 @@ class ComparisonView(QWidget):
         self.tab_widget.setCurrentIndex(0)
         
     def update_summary_from_report(self, report_content):
-        """Parse report content to update summary view"""
+        """Parse report content and update the summary view."""
         if not report_content:
             return
-            
-        # Extract simple summary from the report
-        # This is a very basic version - in a real app, this would be more sophisticated
-        
-        # Extract report title
-        title_lines = [line for line in report_content.split('\n') if line.startswith('# ')]
-        title = title_lines[0].replace('# ', '') if title_lines else "Comparison Report"
-        self.summary_header.setText(title)
-        
-        # Extract summary section
-        summary_section = ""
-        in_summary = False
-        for line in report_content.split('\n'):
-            if line.startswith('## Summary'):
-                in_summary = True
-                continue
-                
-            if in_summary and line.startswith('## '):
-                break
-                
-            if in_summary and line.strip():
-                summary_section += line + "\n"
-                
-        # Format summary content as rich text
-        if summary_section:
-            # Convert result to rich text format
-            summary_rich = ""
-            for line in summary_section.split('\n'):
-                if ':' in line:
-                    key, value = line.split(':', 1)
-                    summary_rich += f"<b>{key}:</b> {value}<br>"
-                else:
-                    summary_rich += line + "<br>"
-                    
-            self.summary_content.setText(summary_rich)
+
+        lines = report_content.splitlines()
+
+        # --- Extract title ---
+        title = next((ln[2:] for ln in lines if ln.startswith('# ')), "Comparison Report")
+
+        # --- Extract status from the executive summary header ---
+        status_line = next((ln for ln in lines if ln.startswith('## Executive Summary')), None)
+        status = ""
+        if status_line and ':' in status_line:
+            status = status_line.split(':', 1)[1].strip()
+
+        header_text = title if not status else f"{title} - {status}"
+        self.summary_header.setText(header_text)
+
+        # --- Extract key statistics list ---
+        summary_items = []
+        try:
+            stats_index = lines.index('### Key Statistics')
+            for ln in lines[stats_index + 1:]:
+                if ln.startswith('### ') or ln.startswith('## '):
+                    break
+                if ln.startswith('- '):
+                    item = ln[2:].strip().replace('**', '')
+                    summary_items.append(item)
+        except ValueError:
+            pass
+
+        if summary_items:
+            bullet_html = '<ul>' + ''.join(f'<li>{item}</li>' for item in summary_items) + '</ul>'
+            self.summary_content.setText(bullet_html)
         else:
             self.summary_content.setText("No summary information available.")
             
