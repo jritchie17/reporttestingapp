@@ -59,3 +59,8 @@ ENV/
 
 # Project-specific
 *.log 
+# Excel files and temp artifacts
+SOO PreClose*.xlsx
+~$*.xlsx
+7B5C9400
+C9FA6A00
