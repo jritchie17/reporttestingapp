@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QColor, QTextCharFormat, QBrush, QSyntaxHighlighter, QTextCursor, QAction, QIcon
 import re
 import qtawesome as qta
+from src.ui.hover_anim_filter import HoverAnimationFilter
 
 class SQLSyntaxHighlighter(QSyntaxHighlighter):
     """Syntax highlighter for SQL code"""
@@ -97,7 +98,12 @@ class SQLEditor(QWidget):
     def __init__(self):
         super().__init__()
         self.suggestions = []
+        self.hover_filter = HoverAnimationFilter()
         self.init_ui()
+
+    def _apply_hover_animation(self, widget):
+        if widget:
+            widget.installEventFilter(self.hover_filter)
         
     def init_ui(self):
         """Initialize the user interface"""
@@ -156,16 +162,19 @@ class SQLEditor(QWidget):
         run_action.setShortcut("F5")
         run_action.triggered.connect(self.execute_sql)
         toolbar.addAction(run_action)
+        self._apply_hover_animation(toolbar.widgetForAction(run_action))
         
         # Format SQL action
         format_action = QAction(qta.icon('fa5s.align-left'), "Format SQL", self)
         format_action.triggered.connect(self.format_sql)
         toolbar.addAction(format_action)
+        self._apply_hover_animation(toolbar.widgetForAction(format_action))
         
         # Clear action
         clear_action = QAction(qta.icon('fa5s.eraser'), "Clear Editor", self)
         clear_action.triggered.connect(self.clear_editor)
         toolbar.addAction(clear_action)
+        self._apply_hover_animation(toolbar.widgetForAction(clear_action))
         
         # Add separator
         toolbar.addSeparator()
@@ -197,6 +206,7 @@ class SQLEditor(QWidget):
         
         snippets_button.setMenu(snippets_menu)
         toolbar.addWidget(snippets_button)
+        self._apply_hover_animation(snippets_button)
         
         main_layout.addWidget(toolbar)
         

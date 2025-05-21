@@ -6,6 +6,3 @@ QPushButton {
     background-color: #3a6ea5;
     color: white;
 }
-QPushButton:hover {
-    background-color: #4a7eb5;
-}
