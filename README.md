@@ -10,7 +10,7 @@ A high-quality application for testing Excel reports against SQL databases, espe
 - Support for all Excel sheets and formats
 - Intelligent data matching algorithms
 - Configurable report types and parameters
-- Choose from Light, Dark, Brand, or System interface themes
+- Choose from Light, Dark, Brand, or System interface themes (Brand is the default)
 
 ## Requirements
 
@@ -45,7 +45,7 @@ soo-preclose-tester
 ```
 
 You can customize the appearance under **Tools -> Settings -> User Interface**.
-The Theme drop-down now includes a *Brand* option that applies the company's colors.
+The Theme drop-down defaults to *Brand* (applying the company's colors) but also allows Light, Dark, or System themes.
 
 For temp table query testing, you can use the specialized scripts:
 ```

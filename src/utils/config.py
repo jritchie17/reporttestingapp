@@ -47,7 +47,7 @@ class AppConfig:
                 "trusted_connection": True
             },
             "ui": {
-                "theme": "light",
+                "theme": "brand",
                 "font_size": 10,
                 "show_line_numbers": True,
                 "auto_save_queries": True
