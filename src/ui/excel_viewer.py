@@ -1285,25 +1285,23 @@ class ExcelViewer(QWidget):
         summary = QLabel(f"Found {len(center_codes)} center codes and {len(account_codes)} account codes")
         layout.addWidget(summary)
         
-        # Create center SQL display with list of extracted centers
+        # Create center SQL display
         layout.addWidget(QLabel("Centers SQL IN Clause:"))
         center_text = QTextEdit()
         center_text.setPlainText(center_sql)
         center_text.setReadOnly(True)
         layout.addWidget(center_text)
-        
-        if center_codes:
-            centers_list = QLabel(f"Extracted centers: {', '.join(sorted(center_codes))}")
-            centers_list.setWordWrap(True)
-            layout.addWidget(centers_list)
-        
+
+
+        # Center list label removed per user request to avoid duplicate display
+
         # Create account SQL display with list of extracted accounts
         layout.addWidget(QLabel("Accounts SQL IN Clause:"))
         account_text = QTextEdit()
         account_text.setPlainText(account_sql)
         account_text.setReadOnly(True)
         layout.addWidget(account_text)
-        
+
         if account_codes:
             # Add sign flip section
             sign_flip_group = QGroupBox("Sign Flip Selection")
@@ -1329,10 +1327,8 @@ class ExcelViewer(QWidget):
             sign_flip_layout.addWidget(select_all_btn)
             
             layout.addWidget(sign_flip_group)
-            
-            accounts_list = QLabel(f"Extracted accounts: {', '.join(sorted(account_codes))}")
-            accounts_list.setWordWrap(True)
-            layout.addWidget(accounts_list)
+
+            # Accounts list label removed per user request to avoid duplicate display
         
         # Add buttons
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
