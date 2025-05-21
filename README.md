@@ -57,6 +57,14 @@ output directly. Once you have a `results.csv` (see
 python src/reporting/generate_pdf_report.py
 ```
 
+### Launch the Dashboard
+To view mismatches interactively, install the optional dashboard
+dependencies and run the Dash server:
+```bash
+pip install .[dashboard]
+python src/reporting/dashboard.py
+```
+
 ### Running tests
 Use `pytest` to run the unit tests:
 ```
