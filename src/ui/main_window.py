@@ -1456,7 +1456,7 @@ class MainWindow(QMainWindow):
         theme = self.config.get("ui", "theme")
         if not theme or theme.lower() == "system":
             QApplication.instance().setStyleSheet("")
-            return
+            theme = "system"
 
         themes_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "themes")
         if theme.lower() == "brand":
@@ -1468,3 +1468,9 @@ class MainWindow(QMainWindow):
                 QApplication.instance().setStyleSheet(f.read())
         else:
             QApplication.instance().setStyleSheet("")
+
+        # Propagate theme to child widgets
+        for widget in [getattr(self, attr, None) for attr in [
+            "excel_viewer", "sql_editor", "results_viewer"]]:
+            if widget and hasattr(widget, "apply_widget_theme"):
+                widget.apply_widget_theme(theme)

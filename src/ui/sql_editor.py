@@ -121,56 +121,8 @@ class SQLEditor(QWidget):
         # Add placeholder text
         self.editor.setPlaceholderText("Enter your SQL query here...")
         
-        # Set dark theme styling
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
-                color: #e0e0e0;
-            }
-            QTextEdit {
-                background-color: #333333;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-                font-family: Consolas, monospace;
-            }
-            QLabel {
-                color: #e0e0e0;
-                background: transparent;
-            }
-            QListWidget {
-                background-color: #333333;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-            }
-            QListWidget::item {
-                padding: 4px;
-            }
-            QListWidget::item:selected {
-                background-color: #3a6ea5;
-            }
-            QPushButton {
-                background-color: #3a6ea5;
-                color: white;
-                border: 1px solid #555555;
-                border-radius: 3px;
-                padding: 6px 12px;
-            }
-            QPushButton:hover {
-                background-color: #4a7eb5;
-            }
-            QComboBox {
-                background-color: #333333;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-                padding: 5px;
-            }
-            QLineEdit {
-                background-color: #333333;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-                padding: 5px;
-            }
-        """)
+        # Let the global theme handle widget styling
+        self.setStyleSheet("")
         
         # Suggestions panel
         self.suggestions_panel = QWidget()
@@ -335,3 +287,59 @@ class SQLEditor(QWidget):
     def has_content(self):
         """Check if the editor has content"""
         return bool(self.get_text().strip())
+
+    def apply_widget_theme(self, theme: str):
+        """Apply theme-specific styling to the SQL editor."""
+        if theme and theme.lower() == "dark":
+            qss = """
+            QWidget {
+                background-color: #2d2d2d;
+                color: #e0e0e0;
+            }
+            QTextEdit {
+                background-color: #333333;
+                color: #e0e0e0;
+                border: 1px solid #555555;
+                font-family: Consolas, monospace;
+            }
+            QLabel {
+                color: #e0e0e0;
+                background: transparent;
+            }
+            QListWidget {
+                background-color: #333333;
+                color: #e0e0e0;
+                border: 1px solid #555555;
+            }
+            QListWidget::item {
+                padding: 4px;
+            }
+            QListWidget::item:selected {
+                background-color: #3a6ea5;
+            }
+            QPushButton {
+                background-color: #3a6ea5;
+                color: white;
+                border: 1px solid #555555;
+                border-radius: 3px;
+                padding: 6px 12px;
+            }
+            QPushButton:hover {
+                background-color: #4a7eb5;
+            }
+            QComboBox {
+                background-color: #333333;
+                color: #e0e0e0;
+                border: 1px solid #555555;
+                padding: 5px;
+            }
+            QLineEdit {
+                background-color: #333333;
+                color: #e0e0e0;
+                border: 1px solid #555555;
+                padding: 5px;
+            }
+            """
+            self.setStyleSheet(qss)
+        else:
+            self.setStyleSheet("")
