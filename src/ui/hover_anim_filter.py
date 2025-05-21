@@ -19,8 +19,17 @@ class HoverAnimationFilter(QObject):
 
     def _start_animation(self, widget, enlarge: bool):
         base_size = widget.property("_hover_base_size")
-        if base_size is None:
+        if (
+            base_size is None
+            or base_size.width() == 0
+            or base_size.height() == 0
+        ):
             base_size = widget.size()
+            if base_size.width() == 0 or base_size.height() == 0:
+                hint = widget.sizeHint()
+                if hint.width() == 0 or hint.height() == 0:
+                    hint = widget.minimumSizeHint()
+                base_size = hint
             widget.setProperty("_hover_base_size", base_size)
 
         if enlarge:
