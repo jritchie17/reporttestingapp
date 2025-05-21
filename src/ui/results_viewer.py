@@ -5,6 +5,8 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableView,
                              QGroupBox, QFormLayout, QToolBar)
 from PyQt6.QtCore import Qt, QAbstractTableModel, QModelIndex, QVariant
 from PyQt6.QtGui import QFont, QColor, QBrush, QAction
+
+from src.utils.account_categories import CategoryCalculator
 import numpy as np
 import qtawesome as qta
 
@@ -194,6 +196,22 @@ class ResultsViewer(QWidget):
             return
             
         self.results_data = data
+
+        # Append category totals and formulas if configured for this report type
+        parent = self.window()
+        try:
+            from src.ui.main_window import MainWindow  # avoid circular import
+        except Exception:
+            MainWindow = None
+
+        if parent and MainWindow and isinstance(parent, MainWindow) and hasattr(parent, "config"):
+            report_type = parent.config.get("excel", "report_type")
+            if report_type:
+                categories = parent.config.get_account_categories(report_type)
+                formulas = parent.config.get_account_formulas(report_type)
+                if categories:
+                    calc = CategoryCalculator(categories, formulas)
+                    self.results_data = calc.compute(list(self.results_data))
         
         # If columns not provided, try to get them from the first row
         if not columns and data:
