@@ -147,7 +147,8 @@ class ComparisonEngine:
                 "mismatch_cells": 0,
                 "mismatch_percentage": 0
             },
-            "duplicate_keys": duplicate_key_report
+            "duplicate_keys": duplicate_key_report,
+            "suggested_sign_flips": set(),
         }
         
         # Prepare sign flip accounts as a set of stripped strings
@@ -186,16 +187,6 @@ class ComparisonEngine:
             self.logger.info(f"Excel sample values: {excel_series.head().tolist()}")
             self.logger.info(f"SQL sample values: {sql_series.head().tolist()}")
             
-            # Initialize comparison results for this column
-            col_results = {
-                "is_numeric": False,
-                "match_count": 0,
-                "mismatch_count": 0,
-                "mismatch_rows": [],
-                "null_mismatch_count": 0,
-                "sign_flipped": bool(self.sign_flip_accounts)
-            }
-            
             # Compare only matched rows
             matched_mask = merged_df['_join_key'].isin(excel_keys) & merged_df['_join_key'].isin(sql_keys)
             excel_series = excel_series[matched_mask]
@@ -209,6 +200,11 @@ class ComparisonEngine:
                 tolerance=self.tolerance,
                 sign_flip_accounts=self.sign_flip_accounts,
             )
+
+            # Merge any suggested sign flips
+            suggestions = col_results.pop("sign_flip_candidates", set())
+            if suggestions:
+                results["suggested_sign_flips"].update(suggestions)
 
             total_cells = col_results["match_count"] + col_results["mismatch_count"]
             col_results["match_percentage"] = (
@@ -383,7 +379,13 @@ class ComparisonEngine:
         if not comparison_results:
             self.logger.warning("No comparison results available")
             return "No comparison results available."
-        return report_generator.generate_report(sheet_name, comparison_results, self.sign_flip_accounts)
+        suggested = comparison_results.get("suggested_sign_flips", set())
+        return report_generator.generate_report(
+            sheet_name,
+            comparison_results,
+            self.sign_flip_accounts,
+            suggested,
+        )
 
     def generate_detailed_comparison_dataframe(self, sheet_name, excel_df, sql_df, column_mappings=None):
         """Generate a DataFrame with all matches, mismatches, and missing records for export, including sign flip and field column."""

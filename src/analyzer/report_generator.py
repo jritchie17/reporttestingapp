@@ -1,7 +1,12 @@
 from typing import Dict, Iterable
 
 
-def generate_report(sheet_name: str, comparison_results: Dict, sign_flip_accounts: Iterable[str] = None) -> str:
+def generate_report(
+    sheet_name: str,
+    comparison_results: Dict,
+    sign_flip_accounts: Iterable[str] = None,
+    suggested_accounts: Iterable[str] = None,
+) -> str:
     """Create a simple markdown report summarizing comparison results."""
     lines = [f"# Comparison Report: {sheet_name}", ""]
     mismatch_pct = comparison_results.get("summary", {}).get("mismatch_percentage", 0)
@@ -28,4 +33,7 @@ def generate_report(sheet_name: str, comparison_results: Dict, sign_flip_account
     if sign_flip_accounts:
         lines.append("")
         lines.append("**Sign Flip Accounts Applied:** " + ", ".join(sorted(sign_flip_accounts)))
+    if suggested_accounts:
+        lines.append("")
+        lines.append("**Suggested Sign Flip Accounts:** " + ", ".join(sorted(suggested_accounts)))
     return "\n".join(lines)

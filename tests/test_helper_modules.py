@@ -33,9 +33,10 @@ class TestHelperModules(unittest.TestCase):
             'summary': {'mismatch_percentage': 0, 'matching_cells': 3, 'total_cells': 3},
             'row_counts': {'excel': 2, 'sql': 2, 'matched': 2}
         }
-        report = report_generator.generate_report('Sheet1', comparison_results, ['1234-5678'])
+        report = report_generator.generate_report('Sheet1', comparison_results, ['1234-5678'], ['1111-2222'])
         self.assertIn('PERFECT MATCH', report)
         self.assertIn('Sign Flip Accounts Applied', report)
+        self.assertIn('Suggested Sign Flip Accounts', report)
 
     def test_api_compare_and_report(self):
         from src.analyzer.api import compare_and_report
