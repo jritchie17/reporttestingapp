@@ -50,6 +50,25 @@ Run the report generator after tests have produced a `results.csv` file:
 python src/reporting/generate_pdf_report.py
 ```
 
+### Command Line Interface
+
+For headless workflows a simple CLI is available:
+
+List sheets in an Excel workbook:
+```
+python -m src.cli load-excel workbook.xlsx
+```
+
+Execute a SQL file and write results to CSV:
+```
+python -m src.cli run-sql query.sql --output out.csv
+```
+
+Run a full comparison and optionally create a PDF report:
+```
+python -m src.cli compare workbook.xlsx query.sql --sheet Sheet1 --output results.csv --pdf report.pdf
+```
+
 ### Running tests
 Use `pytest` to run the unit tests:
 ```

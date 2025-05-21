@@ -5,51 +5,18 @@ from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 import os
 
-# CONFIGURATION
+# Default configuration
 REPORT_TITLE = "SOO Preclose Financial Report"
 LOGO_PATH = "logo.png"  # Place your company logo here
 RESULTS_CSV = "results.csv"  # Path to your results data
 OUTPUT_PDF = "SOO_Preclose_Report.pdf"
 
-# 1. Load Data
-df = pd.read_csv(RESULTS_CSV)
 
-# 2. Generate Key Metrics Table (customize as needed)
-key_metrics = df.groupby('Center').agg({
-    'Variance': 'sum',
-    'Actual': 'sum',
-    'Budget': 'sum'
-}).reset_index()
-key_metrics.columns = ['Center', 'Total Variance', 'Total Actual', 'Total Budget']
-
-# 3. Generate Visuals (example: Variance by Center)
-plt.figure(figsize=(10, 6))
-sns.barplot(data=key_metrics, x='Center', y='Total Variance', palette='Blues_d')
-plt.title('Variance by Center')
-plt.xticks(rotation=45, ha='right')
-plt.tight_layout()
-chart_path = 'variance_by_center.png'
-plt.savefig(chart_path, bbox_inches='tight', dpi=200)
-plt.close()
-
-# 4. Executive Summary (customize or automate as needed)
-summary_text = (
-    f"<b>Executive Summary:</b> <br>"
-    f"Total positive variance: <b>${key_metrics['Total Variance'].sum():,.2f}</b>.<br>"
-    f"Top performing center: <b>{key_metrics.loc[key_metrics['Total Variance'].idxmax(), 'Center']}</b>.<br>"
-    f"No centers flagged for material risk. All payroll tax % of wages within target."
-)
-
-# 5. Prepare HTML Template
-TEMPLATE_DIR = os.path.dirname(os.path.abspath(__file__))
-env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
-
-# Write the template file if it doesn't exist
-TEMPLATE_FILE = 'report_template.html'
-template_path = os.path.join(TEMPLATE_DIR, TEMPLATE_FILE)
-if not os.path.exists(template_path):
-    with open(template_path, 'w') as f:
-        f.write('''<!DOCTYPE html>
+def _ensure_template(template_path):
+    """Create a simple HTML template if it doesn't exist."""
+    if not os.path.exists(template_path):
+        with open(template_path, 'w') as f:
+            f.write('''<!DOCTYPE html>
 <html>
 <head>
     <style>
@@ -105,20 +72,55 @@ if not os.path.exists(template_path):
 </html>
 ''')
 
-template = env.get_template(TEMPLATE_FILE)
 
-# 6. Render HTML
-html_out = template.render(
-    report_title=REPORT_TITLE,
-    logo_path=LOGO_PATH,
-    logo_exists=os.path.exists(LOGO_PATH),
-    summary_text=summary_text,
-    key_metrics=key_metrics,
-    df=df,
-    number=(int, float)
-)
+def generate_pdf(results_csv=RESULTS_CSV, output_pdf=OUTPUT_PDF, logo_path=LOGO_PATH, report_title=REPORT_TITLE):
+    """Generate a PDF report from a CSV of comparison results."""
+    df = pd.read_csv(results_csv)
 
-# 7. Export to PDF
-HTML(string=html_out, base_url=TEMPLATE_DIR).write_pdf(OUTPUT_PDF)
+    key_metrics = df.groupby('Center').agg({
+        'Variance': 'sum',
+        'Actual': 'sum',
+        'Budget': 'sum'
+    }).reset_index()
+    key_metrics.columns = ['Center', 'Total Variance', 'Total Actual', 'Total Budget']
 
-print(f"PDF report generated: {OUTPUT_PDF}") 
+    plt.figure(figsize=(10, 6))
+    sns.barplot(data=key_metrics, x='Center', y='Total Variance', palette='Blues_d')
+    plt.title('Variance by Center')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    chart_path = 'variance_by_center.png'
+    plt.savefig(chart_path, bbox_inches='tight', dpi=200)
+    plt.close()
+
+    summary_text = (
+        f"<b>Executive Summary:</b> <br>"
+        f"Total positive variance: <b>${key_metrics['Total Variance'].sum():,.2f}</b>.<br>"
+        f"Top performing center: <b>{key_metrics.loc[key_metrics['Total Variance'].idxmax(), 'Center']}</b>.<br>"
+        f"No centers flagged for material risk. All payroll tax % of wages within target."
+    )
+
+    template_dir = os.path.dirname(os.path.abspath(__file__))
+    env = Environment(loader=FileSystemLoader(template_dir))
+    template_file = 'report_template.html'
+    template_path = os.path.join(template_dir, template_file)
+    _ensure_template(template_path)
+    template = env.get_template(template_file)
+
+    html_out = template.render(
+        report_title=report_title,
+        logo_path=logo_path,
+        logo_exists=os.path.exists(logo_path),
+        summary_text=summary_text,
+        key_metrics=key_metrics,
+        df=df,
+        number=(int, float)
+    )
+
+    HTML(string=html_out, base_url=template_dir).write_pdf(output_pdf)
+    return output_pdf
+
+
+if __name__ == "__main__":
+    pdf = generate_pdf()
+    print(f"PDF report generated: {pdf}")
