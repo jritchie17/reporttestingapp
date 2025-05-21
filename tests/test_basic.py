@@ -25,6 +25,7 @@ class TestBasicFunctionality(unittest.TestCase):
         self.assertEqual(config.get("database", "server"), "adwtest")
         self.assertEqual(config.get("database", "database"), "cognostesting")
         self.assertTrue(config.get("database", "trusted_connection"))
+        self.assertEqual(config.get("ui", "theme"), "brand")
         
     @patch('src.database.db_connector.create_engine')
     def test_database_connector(self, mock_create_engine):
