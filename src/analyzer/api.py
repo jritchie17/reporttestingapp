@@ -12,5 +12,10 @@ def compare_and_report(sheet_name: str, excel_df: pd.DataFrame, sql_df: pd.DataF
     engine.set_tolerance(tolerance)
     engine.set_sign_flip_accounts(sign_flip_accounts)
     results = engine.compare_dataframes(excel_df, sql_df)
-    report = generate_report(sheet_name, results, sign_flip_accounts)
+    report = generate_report(
+        sheet_name,
+        results,
+        sign_flip_accounts,
+        results.get("suggested_sign_flips"),
+    )
     return results, report

@@ -19,7 +19,8 @@ def compare_series(excel_series: Iterable[Any], sql_series: Iterable[Any], accou
         "mismatch_count": 0,
         "mismatch_rows": [],
         "null_mismatch_count": 0,
-        "sign_flipped": bool(sign_flip_accounts)
+        "sign_flipped": bool(sign_flip_accounts),
+        "sign_flip_candidates": set(),
     }
 
     try:
@@ -53,12 +54,23 @@ def compare_series(excel_series: Iterable[Any], sql_series: Iterable[Any], accou
                     max_val = max(abs(e_num), abs(s_num))
                     match = diff / max_val <= tolerance
                 else:
+                    max_val = 1
                     match = diff <= tolerance
                 if match:
                     results["match_count"] += 1
                 else:
                     results["mismatch_count"] += 1
                     results["mismatch_rows"].append({"row": i, "excel_value": e_val, "sql_value": s_val_adj, "difference": e_num - s_num})
+                    # Check if flipping sign would produce a match
+                    try:
+                        if not sign_flip.should_flip(acct, sign_flip_accounts):
+                            s_orig = float(s_val)
+                            diff_flip = abs(e_num + s_orig)
+                            flip_match = diff_flip / max_val <= tolerance if max_val != 1 else diff_flip <= tolerance
+                            if flip_match:
+                                results["sign_flip_candidates"].add(sign_flip._normalize_account(acct))
+                    except Exception:
+                        pass
             except Exception:
                 if str(e_val).strip() == str(s_val_adj).strip():
                     results["match_count"] += 1
