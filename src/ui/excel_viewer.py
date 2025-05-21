@@ -36,12 +36,18 @@ class EditableHeaderView(QHeaderView):
             self.headerDataChanged.emit(section, self.orientation(), new_text)
 
 class PandasTableModel(QAbstractTableModel):
-    def __init__(self, data):
+    def __init__(self, data, dark_theme=False):
         super().__init__()
         self._data = data
         self.highlight_cols = set()
         self.highlight_rows = set()
         self._headers = list(data.columns)
+        self.dark_theme = dark_theme
+
+    def set_dark_theme(self, dark_theme: bool):
+        """Update the theme flag and refresh the view."""
+        self.dark_theme = dark_theme
+        self.layoutChanged.emit()
         
     def rowCount(self, parent=QModelIndex()):
         return self._data.shape[0]
@@ -67,30 +73,30 @@ class PandasTableModel(QAbstractTableModel):
             else:
                 return str(value)
                 
-        elif role == Qt.ItemDataRole.BackgroundRole:
+        elif role == Qt.ItemDataRole.BackgroundRole and self.dark_theme:
             # Highlight specific rows or columns
             if row in self.highlight_rows or col in self.highlight_cols:
-                return QBrush(QColor(60, 90, 120))  # Darker blue highlight for dark theme
-                
-            # Alternate row colors for readability (darker theme)
+                return QBrush(QColor(60, 90, 120))  # Darker blue highlight
+
+            # Alternate row colors for readability
             if row % 2 == 0:
                 return QBrush(QColor(45, 45, 45))  # Darker background
             else:
                 return QBrush(QColor(51, 51, 51))  # Dark background for odd rows
-                
-        elif role == Qt.ItemDataRole.ForegroundRole:
+
+        elif role == Qt.ItemDataRole.ForegroundRole and self.dark_theme:
             value = self._data.iloc[row, col]
-            
+
             # Special color for NULL values
             if pd.isna(value):
-                return QBrush(QColor(150, 150, 150))  # Lighter gray for NULLs
-                
+                return QBrush(QColor(150, 150, 150))
+
             # Numeric values in a light blue color
             if isinstance(value, (int, float)) and not pd.isna(value):
-                return QBrush(QColor(110, 200, 250))  # Light blue for numbers
-            
+                return QBrush(QColor(110, 200, 250))
+
             # Default text color for dark theme
-            return QBrush(QColor(224, 224, 224))  # Light gray text for dark theme
+            return QBrush(QColor(224, 224, 224))
                 
         elif role == Qt.ItemDataRole.TextAlignmentRole:
             value = self._data.iloc[row, col]
@@ -113,9 +119,9 @@ class PandasTableModel(QAbstractTableModel):
             font.setBold(True)
             return font
             
-        elif role == Qt.ItemDataRole.ForegroundRole:
+        elif role == Qt.ItemDataRole.ForegroundRole and self.dark_theme:
             # Header text color for dark theme
-            return QBrush(QColor(224, 224, 224))  # Light gray text
+            return QBrush(QColor(224, 224, 224))
             
         return QVariant()
     
@@ -149,9 +155,12 @@ class ExcelViewer(QWidget):
         self.df = None
         self.sheet_name = None
         self.filtered_df = None
-        
+
         # Store widgets that may need theme specific styling
         self.toolbar = None
+
+        # Track the current theme so the model can adjust colors
+        self.current_theme = "light"
         
         # Default report configuration (SOO PreClose)
         self.report_config = {
@@ -335,7 +344,8 @@ class ExcelViewer(QWidget):
         self.filter_column.addItems([str(col) for col in df.columns])
         
         # Create model and set it on table view
-        self.model = PandasTableModel(self.filtered_df)
+        self.model = PandasTableModel(
+            self.filtered_df, self.current_theme.lower() == "dark")
         self.table_view.setModel(self.model)
         
         # Auto-resize columns to contents
@@ -411,7 +421,8 @@ class ExcelViewer(QWidget):
                 self.filtered_df = self.df[self.df[filter_col].astype(str).str.contains(filter_text, case=False, na=False)]
                 
         # Update model and view
-        self.model = PandasTableModel(self.filtered_df)
+        self.model = PandasTableModel(
+            self.filtered_df, self.current_theme.lower() == "dark")
         self.table_view.setModel(self.model)
         
         # Update status
@@ -434,7 +445,8 @@ class ExcelViewer(QWidget):
         
         if self.filtered_df is not None:
             # Update model and view
-            self.model = PandasTableModel(self.filtered_df)
+            self.model = PandasTableModel(
+                self.filtered_df, self.current_theme.lower() == "dark")
             self.table_view.setModel(self.model)
             
             # Update status
@@ -456,7 +468,8 @@ class ExcelViewer(QWidget):
         limit = self.limit_rows.value()
         if limit > 0 and limit < len(self.filtered_df):
             display_df = self.filtered_df.head(limit)
-            self.model = PandasTableModel(display_df)
+            self.model = PandasTableModel(
+                display_df, self.current_theme.lower() == "dark")
             self.table_view.setModel(self.model)
             
         # Highlight NULL values if option is checked
@@ -930,7 +943,8 @@ class ExcelViewer(QWidget):
                     self.filtered_df = self.df.copy()
                     
                     # Update the model
-                    self.model = PandasTableModel(self.filtered_df)
+                    self.model = PandasTableModel(
+                        self.filtered_df, self.current_theme.lower() == "dark")
                     self.table_view.setModel(self.model)
                     
                     # Update status
@@ -1699,7 +1713,8 @@ class ExcelViewer(QWidget):
         # Create an empty model
         import pandas as pd
         empty_df = pd.DataFrame()
-        self.model = PandasTableModel(empty_df)
+        self.model = PandasTableModel(
+            empty_df, self.current_theme.lower() == "dark")
         self.table_view.setModel(self.model)
         
         # Update status
@@ -1711,6 +1726,7 @@ class ExcelViewer(QWidget):
 
     def apply_widget_theme(self, theme: str):
         """Apply theme-specific styling to the Excel viewer."""
+        self.current_theme = theme or "system"
         if theme and theme.lower() == "dark":
             widget_qss = """
             QWidget {
@@ -1829,3 +1845,7 @@ class ExcelViewer(QWidget):
             if self.toolbar:
                 self.toolbar.setStyleSheet("")
             self.status_label.setStyleSheet("")
+
+        # Update the table model with the new theme
+        if hasattr(self, "model") and self.model:
+            self.model.set_dark_theme(self.current_theme.lower() == "dark")
