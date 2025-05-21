@@ -36,7 +36,8 @@ class MainWindow(QMainWindow):
         self.config = AppConfig()
         
         # Set up logging
-        self._setup_logging()
+        from src.utils.logging_config import get_logger
+        self.logger = get_logger(__name__)
         
         # Initialize components
         self.excel_analyzer = None
@@ -66,16 +67,6 @@ class MainWindow(QMainWindow):
         if load_last_session:
             self.load_last_session()
         
-    def _setup_logging(self):
-        """Set up logging for the main window"""
-        import logging
-        self.logger = logging.getLogger(__name__)
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO)
         
     def init_ui(self):
         """Initialize the user interface"""
