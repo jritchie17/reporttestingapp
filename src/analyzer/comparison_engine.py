@@ -1,9 +1,8 @@
 import pandas as pd
-import numpy as np
-from difflib import SequenceMatcher
 import logging
-from src.utils.logging_config import get_logger
 import re
+from src.utils.logging_config import get_logger
+from . import column_matching, row_comparison, sign_flip, report_generator
 
 class ComparisonEngine:
     def __init__(self):
@@ -42,145 +41,18 @@ class ComparisonEngine:
         return any(account in str(column_name) for account in self.sign_flip_accounts)
     
     def normalize_column_names(self, columns):
-        """Normalize column names for comparison"""
-        normalized = []
-        for col in columns:
-            if not isinstance(col, str):
-                col = str(col)
-            
-            # Remove special characters and standardize spacing
-            col = re.sub(r'[^\w\s]', ' ', col)
-            # Remove common words that don't add meaning (e.g., "the", "and", etc.)
-            col = re.sub(r'\b(the|and|or|of|in|for|to|a|an)\b', '', col, flags=re.IGNORECASE)
-            # Normalize whitespace
-            col = re.sub(r'\s+', ' ', col).strip().lower()
-            normalized.append(col)
-        
-        return normalized
+        """Normalize column names for comparison."""
+        return column_matching.normalize_column_names(columns)
     
     def find_matching_columns(self, excel_columns, sql_columns, threshold=0.6):
-        """Find matching columns between Excel and SQL results"""
-        excel_normalized = self.normalize_column_names(excel_columns)
-        sql_normalized = self.normalize_column_names(sql_columns)
-        
-        # Log column names for debugging
-        self.logger.info(f"Excel columns: {excel_columns}")
-        self.logger.info(f"SQL columns: {sql_columns}")
-        self.logger.info(f"Normalized Excel columns: {excel_normalized}")
-        self.logger.info(f"Normalized SQL columns: {sql_normalized}")
-        
-        # Check for exact matches first (case-insensitive)
-        mappings = {}
-        used_sql_indices = set()
-        
-        # First pass: look for exact matches after normalization
-        for i, excel_col in enumerate(excel_normalized):
-            for j, sql_col in enumerate(sql_normalized):
-                if j in used_sql_indices:
-                    continue
-                    
-                if excel_col == sql_col:
-                    mappings[i] = {
-                        "excel_column": excel_columns[i],
-                        "sql_column": sql_columns[j],
-                        "match_score": 1.0
-                    }
-                    used_sql_indices.add(j)
-                    break
-        
-        # Second pass: fuzzy matching for remaining columns
-        for i, excel_col in enumerate(excel_normalized):
-            if i in mappings:
-                continue
-                
-            best_match = None
-            best_score = threshold
-            
-            for j, sql_col in enumerate(sql_normalized):
-                if j in used_sql_indices:
-                    continue
-                    
-                # Try different fuzzy matching techniques
-                
-                # 1. Sequence matcher ratio
-                score1 = SequenceMatcher(None, excel_col, sql_col).ratio()
-                
-                # 2. Check if one is substring of the other
-                excel_words = set(excel_col.split())
-                sql_words = set(sql_col.split())
-                common_words = excel_words.intersection(sql_words)
-                
-                # Calculate word overlap ratio
-                score2 = len(common_words) / max(len(excel_words), len(sql_words)) if excel_words or sql_words else 0
-                
-                # 3. Check for substring matches
-                score3 = 0
-                if excel_col in sql_col or sql_col in excel_col:
-                    # Calculate length ratio of the shorter to longer string
-                    min_len = min(len(excel_col), len(sql_col))
-                    max_len = max(len(excel_col), len(sql_col))
-                    score3 = min_len / max_len if max_len > 0 else 0
-                
-                # Take the best score
-                score = max(score1, score2, score3)
-                
-                if score > best_score:
-                    best_score = score
-                    best_match = j
-            
-            if best_match is not None:
-                mappings[i] = {
-                    "excel_column": excel_columns[i],
-                    "sql_column": sql_columns[best_match],
-                    "match_score": best_score
-                }
-                used_sql_indices.add(best_match)
-        
-        # If still no mappings, try a very low threshold for any column that might be similar
-        if not mappings:
-            fallback_threshold = 0.3  # Very low threshold for last resort matching
-            for i, excel_col in enumerate(excel_normalized):
-                best_match = None
-                best_score = fallback_threshold
-                
-                for j, sql_col in enumerate(sql_normalized):
-                    if j in used_sql_indices:
-                        continue
-                        
-                    score = SequenceMatcher(None, excel_col, sql_col).ratio()
-                    if score > best_score:
-                        best_score = score
-                        best_match = j
-                
-                if best_match is not None:
-                    mappings[i] = {
-                        "excel_column": excel_columns[i],
-                        "sql_column": sql_columns[best_match],
-                        "match_score": best_score
-                    }
-                    used_sql_indices.add(best_match)
-        
-        # Last resort: if Sheet_Name is in excel columns, try to match by position
-        if "Sheet_Name" in excel_columns and not mappings:
-            sheet_name_idx = list(excel_columns).index("Sheet_Name")
-            # Skip Sheet_Name column and match others by position
-            for i, excel_col in enumerate(excel_columns):
-                if i == sheet_name_idx:
-                    continue  # Skip Sheet_Name column
-                
-                # Calculate the adjusted SQL index
-                j = i if i < sheet_name_idx else i - 1
-                if j < len(sql_columns):
-                    mappings[i] = {
-                        "excel_column": excel_columns[i],
-                        "sql_column": sql_columns[j],
-                        "match_score": 0.5  # Default score for position-based matching
-                    }
-        
+        """Find matching columns between Excel and SQL results."""
+        mappings = column_matching.find_matching_columns(excel_columns, sql_columns, threshold)
+
         self.logger.info(f"Found {len(mappings)} column mappings between Excel and SQL data")
-        for i, mapping in mappings.items():
-            self.logger.info(f"Mapped '{mapping['excel_column']}' to '{mapping['sql_column']}' (score: {mapping['match_score']:.2f})")
-        
+        for _, mapping in mappings.items():
+            self.logger.info(
+                f"Mapped '{mapping['excel_column']}' to '{mapping['sql_column']}' (score: {mapping['match_score']:.2f})"
+            )
         return mappings
     
     def compare_dataframes(self, excel_df, sql_df, column_mappings=None):
@@ -330,106 +202,18 @@ class ComparisonEngine:
             sql_series = sql_series[matched_mask]
             account_series = account_series[matched_mask]
             
-            # Attempt to convert both to numeric if they appear to be numeric
-            try:
-                excel_numeric = pd.to_numeric(excel_series, errors='coerce')
-                sql_numeric = pd.to_numeric(sql_series, errors='coerce')
-                excel_numeric_ratio = excel_numeric.notna().mean()
-                sql_numeric_ratio = sql_numeric.notna().mean()
-                self.logger.info(f"Numeric conversion ratios - Excel: {excel_numeric_ratio:.2f}, SQL: {sql_numeric_ratio:.2f}")
-                if excel_numeric_ratio > 0.5 and sql_numeric_ratio > 0.5:
-                    col_results["is_numeric"] = True
-                    excel_series = excel_numeric
-                    sql_series = sql_numeric
-            except Exception as e:
-                self.logger.debug(f"Numeric conversion failed for {excel_col}/{sql_col}: {str(e)}")
-            
-            # Compare values, applying sign flip per row if needed
-            for i, (excel_val, sql_val, acct) in enumerate(zip(excel_series, sql_series, account_series)):
-                # Check for null values
-                excel_null = pd.isna(excel_val)
-                sql_null = pd.isna(sql_val)
-                
-                # Robust account matching: extract account number if needed
-                acct_str = str(acct).strip()
-                # Try to extract xxxx-xxxx pattern from the string
-                match = re.search(r'\d{4}-\d{4}', acct_str)
-                acct_extracted = match.group(0) if match else acct_str
-                flip = col_results["is_numeric"] and acct_extracted in sign_flip_accounts_str and pd.notna(sql_val)
-                # Log every row to the debug log file
-                self.debug_logger.info(f"Row {i}: AccountRaw='{acct_str}', AccountExtracted='{acct_extracted}', Excel={excel_val}, SQL(before flip)={sql_val}, Flip={flip}")
-                if flip:
-                    sql_val = -sql_val
-                    self.debug_logger.info(f"Row {i}: SQL value after flip: {sql_val}")
-                
-                if excel_null and sql_null:
-                    col_results["match_count"] += 1
-                elif excel_null != sql_null:
-                    col_results["null_mismatch_count"] += 1
-                    col_results["mismatch_count"] += 1
-                    col_results["mismatch_rows"].append({
-                        "row": i,
-                        "excel_value": excel_val,
-                        "sql_value": sql_val,
-                        "difference": "NULL mismatch"
-                    })
-                elif col_results["is_numeric"]:
-                    try:
-                        excel_num = float(excel_val)
-                        sql_num = float(sql_val)
-                        abs_diff = abs(excel_num - sql_num)
-                        if abs(excel_num) > 1.0 or abs(sql_num) > 1.0:
-                            max_val = max(abs(excel_num), abs(sql_num))
-                            rel_diff = abs_diff / max_val if max_val > 0 else abs_diff
-                            is_match = rel_diff <= self.tolerance
-                            if not is_match and i < 5:
-                                self.logger.info(f"Row {i} mismatch - Excel: {excel_num}, SQL: {sql_num}, "
-                                               f"Abs diff: {abs_diff}, Rel diff: {rel_diff:.6f}, "
-                                               f"Tolerance: {self.tolerance}")
-                        else:
-                            is_match = abs_diff <= self.tolerance
-                            if not is_match and i < 5:
-                                self.logger.info(f"Row {i} mismatch - Excel: {excel_num}, SQL: {sql_num}, "
-                                               f"Abs diff: {abs_diff}, Tolerance: {self.tolerance}")
-                        if is_match:
-                            col_results["match_count"] += 1
-                        else:
-                            col_results["mismatch_count"] += 1
-                            col_results["mismatch_rows"].append({
-                                "row": i,
-                                "excel_value": excel_val,
-                                "sql_value": sql_val,
-                                "difference": excel_num - sql_num
-                            })
-                    except (ValueError, TypeError) as e:
-                        self.logger.warning(f"Error comparing values at row {i}: {str(e)}")
-                        if str(excel_val).strip() == str(sql_val).strip():
-                            col_results["match_count"] += 1
-                        else:
-                            col_results["mismatch_count"] += 1
-                            col_results["mismatch_rows"].append({
-                                "row": i,
-                                "excel_value": excel_val,
-                                "sql_value": sql_val,
-                                "difference": "String mismatch"
-                            })
-                else:
-                    excel_str = str(excel_val).strip().lower()
-                    sql_str = str(sql_val).strip().lower()
-                    if excel_str == sql_str:
-                        col_results["match_count"] += 1
-                    else:
-                        col_results["mismatch_count"] += 1
-                        col_results["mismatch_rows"].append({
-                            "row": i,
-                            "excel_value": excel_val,
-                            "sql_value": sql_val,
-                            "difference": "String mismatch"
-                        })
-            
-            # Calculate match percentage for this column
+            col_results = row_comparison.compare_series(
+                excel_series,
+                sql_series,
+                account_series,
+                tolerance=self.tolerance,
+                sign_flip_accounts=self.sign_flip_accounts,
+            )
+
             total_cells = col_results["match_count"] + col_results["mismatch_count"]
-            col_results["match_percentage"] = (col_results["match_count"] / total_cells * 100) if total_cells > 0 else 0
+            col_results["match_percentage"] = (
+                col_results["match_count"] / total_cells * 100
+            ) if total_cells > 0 else 0
             
             # Log column comparison results
             self.logger.info(f"Column comparison results for {excel_col}:")
@@ -589,201 +373,17 @@ class ComparisonEngine:
 
         flagged = merged[merged.apply(needs_flag, axis=1)].copy()
         flagged.drop(columns=['_merge'], inplace=True)
+
         return flagged
-    
+
     def generate_comparison_report(self, sheet_name, comparison_results=None):
-        """Generate a detailed, executive-friendly report of comparison results"""
+        """Generate a markdown comparison report."""
         if comparison_results is None:
             comparison_results = self.comparison_results
-            
         if not comparison_results:
             self.logger.warning("No comparison results available")
             return "No comparison results available."
-        
-        # Get key column information to extract account numbers and other identifying info
-        key_columns = []
-        for i, mapping in comparison_results.get("column_mappings", {}).items():
-            # Look for key columns like Center, Account, CAReportName
-            if mapping['excel_column'].lower() in ['center', 'account', 'careportname', 'sheet_name']:
-                key_columns.append(mapping['excel_column'])
-        
-        report = f"# Comparison Report: {sheet_name}\n\n"
-        
-        # --- Duplicate key reporting ---
-        dup_report = comparison_results.get("duplicate_keys", {})
-        if dup_report and (dup_report.get("excel") or dup_report.get("sql")):
-            report += "## Duplicate Join Keys Detected\n\n"
-            if dup_report.get("excel"):
-                report += "**Excel duplicate keys:**\n\n"
-                report += "| Join Key | Count |\n|---------|-------|\n"
-                for key, count in dup_report["excel"].items():
-                    report += f"| {key} | {count} |\n"
-            if dup_report.get("sql"):
-                report += "\n**SQL duplicate keys:**\n\n"
-                report += "| Join Key | Count |\n|---------|-------|\n"
-                for key, count in dup_report["sql"].items():
-                    report += f"| {key} | {count} |\n"
-            report += "\n**Warning:** Duplicate join keys can cause inflated matched record counts and inaccurate comparisons. Please review your data.\n\n"
-        
-        # High-level executive summary
-        report += "## Executive Summary\n\n"
-        
-        # Determine overall status
-        mismatch_pct = comparison_results["summary"]["mismatch_percentage"]
-        if mismatch_pct == 0:
-            status = "✅ PERFECT MATCH"
-        elif mismatch_pct < 1:
-            status = "✅ GOOD MATCH"
-        elif mismatch_pct < 5:
-            status = "⚠️ MODERATE MISMATCH"
-        else:
-            status = "❌ SIGNIFICANT MISMATCH"
-            
-        report += f"**Status:** {status}\n\n"
-        report += f"**Match Rate:** {100 - mismatch_pct:.2f}% ({comparison_results['summary']['matching_cells']} of {comparison_results['summary']['total_cells']} cells match)\n\n"
-        
-        # Row statistics 
-        report += "## Data Coverage\n\n"
-        report += f"**Excel Records:** {comparison_results['row_counts']['excel']}\n"
-        report += f"**SQL Records:** {comparison_results['row_counts']['sql']}\n"
-        report += f"**Matched Records:** {comparison_results['row_counts']['matched']}\n"
-        
-        # Unmatched record explanation if applicable
-        excel_only = comparison_results['row_counts']['excel'] - comparison_results['row_counts']['matched']
-        sql_only = comparison_results['row_counts']['sql'] - comparison_results['row_counts']['matched']
-        
-        if excel_only > 0 or sql_only > 0:
-            report += "\n### Unmatched Records\n\n"
-            if excel_only > 0:
-                report += f"* **Excel-only Records:** {excel_only} (in Excel but not found in SQL)\n"
-            if sql_only > 0:
-                report += f"* **SQL-only Records:** {sql_only} (in SQL but not found in Excel)\n"
-
-        # Account discrepancy summary
-        discrepancies = comparison_results.get("account_discrepancies")
-        if isinstance(discrepancies, pd.DataFrame) and not discrepancies.empty:
-            report += "\n### Accounts with Potential Issues\n\n"
-            report += "| Center | Account | Excel Total | SQL Total | Variance | Missing in Excel | Missing in SQL |\n"
-            report += "|-------|---------|-------------|-----------|---------|-----------------|---------------|\n"
-            for _, row in discrepancies.iterrows():
-                report += (
-                    f"| {row['Center']} | {row['Account']} | {row['Excel']:.2f} | "
-                    f"{row['SQL']:.2f} | {row['Variance']:.2f} | "
-                    f"{'Yes' if row['Missing in Excel'] else ''} | "
-                    f"{'Yes' if row['Missing in SQL'] else ''} |\n"
-                )
-
-        # List sign flip accounts if any
-        if self.sign_flip_accounts:
-            report += "\n**Sign Flip Accounts Applied:** " + ", ".join(sorted(self.sign_flip_accounts)) + "\n"
-
-        # Mismatch analysis
-        report += "\n## Mismatch Analysis\n\n"
-        
-        # Show column-level statistics
-        column_stats = []
-        for excel_col, results in comparison_results["column_comparisons"].items():
-            # Skip columns with perfect matches
-            if results["mismatch_count"] == 0:
-                continue
-                
-            sql_col = next((m["sql_column"] for i, m in comparison_results["column_mappings"].items() 
-                          if m["excel_column"] == excel_col), "Unknown")
-                          
-            mismatch_pct = (results["mismatch_count"] / (results["match_count"] + results["mismatch_count"])) * 100
-            
-            column_stats.append({
-                "excel_column": excel_col,
-                "sql_column": sql_col,
-                "mismatch_count": results["mismatch_count"],
-                "mismatch_percentage": mismatch_pct,
-                "is_numeric": results["is_numeric"]
-            })
-        
-        # Sort columns by mismatch percentage (highest first)
-        column_stats.sort(key=lambda x: x["mismatch_percentage"], reverse=True)
-        
-        if column_stats:
-            report += "### Columns with Mismatches\n\n"
-            report += "| Column | SQL Column | Mismatch Count | Mismatch % | Type |\n"
-            report += "|--------|------------|---------------|------------|------|\n"
-            
-            for stat in column_stats:
-                report += f"| {stat['excel_column']} | {stat['sql_column']} | {stat['mismatch_count']} | {stat['mismatch_percentage']:.2f}% | {'Numeric' if stat['is_numeric'] else 'Text'} |\n"
-            
-            report += "\n"
-        
-        # Detailed mismatch report - by account/identifying info
-        report += "## Detailed Mismatch Report\n\n"
-        
-        # Gather all mismatches with identity information
-        all_mismatches = []
-        
-        for excel_col, results in comparison_results["column_comparisons"].items():
-            # Skip if no mismatches
-            if not results["mismatch_rows"]:
-                continue
-                
-            sql_col = next((m["sql_column"] for i, m in comparison_results["column_mappings"].items() 
-                          if m["excel_column"] == excel_col), "Unknown")
-            
-            for mismatch in results["mismatch_rows"]:
-                # Add column info to the mismatch
-                mismatch_with_col = mismatch.copy()
-                mismatch_with_col["excel_column"] = excel_col
-                mismatch_with_col["sql_column"] = sql_col
-                
-                all_mismatches.append(mismatch_with_col)
-        
-        # Sort mismatches by row number for consistent reporting
-        all_mismatches.sort(key=lambda x: x["row"])
-        
-        if all_mismatches:
-            if key_columns:
-                # Group mismatches by key columns for more organized reporting
-                report += f"### Mismatch Details by {', '.join(key_columns)}\n\n"
-                
-                # We need access to the full merged dataframe to extract key column values
-                # For now, we'll just show the mismatches in a well-formatted table
-                report += "| Row | Account Info | Column | Excel Value | SQL Value | Difference |\n"
-                report += "|-----|-------------|--------|-------------|-----------|------------|\n"
-                
-                for i, mismatch in enumerate(all_mismatches[:50]):  # Limit to 50 mismatches
-                    row = mismatch["row"]
-                    excel_val = str(mismatch["excel_value"]).replace("|", "\\|")
-                    sql_val = str(mismatch["sql_value"]).replace("|", "\\|")
-                    diff = str(mismatch["difference"]).replace("|", "\\|")
-                    excel_col = mismatch["excel_column"]
-                    
-                    # Account info placeholder - in a full implementation, 
-                    # this would extract values from key columns for this row
-                    account_info = f"Row {row}"
-                    
-                    report += f"| {row} | {account_info} | {excel_col} | {excel_val} | {sql_val} | {diff} |\n"
-                
-                if len(all_mismatches) > 50:
-                    report += f"\n*...and {len(all_mismatches) - 50} more mismatches.*\n"
-            else:
-                # Simple mismatch table
-                report += "### All Mismatches\n\n"
-                report += "| Row | Column | Excel Value | SQL Value | Difference |\n"
-                report += "|-----|--------|-------------|-----------|------------|\n"
-                
-                for i, mismatch in enumerate(all_mismatches[:50]):  # Limit to 50 mismatches
-                    row = mismatch["row"]
-                    excel_val = str(mismatch["excel_value"]).replace("|", "\\|")
-                    sql_val = str(mismatch["sql_value"]).replace("|", "\\|")
-                    diff = str(mismatch["difference"]).replace("|", "\\|")
-                    excel_col = mismatch["excel_column"]
-                    
-                    report += f"| {row} | {excel_col} | {excel_val} | {sql_val} | {diff} |\n"
-                
-                if len(all_mismatches) > 50:
-                    report += f"\n*...and {len(all_mismatches) - 50} more mismatches.*\n"
-        else:
-            report += "No mismatches found! All values match perfectly.\n"
-                
-        return report 
+        return report_generator.generate_report(sheet_name, comparison_results, self.sign_flip_accounts)
 
     def generate_detailed_comparison_dataframe(self, sheet_name, excel_df, sql_df, column_mappings=None):
         """Generate a DataFrame with all matches, mismatches, and missing records for export, including sign flip and field column."""
