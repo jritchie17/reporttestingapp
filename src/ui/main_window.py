@@ -1332,7 +1332,7 @@ class MainWindow(QMainWindow):
         self.logger.info(f"Using report configuration for {report_type}: {report_config}")
         
         # Set this in the application-wide configuration
-        self.config.set("excel.current_report_config", report_config)
+        self.config.set("excel", "current_report_config", report_config)
 
     def reset_application(self):
         """Reset the application state to start a new test:
