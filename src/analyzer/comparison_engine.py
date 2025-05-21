@@ -2,7 +2,13 @@ import pandas as pd
 import logging
 import re
 from src.utils.logging_config import get_logger
-from . import column_matching, row_comparison, sign_flip, report_generator
+from . import (
+    column_matching,
+    row_comparison,
+    sign_flip,
+    report_generator,
+    discrepancy_classifier,
+)
 
 class ComparisonEngine:
     def __init__(self):
@@ -241,7 +247,16 @@ class ComparisonEngine:
         except Exception as e:
             self.logger.warning(f"Account discrepancy analysis failed: {e}")
             discrepancies = pd.DataFrame()
+
         results["account_discrepancies"] = discrepancies
+        if (
+            isinstance(discrepancies, pd.DataFrame)
+            and not discrepancies.empty
+            and "Severity" in discrepancies.columns
+        ):
+            results["discrepancy_severity"] = discrepancies["Severity"].tolist()
+        else:
+            results["discrepancy_severity"] = []
 
         # Store results
         self.comparison_results = results
@@ -369,6 +384,9 @@ class ComparisonEngine:
 
         flagged = merged[merged.apply(needs_flag, axis=1)].copy()
         flagged.drop(columns=['_merge'], inplace=True)
+
+        # Classify discrepancies by severity
+        flagged = discrepancy_classifier.classify(flagged)
 
         return flagged
 

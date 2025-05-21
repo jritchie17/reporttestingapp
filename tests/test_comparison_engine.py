@@ -34,6 +34,8 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         self.assertEqual(row['Center'], 1)
         self.assertEqual(row['Account'], '1234-5678')
         self.assertAlmostEqual(row['Variance'], 200)
+        self.assertIn('Severity', discrepancies.columns)
+        self.assertEqual(row['Severity'], 'major')
 
         self.engine.set_sign_flip_accounts(['1234-5678'])
         discrepancies_flip = self.engine.identify_account_discrepancies(self.excel_df, self.sql_df)
@@ -44,3 +46,8 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         messages = self.engine.explain_variances(discrepancies)
         self.assertEqual(len(messages), len(discrepancies))
         self.assertIn('Variance of', messages[0])
+
+    def test_compare_results_include_severity(self):
+        results = self.engine.compare_dataframes(self.excel_df, self.sql_df)
+        self.assertIn('discrepancy_severity', results)
+        self.assertIn('major', results['discrepancy_severity'])
