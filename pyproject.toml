@@ -40,3 +40,10 @@ soo-preclose-tester = "soo_preclose_tester.__main__:run"
 [tool.setuptools.packages.find]
 include = ["src*", "soo_preclose_tester*"]
 exclude = ["tests*"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"src" = ["../themes/*.qss", "../assets/*.png"]
+"soo_preclose_tester" = ["../themes/*.qss", "../assets/*.png"]
