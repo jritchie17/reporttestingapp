@@ -25,18 +25,22 @@ A high-quality application for testing Excel reports against SQL databases, espe
 ## Installation
 
 1. Clone this repository
-2. Install required packages:
+2. Install the project into your environment:
    ```
-   pip install -r requirements.txt
+   pip install .
    ```
 3. Configure your database settings in the application
 
 ## Usage
 
 ### Launch the GUI
-Run the main application to open the PyQt interface:
+After installation you can open the PyQt interface with:
 ```
-python main.py
+python -m soo_preclose_tester
+```
+or simply use the console script:
+```
+soo-preclose-tester
 ```
 
 For temp table query testing, you can use the specialized scripts:
