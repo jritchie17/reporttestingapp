@@ -893,7 +893,10 @@ class MainWindow(QMainWindow):
 
             df = results.get("account_discrepancies")
             if isinstance(df, pd.DataFrame) and not df.empty:
-                tmp = df[["Center", "Account", "Variance", "Missing in Excel", "Missing in SQL"]].copy()
+                explanations = self.comparison_engine.explain_variances(df)
+                df = df.copy()
+                df["Explanation"] = explanations
+                tmp = df[["Center", "Account", "Variance", "Missing in Excel", "Missing in SQL", "Explanation"]].copy()
                 tmp.insert(0, "Sheet", sheet_name)
                 discrepancy_frames.append(tmp)
         
@@ -963,11 +966,11 @@ class MainWindow(QMainWindow):
         discrepancy_df = pd.concat(discrepancy_frames, ignore_index=True) if discrepancy_frames else pd.DataFrame()
         if not discrepancy_df.empty:
             report.append("\n## Account Discrepancies")
-            report.append("\n| Sheet | Center | Account | Variance | Missing in Excel | Missing in SQL |")
-            report.append("| ----- | ------ | ------- | -------- | ---------------- | -------------- |")
+            report.append("\n| Sheet | Center | Account | Variance | Missing in Excel | Missing in SQL | Explanation |")
+            report.append("| ----- | ------ | ------- | -------- | --------------- | -------------- | ----------- |")
             for _, row in discrepancy_df.iterrows():
                 report.append(
-                    f"| {row['Sheet']} | {row['Center']} | {row['Account']} | {row['Variance']:.2f} | {row['Missing in Excel']} | {row['Missing in SQL']} |"
+                    f"| {row['Sheet']} | {row['Center']} | {row['Account']} | {row["Variance"]:.2f} | {row["Missing in Excel"]} | {row["Missing in SQL"]} | {row["Explanation"]} |"
                 )
         else:
             discrepancy_df = pd.DataFrame(columns=["Sheet", "Center", "Account", "Variance", "Missing in Excel", "Missing in SQL"])
@@ -1063,7 +1066,15 @@ class MainWindow(QMainWindow):
                 
                 if len(all_mismatches) > 10:
                     report.append(f"\n*...and {len(all_mismatches) - 10} more mismatches in this sheet.*")
-        
+
+            # Add discrepancy explanations for this sheet
+            disc_df = results.get("account_discrepancies")
+            messages = self.comparison_engine.explain_variances(disc_df)
+            if messages:
+                report.append("\n#### Discrepancies")
+                for msg in messages:
+                    report.append(f"- {msg}")
+
         # Add matching sheets section (brief)
         if match_sheets:
             report.append("\n## Perfect Match Sheets")

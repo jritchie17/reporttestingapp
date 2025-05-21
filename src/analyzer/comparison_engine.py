@@ -372,6 +372,28 @@ class ComparisonEngine:
 
         return flagged
 
+    def explain_variances(self, discrepancies_df):
+        """Return human readable messages explaining each discrepancy."""
+        messages = []
+        if discrepancies_df is None or discrepancies_df.empty:
+            return messages
+
+        for _, row in discrepancies_df.iterrows():
+            center = row.get("Center")
+            account = row.get("Account")
+            variance = row.get("Variance")
+            if row.get("Missing in Excel"):
+                msg = f"Account {account} in Center {center} is missing in Excel"
+            elif row.get("Missing in SQL"):
+                msg = (
+                    f"Variance of {variance} due to missing in SQL for Account {account} in Center {center}"
+                )
+            else:
+                msg = f"Variance of {variance} for Account {account} in Center {center}"
+            messages.append(msg)
+
+        return messages
+
     def generate_comparison_report(self, sheet_name, comparison_results=None):
         """Generate a markdown comparison report."""
         if comparison_results is None:
