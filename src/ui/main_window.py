@@ -26,6 +26,7 @@ from src.utils.config import AppConfig
 
 import qtawesome as qta
 import pandas as pd
+import re
 
 
 class MainWindow(QMainWindow):
@@ -1205,9 +1206,33 @@ class MainWindow(QMainWindow):
     def open_account_categories(self):
         """Open the account categories dialog for the current report."""
         report_type = self.report_selector.currentText()
-        dialog = AccountCategoryDialog(self.config, report_type, self)
+        accounts = self._gather_accounts_from_excel()
+        dialog = AccountCategoryDialog(self.config, report_type, accounts, self)
         if dialog.exec():
             self.status_bar.showMessage("Account categories updated")
+
+    def _gather_accounts_from_excel(self):
+        """Extract account numbers from loaded Excel sheets."""
+        if not getattr(self, "excel_analyzer", None):
+            return []
+
+        patterns = [r"(\d{4}-\d{4})", r"(\d{5}-\d{3})", r"(\d{3}-\d{5})", r"(\d{4}-\d{5})"]
+        accounts = set()
+        try:
+            for sheet in self.excel_analyzer.sheet_names:
+                if sheet not in self.excel_analyzer.sheet_data:
+                    self.excel_analyzer.analyze_sheet(sheet)
+                df = self.excel_analyzer.sheet_data[sheet]["dataframe"]
+                for col in df.columns:
+                    if "account" in str(col).lower():
+                        col_data = df[col].astype(str)
+                        for val in col_data:
+                            for pat in patterns:
+                                accounts.update(re.findall(pat, val))
+        except Exception as e:
+            self.logger.error(f"Failed to extract accounts: {e}")
+
+        return sorted(accounts)
     
     def show_about(self):
         """Show about dialog"""
