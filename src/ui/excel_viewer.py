@@ -150,83 +150,8 @@ class ExcelViewer(QWidget):
         self.sheet_name = None
         self.filtered_df = None
         
-        # Set dark theme for the entire widget
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
-                color: #e0e0e0;
-            }
-            QLabel {
-                color: #e0e0e0;
-                background: transparent;
-            }
-            QGroupBox {
-                background-color: #333333;
-                border: 1px solid #555555;
-                border-radius: 4px;
-                margin-top: 1.5ex;
-                color: #e0e0e0;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top center;
-                padding: 0 4px;
-                color: #e0e0e0;
-                background: transparent;
-            }
-            QPushButton {
-                background-color: #3a6ea5;
-                color: white;
-                border: 1px solid #555555;
-                border-radius: 3px;
-                padding: 4px 8px;
-            }
-            QPushButton:hover {
-                background-color: #4a7eb5;
-            }
-            QPushButton:pressed {
-                background-color: #305580;
-            }
-            QPushButton:disabled {
-                background-color: #555555;
-                color: #888888;
-            }
-            QComboBox, QLineEdit, QSpinBox {
-                background-color: transparent;
-                color: #e0e0e0;
-                border: none;
-                border-radius: 3px;
-                padding: 2px 4px;
-            }
-            QComboBox:focus, QLineEdit:focus, QSpinBox:focus {
-                border: 1px solid #3a6ea5;
-            }
-            QComboBox::drop-down {
-                subcontrol-origin: padding;
-                subcontrol-position: top right;
-                width: 20px;
-                border-left: 1px solid #555555;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #3c3c3c;
-                color: #e0e0e0;
-                selection-background-color: #3a6ea5;
-                selection-color: white;
-            }
-            QCheckBox {
-                color: #e0e0e0;
-                background: transparent;
-            }
-            QCheckBox::indicator {
-                width: 13px;
-                height: 13px;
-                border: 1px solid #555555;
-                background-color: #3c3c3c;
-            }
-            QCheckBox::indicator:checked {
-                background-color: #3a6ea5;
-            }
-        """)
+        # Store widgets that may need theme specific styling
+        self.toolbar = None
         
         # Default report configuration (SOO PreClose)
         self.report_config = {
@@ -258,123 +183,23 @@ class ExcelViewer(QWidget):
         
         self.table_view.setHorizontalHeader(self.horizontal_header)
         
-        # Set stylesheet for a dark theme that matches the application
-        self.table_view.setStyleSheet("""
-            QTableView {
-                background-color: #2d2d2d;
-                alternate-background-color: #333333;
-                color: #e0e0e0;
-                selection-background-color: #3a6ea5;
-                selection-color: #ffffff;
-                gridline-color: #4a4a4a;
-                border: 1px solid #4a4a4a;
-            }
-            QHeaderView::section {
-                background-color: #444444;
-                color: #e0e0e0;
-                padding: 4px;
-                border: 1px solid #555555;
-                font-weight: bold;
-            }
-            QTableView::item:selected {
-                background-color: #3a6ea5;
-                color: #ffffff;
-            }
-            QTableView::item:hover {
-                background-color: #424242;
-            }
-            QTableView QTableCornerButton::section {
-                background-color: #444444;
-                border: 1px solid #555555;
-            }
-        """)
+        # Clear table view stylesheet to inherit from application theme
+        self.table_view.setStyleSheet("")
         
         # Add table to main layout
         main_layout.addWidget(self.table_view)
         
         # Add status area
         self.status_label = QLabel("No data loaded")
-        self.status_label.setStyleSheet("color: #e0e0e0;")
         main_layout.addWidget(self.status_label)
         
     def create_toolbar(self, main_layout):
         """Create toolbar with data manipulation options"""
-        toolbar = QWidget()
-        toolbar.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
-                color: #e0e0e0;
-            }
-            QGroupBox {
-                background-color: #333333;
-                border: 1px solid #555555;
-                border-radius: 4px;
-                margin-top: 1.5ex;
-                color: #e0e0e0;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top center;
-                padding: 0 4px;
-                color: #e0e0e0;
-            }
-            QPushButton {
-                background-color: #3a6ea5;
-                color: white;
-                border: 1px solid #555555;
-                border-radius: 3px;
-                padding: 4px 8px;
-            }
-            QPushButton:hover {
-                background-color: #4a7eb5;
-            }
-            QPushButton:pressed {
-                background-color: #305580;
-            }
-            QPushButton:disabled {
-                background-color: #555555;
-                color: #888888;
-            }
-            QComboBox, QLineEdit, QSpinBox {
-                background-color: transparent;
-                color: #e0e0e0;
-                border: none;
-                border-radius: 3px;
-                padding: 2px 4px;
-            }
-            QComboBox:focus, QLineEdit:focus, QSpinBox:focus {
-                border: 1px solid #3a6ea5;
-            }
-            QComboBox::drop-down {
-                subcontrol-origin: padding;
-                subcontrol-position: top right;
-                width: 20px;
-                border-left: 1px solid #555555;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #3c3c3c;
-                color: #e0e0e0;
-                selection-background-color: #3a6ea5;
-                selection-color: white;
-            }
-            QLabel {
-                color: #e0e0e0;
-            }
-            QCheckBox {
-                color: #e0e0e0;
-            }
-            QCheckBox::indicator {
-                width: 13px;
-                height: 13px;
-                border: 1px solid #555555;
-                background-color: #3c3c3c;
-            }
-            QCheckBox::indicator:checked {
-                background-color: #3a6ea5;
-            }
-        """)
+        self.toolbar = QWidget()
+        # Clear toolbar stylesheet so global theme can be applied
+        self.toolbar.setStyleSheet("")
         
-        toolbar_layout = QHBoxLayout(toolbar)
+        toolbar_layout = QHBoxLayout(self.toolbar)
         toolbar_layout.setContentsMargins(0, 0, 0, 5)
         
         # Sheet operations
@@ -473,8 +298,8 @@ class ExcelViewer(QWidget):
         toolbar_layout.addWidget(operations_group)
         toolbar_layout.addWidget(filter_group)
         toolbar_layout.addWidget(view_group)
-        
-        main_layout.addWidget(toolbar)
+
+        main_layout.addWidget(self.toolbar)
         
     def load_dataframe(self, df, sheet_name=None):
         """Load a dataframe into the viewer"""
@@ -1887,3 +1712,124 @@ class ExcelViewer(QWidget):
         # Disable all buttons
         self.update_button_states(False)
         self.clean_button.setEnabled(False)
+
+    def apply_widget_theme(self, theme: str):
+        """Apply theme-specific styling to the Excel viewer."""
+        if theme and theme.lower() == "dark":
+            widget_qss = """
+            QWidget {
+                background-color: #2d2d2d;
+                color: #e0e0e0;
+            }
+            QLabel {
+                color: #e0e0e0;
+                background: transparent;
+            }
+            QGroupBox {
+                background-color: #333333;
+                border: 1px solid #555555;
+                border-radius: 4px;
+                margin-top: 1.5ex;
+                color: #e0e0e0;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 4px;
+                color: #e0e0e0;
+                background: transparent;
+            }
+            QPushButton {
+                background-color: #3a6ea5;
+                color: white;
+                border: 1px solid #555555;
+                border-radius: 3px;
+                padding: 4px 8px;
+            }
+            QPushButton:hover {
+                background-color: #4a7eb5;
+            }
+            QPushButton:pressed {
+                background-color: #305580;
+            }
+            QPushButton:disabled {
+                background-color: #555555;
+                color: #888888;
+            }
+            QComboBox, QLineEdit, QSpinBox {
+                background-color: transparent;
+                color: #e0e0e0;
+                border: none;
+                border-radius: 3px;
+                padding: 2px 4px;
+            }
+            QComboBox:focus, QLineEdit:focus, QSpinBox:focus {
+                border: 1px solid #3a6ea5;
+            }
+            QComboBox::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 20px;
+                border-left: 1px solid #555555;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #3c3c3c;
+                color: #e0e0e0;
+                selection-background-color: #3a6ea5;
+                selection-color: white;
+            }
+            QCheckBox {
+                color: #e0e0e0;
+                background: transparent;
+            }
+            QCheckBox::indicator {
+                width: 13px;
+                height: 13px;
+                border: 1px solid #555555;
+                background-color: #3c3c3c;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #3a6ea5;
+            }
+            """
+            table_qss = """
+            QTableView {
+                background-color: #2d2d2d;
+                alternate-background-color: #333333;
+                color: #e0e0e0;
+                selection-background-color: #3a6ea5;
+                selection-color: #ffffff;
+                gridline-color: #4a4a4a;
+                border: 1px solid #4a4a4a;
+            }
+            QHeaderView::section {
+                background-color: #444444;
+                color: #e0e0e0;
+                padding: 4px;
+                border: 1px solid #555555;
+                font-weight: bold;
+            }
+            QTableView::item:selected {
+                background-color: #3a6ea5;
+                color: #ffffff;
+            }
+            QTableView::item:hover {
+                background-color: #424242;
+            }
+            QTableView QTableCornerButton::section {
+                background-color: #444444;
+                border: 1px solid #555555;
+            }
+            """
+            toolbar_qss = widget_qss
+            self.setStyleSheet(widget_qss)
+            self.table_view.setStyleSheet(table_qss)
+            if self.toolbar:
+                self.toolbar.setStyleSheet(toolbar_qss)
+            self.status_label.setStyleSheet("color: #e0e0e0;")
+        else:
+            self.setStyleSheet("")
+            self.table_view.setStyleSheet("")
+            if self.toolbar:
+                self.toolbar.setStyleSheet("")
+            self.status_label.setStyleSheet("")

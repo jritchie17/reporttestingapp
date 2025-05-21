@@ -149,49 +149,8 @@ class ResultsViewer(QWidget):
         self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.table_view.horizontalHeader().setStretchLastSection(True)
         
-        # Set stylesheet for better contrast
-        self.table_view.setStyleSheet("""
-            QTableView {
-                background-color: #2d2d2d;
-                alternate-background-color: #333333;
-                selection-background-color: #3a6ea5;
-                selection-color: #ffffff;
-                gridline-color: #4a4a4a;
-            }
-            QHeaderView::section {
-                background-color: #444444;
-                color: #e0e0e0;
-                padding: 4px;
-                border: 1px solid #555555;
-                font-weight: bold;
-            }
-            QLabel {
-                color: #e0e0e0;
-                background: transparent;
-            }
-            QPushButton {
-                background-color: #3a6ea5;
-                color: white;
-                border: 1px solid #555555;
-                border-radius: 3px;
-                padding: 6px 12px;
-            }
-            QPushButton:hover {
-                background-color: #4a7eb5;
-            }
-            QComboBox {
-                background-color: #333333;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-                padding: 5px;
-            }
-            QLineEdit {
-                background-color: #333333;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-                padding: 5px;
-            }
-        """)
+        # Let the global theme handle table styling
+        self.table_view.setStyleSheet("")
         
         main_layout.addWidget(self.table_view)
         
@@ -373,5 +332,54 @@ class ResultsViewer(QWidget):
         """Get the results as a pandas DataFrame"""
         if not self.results_data:
             return pd.DataFrame()
-            
+
         return pd.DataFrame(self.results_data)
+
+    def apply_widget_theme(self, theme: str):
+        """Apply theme-specific styling to the results viewer."""
+        if theme and theme.lower() == "dark":
+            qss = """
+            QTableView {
+                background-color: #2d2d2d;
+                alternate-background-color: #333333;
+                selection-background-color: #3a6ea5;
+                selection-color: #ffffff;
+                gridline-color: #4a4a4a;
+            }
+            QHeaderView::section {
+                background-color: #444444;
+                color: #e0e0e0;
+                padding: 4px;
+                border: 1px solid #555555;
+                font-weight: bold;
+            }
+            QLabel {
+                color: #e0e0e0;
+                background: transparent;
+            }
+            QPushButton {
+                background-color: #3a6ea5;
+                color: white;
+                border: 1px solid #555555;
+                border-radius: 3px;
+                padding: 6px 12px;
+            }
+            QPushButton:hover {
+                background-color: #4a7eb5;
+            }
+            QComboBox {
+                background-color: #333333;
+                color: #e0e0e0;
+                border: 1px solid #555555;
+                padding: 5px;
+            }
+            QLineEdit {
+                background-color: #333333;
+                color: #e0e0e0;
+                border: 1px solid #555555;
+                padding: 5px;
+            }
+            """
+            self.table_view.setStyleSheet(qss)
+        else:
+            self.table_view.setStyleSheet("")
