@@ -1459,7 +1459,10 @@ class MainWindow(QMainWindow):
             return
 
         themes_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "themes")
-        theme_file = os.path.join(themes_dir, f"{theme.lower()}.qss")
+        if theme.lower() == "brand":
+            theme_file = os.path.join(themes_dir, "brand.qss")
+        else:
+            theme_file = os.path.join(themes_dir, f"{theme.lower()}.qss")
         if os.path.exists(theme_file):
             with open(theme_file, "r", encoding="utf-8") as f:
                 QApplication.instance().setStyleSheet(f.read())

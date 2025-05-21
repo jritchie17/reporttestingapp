@@ -127,7 +127,7 @@ class SettingsDialog(QDialog):
         
         # Theme selection
         self.theme = QComboBox()
-        self.theme.addItems(["Light", "Dark", "System"])
+        self.theme.addItems(["Light", "Dark", "System", "Brand"])
         layout.addRow("Theme:", self.theme)
         
         # Font size
@@ -182,7 +182,7 @@ class SettingsDialog(QDialog):
         self.skip_empty_cols.setChecked(self.config.get("excel", "skip_empty_columns"))
         
         # UI settings
-        theme_map = {"light": 0, "dark": 1, "system": 2}
+        theme_map = {"light": 0, "dark": 1, "system": 2, "brand": 3}
         theme = self.config.get("ui", "theme")
         self.theme.setCurrentIndex(theme_map.get(theme.lower(), 0))
         # Connect after setting initial value to avoid unnecessary update
@@ -199,7 +199,7 @@ class SettingsDialog(QDialog):
 
     def _on_theme_changed(self, index):
         """Apply theme immediately when the user selects a new option"""
-        theme_options = ["light", "dark", "system"]
+        theme_options = ["light", "dark", "system", "brand"]
         self.config.set("ui", "theme", theme_options[index])
         if self.parent_window and hasattr(self.parent_window, "apply_theme"):
             self.parent_window.apply_theme()
@@ -218,7 +218,7 @@ class SettingsDialog(QDialog):
         self.config.set("excel", "skip_empty_columns", self.skip_empty_cols.isChecked())
         
         # UI settings
-        theme_options = ["light", "dark", "system"]
+        theme_options = ["light", "dark", "system", "brand"]
         self.config.set("ui", "theme", theme_options[self.theme.currentIndex()])
         
         self.config.set("ui", "font_size", self.font_size.value())
