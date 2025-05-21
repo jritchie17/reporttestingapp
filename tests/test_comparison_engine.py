@@ -26,3 +26,15 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         self.engine.set_sign_flip_accounts(['1234-5678'])
         df = self.engine.generate_detailed_comparison_dataframe('Sheet1', self.excel_df, sql_mod)
         self.assertIn('Does Not Match', df['Result'].values)
+
+    def test_identify_account_discrepancies(self):
+        discrepancies = self.engine.identify_account_discrepancies(self.excel_df, self.sql_df)
+        self.assertFalse(discrepancies.empty)
+        row = discrepancies.iloc[0]
+        self.assertEqual(row['Center'], 1)
+        self.assertEqual(row['Account'], '1234-5678')
+        self.assertAlmostEqual(row['Variance'], 200)
+
+        self.engine.set_sign_flip_accounts(['1234-5678'])
+        discrepancies_flip = self.engine.identify_account_discrepancies(self.excel_df, self.sql_df)
+        self.assertTrue(discrepancies_flip.empty)

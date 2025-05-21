@@ -454,10 +454,18 @@ class ComparisonEngine:
         results["summary"]["overall_match"] = results["summary"]["mismatch_percentage"] < 1  # Less than 1% mismatch
         
         self.logger.info(f"Comparison completed with {results['summary']['mismatch_percentage']:.2f}% mismatch")
-        
+
+        # Identify account level discrepancies for executive summary
+        try:
+            discrepancies = self.identify_account_discrepancies(excel_df, sql_df, column_mappings)
+        except Exception as e:
+            self.logger.warning(f"Account discrepancy analysis failed: {e}")
+            discrepancies = pd.DataFrame()
+        results["account_discrepancies"] = discrepancies
+
         # Store results
         self.comparison_results = results
-        
+
         return results
     
     def _identify_key_columns(self, excel_df, sql_df, column_mappings):
@@ -500,8 +508,88 @@ class ComparisonEngine:
                 'excel': [m['excel'] for m in exact_matches],
                 'sql': [m['sql'] for m in exact_matches]
             }
-        
+
         return None
+
+    def identify_account_discrepancies(self, excel_df, sql_df, column_mappings=None):
+        """Identify accounts with large variances or missing rows.
+
+        The method groups data by Center and Account (CAReportName) and compares
+        the total numeric value for the first detected numeric column. Accounts
+        with totals that differ by more than the comparison tolerance or that
+        are missing in one of the sources are returned.
+        """
+
+        if column_mappings is None:
+            column_mappings = self.find_matching_columns(excel_df.columns, sql_df.columns)
+
+        key_cols = self._identify_key_columns(excel_df, sql_df, column_mappings)
+        if not key_cols or len(key_cols['excel']) < 2:
+            self.logger.warning("Could not identify key columns for discrepancy analysis")
+            return pd.DataFrame(columns=[
+                'Center', 'Account', 'Excel Total', 'SQL Total',
+                'Variance', 'Missing in Excel', 'Missing in SQL'
+            ])
+
+        center_excel, account_excel = key_cols['excel'][:2]
+        center_sql, account_sql = key_cols['sql'][:2]
+
+        # Determine a numeric column to sum
+        numeric_pair = None
+        for mapping in column_mappings.values():
+            if mapping['excel_column'] in key_cols['excel']:
+                continue
+            try:
+                excel_ratio = pd.to_numeric(excel_df[mapping['excel_column']], errors='coerce').notna().mean()
+                sql_ratio = pd.to_numeric(sql_df[mapping['sql_column']], errors='coerce').notna().mean()
+                if excel_ratio > 0.5 and sql_ratio > 0.5:
+                    numeric_pair = (mapping['excel_column'], mapping['sql_column'])
+                    break
+            except Exception:
+                continue
+
+        if not numeric_pair:
+            self.logger.warning("No numeric columns found for discrepancy analysis")
+            return pd.DataFrame(columns=[
+                'Center', 'Account', 'Excel Total', 'SQL Total',
+                'Variance', 'Missing in Excel', 'Missing in SQL'
+            ])
+
+        excel_col, sql_col = numeric_pair
+
+        excel_tmp = excel_df[[center_excel, account_excel, excel_col]].copy()
+        sql_tmp = sql_df[[center_sql, account_sql, sql_col]].copy()
+        excel_tmp.columns = ['Center', 'Account', 'Excel']
+        sql_tmp.columns = ['Center', 'Account', 'SQL']
+
+        excel_tmp['Excel'] = pd.to_numeric(excel_tmp['Excel'], errors='coerce')
+        sql_tmp['SQL'] = pd.to_numeric(sql_tmp['SQL'], errors='coerce')
+
+        sign_flip_set = set(str(a).strip() for a in self.sign_flip_accounts)
+        if sign_flip_set:
+            sql_tmp.loc[sql_tmp['Account'].astype(str).isin(sign_flip_set), 'SQL'] *= -1
+
+        excel_group = excel_tmp.groupby(['Center', 'Account'], dropna=False)['Excel'].sum().reset_index()
+        sql_group = sql_tmp.groupby(['Center', 'Account'], dropna=False)['SQL'].sum().reset_index()
+
+        merged = pd.merge(excel_group, sql_group, on=['Center', 'Account'], how='outer', indicator=True)
+        merged['Excel'] = merged['Excel'].fillna(0)
+        merged['SQL'] = merged['SQL'].fillna(0)
+        merged['Variance'] = merged['Excel'] - merged['SQL']
+        merged['Missing in Excel'] = merged['_merge'] == 'right_only'
+        merged['Missing in SQL'] = merged['_merge'] == 'left_only'
+
+        tol = self.tolerance
+        def needs_flag(row):
+            if row['Missing in Excel'] or row['Missing in SQL']:
+                return True
+            max_val = max(abs(row['Excel']), abs(row['SQL']))
+            threshold = tol * max_val
+            return abs(row['Variance']) > threshold
+
+        flagged = merged[merged.apply(needs_flag, axis=1)].copy()
+        flagged.drop(columns=['_merge'], inplace=True)
+        return flagged
     
     def generate_comparison_report(self, sheet_name, comparison_results=None):
         """Generate a detailed, executive-friendly report of comparison results"""
@@ -570,7 +658,25 @@ class ComparisonEngine:
                 report += f"* **Excel-only Records:** {excel_only} (in Excel but not found in SQL)\n"
             if sql_only > 0:
                 report += f"* **SQL-only Records:** {sql_only} (in SQL but not found in Excel)\n"
-        
+
+        # Account discrepancy summary
+        discrepancies = comparison_results.get("account_discrepancies")
+        if isinstance(discrepancies, pd.DataFrame) and not discrepancies.empty:
+            report += "\n### Accounts with Potential Issues\n\n"
+            report += "| Center | Account | Excel Total | SQL Total | Variance | Missing in Excel | Missing in SQL |\n"
+            report += "|-------|---------|-------------|-----------|---------|-----------------|---------------|\n"
+            for _, row in discrepancies.iterrows():
+                report += (
+                    f"| {row['Center']} | {row['Account']} | {row['Excel']:.2f} | "
+                    f"{row['SQL']:.2f} | {row['Variance']:.2f} | "
+                    f"{'Yes' if row['Missing in Excel'] else ''} | "
+                    f"{'Yes' if row['Missing in SQL'] else ''} |\n"
+                )
+
+        # List sign flip accounts if any
+        if self.sign_flip_accounts:
+            report += "\n**Sign Flip Accounts Applied:** " + ", ".join(sorted(self.sign_flip_accounts)) + "\n"
+
         # Mismatch analysis
         report += "\n## Mismatch Analysis\n\n"
         
