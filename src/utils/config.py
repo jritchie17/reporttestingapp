@@ -71,7 +71,9 @@ class AppConfig:
                 "auto_generate_queries": True,
                 "show_suggestions": True,
                 "comparison_threshold": 1.0  # 1% difference allowed
-            }
+            },
+            "account_categories": {},
+            "account_formulas": {}
         }
         
         # Create config file if it doesn't exist
@@ -199,8 +201,32 @@ class AppConfig:
         """Update the last SQL file path"""
         if not file_path:
             return False
-            
+
         self.config["paths"]["last_sql_file"] = file_path
         self.add_recent_file(file_path)
         self.save_config()
-        return True 
+        return True
+
+    def get_account_categories(self, report_type):
+        """Return account categories mapping for a given report type"""
+        return self.config.get("account_categories", {}).get(report_type, {})
+
+    def set_account_categories(self, report_type, categories):
+        """Set account categories for a report type and persist the config"""
+        if "account_categories" not in self.config:
+            self.config["account_categories"] = {}
+
+        self.config["account_categories"][report_type] = categories
+        self.save_config()
+
+    def get_account_formulas(self, report_type):
+        """Return account formulas mapping for a given report type"""
+        return self.config.get("account_formulas", {}).get(report_type, {})
+
+    def set_account_formulas(self, report_type, formulas):
+        """Set account formulas for a report type and persist the config"""
+        if "account_formulas" not in self.config:
+            self.config["account_formulas"] = {}
+
+        self.config["account_formulas"][report_type] = formulas
+        self.save_config()
