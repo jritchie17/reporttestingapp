@@ -1,7 +1,9 @@
 import pandas as pd
 import logging
 import re
+from pathlib import Path
 from src.utils.logging_config import get_logger
+from src.plugins import load_plugins, Plugin
 from . import (
     column_matching,
     row_comparison,
@@ -11,13 +13,14 @@ from . import (
 )
 
 class ComparisonEngine:
-    def __init__(self):
+    def __init__(self, plugin_dirs=None):
         """Initialize the comparison engine"""
         self.logger = get_logger(__name__)
         self._setup_debug_logger()
         self.comparison_results = {}
         self.tolerance = 0.001  # Default tolerance for numerical comparisons
         self.sign_flip_accounts = set()  # Set of account numbers that should have their signs flipped
+        self.plugins = self._load_plugins(plugin_dirs)
 
     def _setup_debug_logger(self):
         """Create a dedicated debug logger for row level comparison."""
@@ -30,6 +33,17 @@ class ComparisonEngine:
         self.debug_logger.handlers = []
         self.debug_logger.addHandler(file_handler)
         self.debug_logger.setLevel(logging.DEBUG)
+
+    def _load_plugins(self, plugin_dirs):
+        """Load comparison plugins from the given directories."""
+        if plugin_dirs is None:
+            plugin_dirs = [Path(__file__).resolve().parents[1] / "plugins"]
+        elif isinstance(plugin_dirs, (str, Path)):
+            plugin_dirs = [plugin_dirs]
+        plugins = load_plugins(plugin_dirs)
+        if plugins:
+            self.logger.info(f"Loaded {len(plugins)} plugins")
+        return plugins
     
     def set_tolerance(self, tolerance):
         """Set the tolerance for numerical comparisons"""
@@ -74,6 +88,13 @@ class ComparisonEngine:
         # Clean up column names to handle any whitespace issues
         excel_df.columns = [str(col).strip() for col in excel_df.columns]
         sql_df.columns = [str(col).strip() for col in sql_df.columns]
+
+        # Run plugin pre-comparison hooks
+        for plugin in self.plugins:
+            try:
+                excel_df, sql_df = plugin.pre_compare(excel_df, sql_df)
+            except Exception as e:
+                self.logger.warning(f"Plugin {plugin.__class__.__name__} failed in pre_compare: {e}")
         
         # If no column mappings provided, try to create them
         if column_mappings is None:
@@ -257,6 +278,15 @@ class ComparisonEngine:
             results["discrepancy_severity"] = discrepancies["Severity"].tolist()
         else:
             results["discrepancy_severity"] = []
+
+        # Run plugin post-comparison hooks
+        for plugin in self.plugins:
+            try:
+                results = plugin.post_compare(results)
+            except Exception as e:
+                self.logger.warning(
+                    f"Plugin {plugin.__class__.__name__} failed in post_compare: {e}"
+                )
 
         # Store results
         self.comparison_results = results

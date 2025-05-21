@@ -71,6 +71,27 @@ Use `pytest` to run the unit tests:
 pytest
 ```
 
+## Plugins
+
+The comparison engine can be extended at runtime using plugins. Plugins are
+simple Python classes placed in the `src/plugins/` directory or in a custom
+directory provided to `ComparisonEngine`. Each plugin subclasses
+`plugins.Plugin` and may override `pre_compare` and `post_compare` hooks.
+
+Example plugin that rounds numeric values before comparison:
+
+```python
+from src.plugins import Plugin
+
+class RoundingPlugin(Plugin):
+    def pre_compare(self, excel_df, sql_df):
+        return excel_df.round(2), sql_df.round(2)
+```
+
+Create a new file in `src/plugins/` with your plugin class and restart the
+application. Plugins can also perform tasks such as account validation or
+custom logging.
+
 ## Project Structure
 
 - `main.py` - Main application entry point
