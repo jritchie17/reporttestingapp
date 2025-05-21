@@ -1,0 +1,23 @@
+QWidget {
+    background-color: #ffffff;
+    color: #004B8D;
+    font-family: "Proxima Nova", Arial, sans-serif;
+}
+QPushButton {
+    background-color: #279594;
+    color: white;
+}
+QPushButton:hover {
+    background-color: #F58025;
+}
+QMenuBar {
+    background-color: #3B6E8F;
+    color: white;
+}
+QStatusBar {
+    background-color: #76A240;
+    color: white;
+}
+QHeaderView::section {
+    background-color: #9ABDAA;
+}
