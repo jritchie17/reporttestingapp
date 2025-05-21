@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import re
-import logging
+from src.utils.logging_config import get_logger
 from collections import defaultdict
 
 class ExcelAnalyzer:
@@ -13,7 +13,7 @@ class ExcelAnalyzer:
         self.sheet_data = {}
         self.numerical_columns = {}
         self.potential_queries = {}
-        self.logger = self._setup_logging()
+        self.logger = get_logger(__name__)
         # Define columns that should not be rounded (full account names in CAReportName)
         self.exception_columns = [
             "Margin %",
@@ -23,16 +23,6 @@ class ExcelAnalyzer:
             "Payroll tax % of wages"
         ]
         
-    def _setup_logging(self):
-        """Set up logging for excel operations"""
-        logger = logging.getLogger(__name__)
-        if not logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
-            logger.setLevel(logging.INFO)
-        return logger
     
     def load_excel(self):
         """Load the Excel file and extract sheet names"""

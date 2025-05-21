@@ -4,24 +4,26 @@ import logging
 from pathlib import Path
 from dotenv import load_dotenv
 
+from .logging_config import configure_logging, get_logger
+
 class AppConfig:
     def __init__(self):
         """Initialize application configuration"""
-        self.logger = self._setup_logging()
+        # Basic logging setup so that load steps emit messages
+        configure_logging()
+        self.logger = get_logger(__name__)
+
         self.config_file = os.path.join(os.path.expanduser("~"), ".soo_preclose_tester.json")
         self.config = self._load_config()
+
+        # Reconfigure logging based on loaded config
+        log_cfg = self.config.get("logging", {})
+        level = getattr(logging, str(log_cfg.get("level", "INFO")).upper(), logging.INFO)
+        log_file = log_cfg.get("file")
+        configure_logging(level=level, log_file=log_file, force=True)
+
         self._load_env_vars()
         
-    def _setup_logging(self):
-        """Set up logging for config operations"""
-        logger = logging.getLogger(__name__)
-        if not logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
-            logger.setLevel(logging.INFO)
-        return logger
     
     def _load_env_vars(self):
         """Load environment variables from .env file if it exists"""
@@ -60,6 +62,10 @@ class AppConfig:
                 "last_excel_file": "",
                 "last_sql_file": "",
                 "recent_files": []
+            },
+            "logging": {
+                "level": "INFO",
+                "file": "app.log"
             },
             "testing": {
                 "auto_generate_queries": True,

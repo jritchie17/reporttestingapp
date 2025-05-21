@@ -1,23 +1,12 @@
 import re
 import pandas as pd
-import logging
+from .logging_config import get_logger
 from datetime import datetime
 
 class QueryBuilder:
     def __init__(self):
         """Initialize the query builder"""
-        self.logger = self._setup_logging()
-        
-    def _setup_logging(self):
-        """Set up logging for query builder operations"""
-        logger = logging.getLogger(__name__)
-        if not logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
-            logger.setLevel(logging.INFO)
-        return logger
+        self.logger = get_logger(__name__)
     
     def clean_column_name(self, name):
         """Clean and normalize column name for SQL query"""

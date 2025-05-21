@@ -2,36 +2,29 @@ import pandas as pd
 import numpy as np
 from difflib import SequenceMatcher
 import logging
+from src.utils.logging_config import get_logger
 import re
 
 class ComparisonEngine:
     def __init__(self):
         """Initialize the comparison engine"""
-        self.logger = self._setup_logging()
+        self.logger = get_logger(__name__)
+        self._setup_debug_logger()
         self.comparison_results = {}
         self.tolerance = 0.001  # Default tolerance for numerical comparisons
         self.sign_flip_accounts = set()  # Set of account numbers that should have their signs flipped
-        
-    def _setup_logging(self):
-        """Set up logging for comparison operations"""
-        logger = logging.getLogger(__name__)
-        if not logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
-            logger.setLevel(logging.INFO)
-        # Add file handler for detailed comparison debug logs
+
+    def _setup_debug_logger(self):
+        """Create a dedicated debug logger for row level comparison."""
         file_handler = logging.FileHandler('comparison_debug.log', mode='w')
         file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         file_handler.setFormatter(file_formatter)
         file_handler.setLevel(logging.DEBUG)
-        logger.addHandler(file_handler)
+
         self.debug_logger = logging.getLogger('comparison_debug')
         self.debug_logger.handlers = []
         self.debug_logger.addHandler(file_handler)
         self.debug_logger.setLevel(logging.DEBUG)
-        return logger
     
     def set_tolerance(self, tolerance):
         """Set the tolerance for numerical comparisons"""

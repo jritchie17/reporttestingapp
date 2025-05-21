@@ -5,6 +5,8 @@ import logging
 import pyodbc
 import re
 
+from src.utils.logging_config import get_logger
+
 class DatabaseConnector:
     def __init__(self, server="adwtest", database="cognostesting", trusted_connection=True):
         """Initialize database connection using Windows Authentication"""
@@ -13,17 +15,8 @@ class DatabaseConnector:
         self.trusted_connection = trusted_connection
         self.engine = None
         self.Session = None
-        self._setup_logging()
+        self.logger = get_logger(__name__)
         
-    def _setup_logging(self):
-        """Set up logging for database operations"""
-        self.logger = logging.getLogger(__name__)
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO)
     
     def connect(self):
         """Establish connection to the database"""
