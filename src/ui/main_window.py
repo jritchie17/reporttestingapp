@@ -8,6 +8,8 @@ from PyQt6.QtWidgets import (QMainWindow, QTabWidget, QApplication, QWidget,
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QAction, QFont
 
+from src.ui.hover_anim_filter import HoverAnimationFilter
+
 # Import custom widgets
 from src.ui.excel_viewer import ExcelViewer
 from src.ui.sql_editor import SQLEditor
@@ -49,6 +51,7 @@ class MainWindow(QMainWindow):
         self.report_configs = self.initialize_report_configs()
         
         # Set up the UI
+        self.hover_filter = HoverAnimationFilter()
         self.init_ui()
         # Apply theme after UI is created
         self.apply_theme()
@@ -67,6 +70,11 @@ class MainWindow(QMainWindow):
         load_last_session = self.config.get("ui.load_last_session")
         if load_last_session:
             self.load_last_session()
+
+    def _apply_hover_animation(self, widget):
+        """Install hover animation filter on a widget."""
+        if widget:
+            widget.installEventFilter(self.hover_filter)
         
         
     def init_ui(self):
@@ -201,32 +209,38 @@ class MainWindow(QMainWindow):
         open_excel_action = QAction(qta.icon('fa5s.file-excel'), "Open Excel File", self)
         open_excel_action.triggered.connect(self.open_excel_file)
         toolbar.addAction(open_excel_action)
+        self._apply_hover_animation(toolbar.widgetForAction(open_excel_action))
         
         # Execute SQL
         execute_action = QAction(qta.icon('fa5s.play'), "Execute SQL", self)
         execute_action.triggered.connect(self.execute_sql)
         toolbar.addAction(execute_action)
+        self._apply_hover_animation(toolbar.widgetForAction(execute_action))
         
         # Compare
         compare_action = QAction(qta.icon('fa5s.exchange-alt'), "Compare", self)
         compare_action.triggered.connect(self.compare_results)
         toolbar.addAction(compare_action)
+        self._apply_hover_animation(toolbar.widgetForAction(compare_action))
         
         # Generate SQL
         generate_action = QAction(qta.icon('fa5s.magic'), "Generate SQL", self)
         generate_action.triggered.connect(self.generate_sql)
         toolbar.addAction(generate_action)
+        self._apply_hover_animation(toolbar.widgetForAction(generate_action))
         
         # Reset application
         reset_action = QAction(qta.icon('fa5s.sync'), "Reset", self)
         reset_action.setToolTip("Reset application to start a new test")
         reset_action.triggered.connect(self.reset_application)
         toolbar.addAction(reset_action)
+        self._apply_hover_animation(toolbar.widgetForAction(reset_action))
         
         # Settings
         settings_action = QAction(qta.icon('fa5s.cog'), "Settings", self)
         settings_action.triggered.connect(self.open_settings)
         toolbar.addAction(settings_action)
+        self._apply_hover_animation(toolbar.widgetForAction(settings_action))
     
     def create_header(self):
         """Create the application header with main actions"""
@@ -309,13 +323,21 @@ class MainWindow(QMainWindow):
         # Add Export Results button
         self.export_results_button = QPushButton("Export Results")
         self.export_results_button.clicked.connect(self.export_detailed_results)
+        self._apply_hover_animation(self.export_results_button)
         comparison_layout.addWidget(self.export_results_button)
         # Add Export PDF button
         self.export_pdf_button = QPushButton("Export PDF")
         self.export_pdf_button.clicked.connect(self.export_pdf_report)
+        self._apply_hover_animation(self.export_pdf_button)
         comparison_layout.addWidget(self.export_pdf_button)
         self.tab_widget.addTab(self.comparison_tab, "Comparison")
-        
+
+        # Apply hover animation to tab bar buttons
+        tab_bar = self.tab_widget.tabBar()
+        self._apply_hover_animation(tab_bar)
+        for child in tab_bar.findChildren(QWidget):
+            self._apply_hover_animation(child)
+
         self.main_layout.addWidget(self.tab_widget)
     
     def connect_to_database(self):
@@ -970,7 +992,7 @@ class MainWindow(QMainWindow):
             report.append("| ----- | ------ | ------- | -------- | --------------- | -------------- | ----------- |")
             for _, row in discrepancy_df.iterrows():
                 report.append(
-                    f"| {row['Sheet']} | {row['Center']} | {row['Account']} | {row["Variance"]:.2f} | {row["Missing in Excel"]} | {row["Missing in SQL"]} | {row["Explanation"]} |"
+                    f"| {row['Sheet']} | {row['Center']} | {row['Account']} | {row['Variance']:.2f} | {row['Missing in Excel']} | {row['Missing in SQL']} | {row['Explanation']} |"
                 )
         else:
             discrepancy_df = pd.DataFrame(columns=["Sheet", "Center", "Account", "Variance", "Missing in Excel", "Missing in SQL"])
