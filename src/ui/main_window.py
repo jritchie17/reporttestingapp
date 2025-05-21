@@ -61,14 +61,17 @@ class MainWindow(QMainWindow):
         self.connect_to_database()
         
         # Set initial report type from config if available
-        initial_report_type = self.config.get("excel.report_type")
+        # Retrieve the last used report type from the config
+        # AppConfig.get expects a section/key pair, not dotted notation
+        initial_report_type = self.config.get("excel", "report_type")
         if initial_report_type:
             index = self.report_selector.findText(initial_report_type)
             if index >= 0:
                 self.report_selector.setCurrentIndex(index)
         
         # Load last session if enabled
-        load_last_session = self.config.get("ui.load_last_session")
+        # Likewise fetch the flag for restoring the last session
+        load_last_session = self.config.get("ui", "load_last_session")
         if load_last_session:
             self.load_last_session()
 
