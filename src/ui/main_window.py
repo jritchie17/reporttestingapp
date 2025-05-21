@@ -16,6 +16,7 @@ from src.ui.sql_editor import SQLEditor
 from src.ui.results_viewer import ResultsViewer
 from src.ui.comparison_view import ComparisonView
 from src.ui.settings_dialog import SettingsDialog
+from src.ui.account_category_dialog import AccountCategoryDialog
 
 # Import backend services
 from src.database.db_connector import DatabaseConnector
@@ -185,7 +186,11 @@ class MainWindow(QMainWindow):
         tools_menu.addAction(reset_action)
         
         tools_menu.addSeparator()
-        
+
+        manage_cats_action = QAction(qta.icon('fa5s.layer-group'), "Manage Account Categories...", self)
+        manage_cats_action.triggered.connect(self.open_account_categories)
+        tools_menu.addAction(manage_cats_action)
+
         # Settings
         settings_action = QAction(qta.icon('fa5s.cog'), "Settings", self)
         settings_action.triggered.connect(self.open_settings)
@@ -235,7 +240,12 @@ class MainWindow(QMainWindow):
         reset_action.triggered.connect(self.reset_application)
         toolbar.addAction(reset_action)
         self._apply_hover_animation(toolbar.widgetForAction(reset_action))
-        
+
+        manage_cats_action = QAction(qta.icon('fa5s.layer-group'), "Manage Account Categories...", self)
+        manage_cats_action.triggered.connect(self.open_account_categories)
+        toolbar.addAction(manage_cats_action)
+        self._apply_hover_animation(toolbar.widgetForAction(manage_cats_action))
+
         # Settings
         settings_action = QAction(qta.icon('fa5s.cog'), "Settings", self)
         settings_action.triggered.connect(self.open_settings)
@@ -1188,6 +1198,13 @@ class MainWindow(QMainWindow):
             # Apply updated theme
             self.apply_theme()
             self.status_bar.showMessage("Settings updated")
+
+    def open_account_categories(self):
+        """Open the account categories dialog for the current report."""
+        report_type = self.report_selector.currentText()
+        dialog = AccountCategoryDialog(self.config, report_type, self)
+        if dialog.exec():
+            self.status_bar.showMessage("Account categories updated")
     
     def show_about(self):
         """Show about dialog"""
