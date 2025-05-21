@@ -150,9 +150,28 @@ class ComparisonView(QWidget):
         except ValueError:
             pass
 
+        # --- Extract suggested sign flip accounts ---
+        suggested_accounts = []
+        for idx, ln in enumerate(lines):
+            if ln.startswith('**Suggested Sign Flip Accounts:**'):
+                acct_str = ln.split(':', 1)[1].strip()
+                suggested_accounts = [a.strip() for a in acct_str.split(',') if a.strip()]
+                break
+            if ln.strip() == '#### Suggested Sign-Flip Accounts':
+                for sub in lines[idx + 1:]:
+                    if not sub.startswith('- '):
+                        break
+                    suggested_accounts.append(sub[2:].strip())
+                break
+
+        parts = []
         if summary_items:
-            bullet_html = '<ul>' + ''.join(f'<li>{item}</li>' for item in summary_items) + '</ul>'
-            self.summary_content.setText(bullet_html)
+            parts.append('<ul>' + ''.join(f'<li>{item}</li>' for item in summary_items) + '</ul>')
+        if suggested_accounts:
+            parts.append('<p><b>Suggested Sign-Flip Accounts:</b> ' + ', '.join(suggested_accounts) + '</p>')
+
+        if parts:
+            self.summary_content.setText(''.join(parts))
         else:
             self.summary_content.setText("No summary information available.")
             

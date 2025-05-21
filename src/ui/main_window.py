@@ -969,12 +969,19 @@ class MainWindow(QMainWindow):
             report.append(f"- Excel records: {excel_rows}")
             report.append(f"- SQL records: {sql_rows}")
             report.append(f"- Matched records: {matched_rows}")
-            
+
             if excel_only > 0 or sql_only > 0:
                 if excel_only > 0:
                     report.append(f"- Excel-only records: {excel_only}")
                 if sql_only > 0:
                     report.append(f"- SQL-only records: {sql_only}")
+
+            # Suggested sign flip accounts for this sheet
+            suggested = results.get("suggested_sign_flips")
+            if suggested:
+                report.append("\n#### Suggested Sign-Flip Accounts")
+                for acct in sorted(suggested):
+                    report.append(f"- {acct}")
             
             # Problem columns with highest mismatch rates
             column_stats = []
