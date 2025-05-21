@@ -22,6 +22,7 @@ from src.analyzer.comparison_engine import ComparisonEngine
 from src.utils.config import AppConfig
 
 import qtawesome as qta
+import pandas as pd
 
 
 class MainWindow(QMainWindow):
@@ -769,14 +770,18 @@ class MainWindow(QMainWindow):
             
             # Generate combined report
             if comparison_results_by_sheet:
-                report = self._generate_combined_comparison_report(comparison_results_by_sheet, 
-                                                                 success_sheets, 
-                                                                 error_sheets, 
-                                                                 skipped_sheets)
-                
+                report, discrepancy_df = self._generate_combined_comparison_report(
+                    comparison_results_by_sheet,
+                    success_sheets,
+                    error_sheets,
+                    skipped_sheets,
+                )
+
                 # Load report into comparison view
                 self.comparison_view.set_report(report)
-                
+                self.comparison_view.set_discrepancies(discrepancy_df)
+                self.account_discrepancy_df = discrepancy_df
+
                 # Switch to comparison tab
                 self.tab_widget.setCurrentIndex(2)
                 
@@ -873,7 +878,8 @@ class MainWindow(QMainWindow):
         total_mismatches = 0
         mismatch_sheets = []
         match_sheets = []
-        
+        discrepancy_frames = []
+
         for sheet_name, results in comparison_results_by_sheet.items():
             summary = results.get("summary", {})
             total_cells += summary.get("total_cells", 0)
@@ -884,6 +890,12 @@ class MainWindow(QMainWindow):
             else:
                 mismatch_percentage = summary.get("mismatch_percentage", 0)
                 mismatch_sheets.append((sheet_name, mismatch_percentage))
+
+            df = results.get("account_discrepancies")
+            if isinstance(df, pd.DataFrame) and not df.empty:
+                tmp = df[["Center", "Account", "Variance", "Missing in Excel", "Missing in SQL"]].copy()
+                tmp.insert(0, "Sheet", sheet_name)
+                discrepancy_frames.append(tmp)
         
         # Sort mismatch sheets by percentage (highest first)
         mismatch_sheets.sort(key=lambda x: x[1], reverse=True)
@@ -947,7 +959,19 @@ class MainWindow(QMainWindow):
             report.append("\n### Skipped Sheets")
             for sheet in skipped_sheets:
                 report.append(f"- {sheet}")
-        
+
+        discrepancy_df = pd.concat(discrepancy_frames, ignore_index=True) if discrepancy_frames else pd.DataFrame()
+        if not discrepancy_df.empty:
+            report.append("\n## Account Discrepancies")
+            report.append("\n| Sheet | Center | Account | Variance | Missing in Excel | Missing in SQL |")
+            report.append("| ----- | ------ | ------- | -------- | ---------------- | -------------- |")
+            for _, row in discrepancy_df.iterrows():
+                report.append(
+                    f"| {row['Sheet']} | {row['Center']} | {row['Account']} | {row['Variance']:.2f} | {row['Missing in Excel']} | {row['Missing in SQL']} |"
+                )
+        else:
+            discrepancy_df = pd.DataFrame(columns=["Sheet", "Center", "Account", "Variance", "Missing in Excel", "Missing in SQL"])
+
         # Detailed sheet-by-sheet analysis
         report.append(f"\n## Sheet-by-Sheet Analysis")
         
@@ -1050,7 +1074,7 @@ class MainWindow(QMainWindow):
             for sheet in match_sheets:
                 report.append(f"| {sheet} | ✅ Perfect Match |")
         
-        return "\n".join(report)
+        return "\n".join(report), discrepancy_df
     
     def export_report(self):
         """Export the comparison report to a file"""

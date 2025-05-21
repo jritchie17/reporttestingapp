@@ -1,11 +1,24 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
-                             QLabel, QPushButton, QTextEdit, QTabWidget,
-                             QTableView, QHeaderView, QGridLayout, QToolBar,
-                             QApplication)
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QSplitter,
+    QLabel,
+    QPushButton,
+    QTextEdit,
+    QTabWidget,
+    QTableView,
+    QHeaderView,
+    QGridLayout,
+    QToolBar,
+    QApplication,
+)
 from PyQt6.QtCore import Qt, QAbstractTableModel, QModelIndex, QVariant
 from PyQt6.QtGui import QFont, QColor, QBrush, QTextCharFormat, QAction
 import markdown
 import qtawesome as qta
+import pandas as pd
+from .excel_viewer import PandasTableModel
 
 
 class MarkdownView(QTextEdit):
@@ -76,9 +89,17 @@ class ComparisonView(QWidget):
         self.summary_content.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         self.summary_content.setWordWrap(True)
         summary_layout.addWidget(self.summary_content)
-        
+
         self.tab_widget.addTab(self.summary_tab, "Summary")
-        
+
+        # Discrepancies tab
+        self.discrepancy_tab = QWidget()
+        dis_layout = QVBoxLayout(self.discrepancy_tab)
+        self.discrepancy_table = QTableView()
+        self.discrepancy_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        dis_layout.addWidget(self.discrepancy_table)
+        self.tab_widget.addTab(self.discrepancy_tab, "Discrepancies")
+
         main_layout.addWidget(self.tab_widget)
         
     def create_toolbar(self, main_layout):
@@ -114,9 +135,18 @@ class ComparisonView(QWidget):
         
         # Update summary view
         self.update_summary_from_report(report_content)
-        
+
         # Switch to first tab
         self.tab_widget.setCurrentIndex(0)
+
+    def set_discrepancies(self, df: pd.DataFrame):
+        """Load the account discrepancy DataFrame into the table view."""
+        if df is None:
+            df = pd.DataFrame()
+
+        model = PandasTableModel(df)
+        self.discrepancy_table.setModel(model)
+        self.discrepancy_table.resizeColumnsToContents()
         
     def update_summary_from_report(self, report_content):
         """Parse report content and update the summary view."""
