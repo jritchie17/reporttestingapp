@@ -31,6 +31,9 @@ dependencies = [
     "plotly",
 ]
 
+[project.optional-dependencies]
+dashboard = ["dash"]
+
 [project.scripts]
 soo-preclose-tester = "soo_preclose_tester.__main__:run"
 
