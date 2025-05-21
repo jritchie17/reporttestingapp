@@ -1,9 +1,10 @@
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
     QHBoxLayout,
     QListWidget,
-    QTextEdit,
+    QListWidgetItem,
     QPushButton,
     QLineEdit,
     QInputDialog,
@@ -18,7 +19,7 @@ from src.utils.config import AppConfig
 class AccountCategoryDialog(QDialog):
     """Dialog for managing account categories and formulas."""
 
-    def __init__(self, config: AppConfig, report_type: str, parent=None) -> None:
+    def __init__(self, config: AppConfig, report_type: str, accounts=None, parent=None) -> None:
         super().__init__(parent)
         self.config = config
         self.report_type = report_type
@@ -27,6 +28,13 @@ class AccountCategoryDialog(QDialog):
             for name, accounts in config.get_account_categories(report_type).items()
         }
         self.formulas = dict(config.get_account_formulas(report_type))
+
+        self.all_accounts = sorted(set(accounts or []))
+        for acct_list in self.categories.values():
+            for acct in acct_list:
+                if acct not in self.all_accounts:
+                    self.all_accounts.append(acct)
+
         self._init_ui()
 
     # UI setup
@@ -55,10 +63,13 @@ class AccountCategoryDialog(QDialog):
         layout.addWidget(self.category_list)
 
         right = QVBoxLayout()
-        right.addWidget(QLabel("Accounts (one per line):"))
-        self.accounts_edit = QTextEdit()
-        self.accounts_edit.textChanged.connect(self._accounts_changed)
-        right.addWidget(self.accounts_edit)
+        right.addWidget(QLabel("Accounts:"))
+        self.account_list = QListWidget()
+        self.account_list.itemChanged.connect(self._accounts_changed)
+        right.addWidget(self.account_list)
+
+        add_account_btn = QPushButton("Add Account")
+        add_account_btn.clicked.connect(self._add_account)
 
         btns = QHBoxLayout()
         add_btn = QPushButton("Add")
@@ -67,10 +78,18 @@ class AccountCategoryDialog(QDialog):
         del_btn.clicked.connect(self._delete_category)
         btns.addWidget(add_btn)
         btns.addWidget(del_btn)
+        btns.addWidget(add_account_btn)
         right.addLayout(btns)
 
         layout.addLayout(right)
         self.tabs.addTab(tab, "Categories")
+
+        if self.category_list.count() > 0:
+            first = self.category_list.item(0)
+            self.category_list.setCurrentItem(first)
+            self._populate_account_list(self.categories.get(first.text(), []))
+        else:
+            self._populate_account_list([])
 
     def _create_formulas_tab(self) -> None:
         tab = QWidget()
@@ -106,18 +125,46 @@ class AccountCategoryDialog(QDialog):
             self.categories[name] = self._current_accounts()
         if current:
             name = current.text()
-            self.accounts_edit.setPlainText("\n".join(self.categories.get(name, [])))
+            self._populate_account_list(self.categories.get(name, []))
         else:
-            self.accounts_edit.clear()
+            self.account_list.clear()
 
-    def _accounts_changed(self):
+    def _accounts_changed(self, *args):
         item = self.category_list.currentItem()
         if item:
             self.categories[item.text()] = self._current_accounts()
 
     def _current_accounts(self):
-        text = self.accounts_edit.toPlainText()
-        return [a.strip() for a in text.splitlines() if a.strip()]
+        accounts = []
+        for i in range(self.account_list.count()):
+            item = self.account_list.item(i)
+            if item.checkState() == Qt.CheckState.Checked:
+                accounts.append(item.text())
+        return accounts
+
+    def _populate_account_list(self, checked_accounts):
+        self.account_list.blockSignals(True)
+        self.account_list.clear()
+        for acct in self.all_accounts:
+            item = QListWidgetItem(acct)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            if acct in checked_accounts:
+                item.setCheckState(Qt.CheckState.Checked)
+            else:
+                item.setCheckState(Qt.CheckState.Unchecked)
+            self.account_list.addItem(item)
+        self.account_list.blockSignals(False)
+
+    def _add_account(self):
+        account, ok = QInputDialog.getText(self, "Add Account", "Account number:")
+        if ok and account:
+            if account not in self.all_accounts:
+                self.all_accounts.append(account)
+                item = QListWidgetItem(account)
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(Qt.CheckState.Checked)
+                self.account_list.addItem(item)
+            self._accounts_changed()
 
     def _add_category(self):
         name, ok = QInputDialog.getText(self, "Add Category", "Category name:")
@@ -136,7 +183,7 @@ class AccountCategoryDialog(QDialog):
             del self.categories[name]
         row = self.category_list.row(item)
         self.category_list.takeItem(row)
-        self.accounts_edit.clear()
+        self.account_list.clear()
 
     # Formula handlers
     def _on_formula_selected(self, current, previous):
