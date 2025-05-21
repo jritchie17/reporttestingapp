@@ -38,3 +38,9 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         self.engine.set_sign_flip_accounts(['1234-5678'])
         discrepancies_flip = self.engine.identify_account_discrepancies(self.excel_df, self.sql_df)
         self.assertTrue(discrepancies_flip.empty)
+
+    def test_explain_variances(self):
+        discrepancies = self.engine.identify_account_discrepancies(self.excel_df, self.sql_df)
+        messages = self.engine.explain_variances(discrepancies)
+        self.assertEqual(len(messages), len(discrepancies))
+        self.assertIn('Variance of', messages[0])
