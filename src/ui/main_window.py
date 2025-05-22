@@ -1447,6 +1447,7 @@ class MainWindow(QMainWindow):
 
                 # Determine which column likely contains account numbers
                 account_col = None
+
                 known = [
                     "CAReportName",
                     "Account",
@@ -1461,11 +1462,13 @@ class MainWindow(QMainWindow):
 
                 # Look for any column name containing "account" if we didn't
                 # match one of the common headers
+
                 if not account_col:
                     for col in df.columns:
                         if "account" in str(col).lower():
                             account_col = col
                             break
+
 
                 # If headers haven't been imported yet, fall back to the
                 # position used by the Extract SQL feature (second column,
