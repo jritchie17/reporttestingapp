@@ -18,6 +18,28 @@ class CategoryCalculator:
         self.formulas = formulas or {}
         self.account_column = account_column
 
+    def _resolve_account_column(self, rows: List[Dict[str, Any]]) -> str:
+        """Return a suitable account column name for the given rows."""
+        if rows and self.account_column in rows[0]:
+            return self.account_column
+
+        candidates = [
+            "CAReportName",
+            "Account",
+            "Account Number",
+            "AccountNumber",
+            "Acct",
+        ]
+        if rows:
+            first_row = rows[0]
+            for cand in candidates:
+                if cand in first_row:
+                    return cand
+            for key in first_row:
+                if "account" in str(key).lower():
+                    return key
+        return self.account_column
+
     def _numeric_columns(self, rows: List[Dict[str, Any]]) -> List[str]:
         """Return the names of numeric columns in the result set."""
         numeric_cols: List[str] = []
@@ -34,6 +56,8 @@ class CategoryCalculator:
         if not rows:
             return []
 
+        account_col = self._resolve_account_column(rows)
+
         result = list(rows)
         numeric_cols = self._numeric_columns(rows)
         totals: Dict[str, Dict[str, float]] = {}
@@ -41,13 +65,13 @@ class CategoryCalculator:
         for name, accounts in self.categories.items():
             totals[name] = {col: 0.0 for col in numeric_cols}
             for row in rows:
-                acct = str(row.get(self.account_column, ""))
+                acct = str(row.get(account_col, ""))
                 if acct in accounts:
                     for col in numeric_cols:
                         val = row.get(col)
                         if isinstance(val, (int, float)):
                             totals[name][col] += float(val)
-            result.append({self.account_column: name, **totals[name]})
+            result.append({account_col: name, **totals[name]})
 
         for form_name, expr in self.formulas.items():
             values = {}
@@ -57,6 +81,6 @@ class CategoryCalculator:
                     values[col] = eval(expr, {}, local)
                 except Exception:
                     values[col] = None
-            result.append({self.account_column: form_name, **values})
+            result.append({account_col: form_name, **values})
 
         return result
