@@ -1445,11 +1445,30 @@ class MainWindow(QMainWindow):
                     if headers:
                         df.columns = headers
 
-                for col in df.columns:
-                    col_data = df[col].astype(str)
-                    for val in col_data:
-                        for pat in patterns:
-                            accounts.update(re.findall(pat, val))
+                # Determine which column likely contains account numbers
+                account_col = None
+                for cand in [
+                    "CAReportName",
+                    "Account",
+                    "Account Number",
+                    "AccountNumber",
+                    "Acct",
+                ]:
+                    if cand in df.columns:
+                        account_col = cand
+                        break
+                if not account_col:
+                    for col in df.columns:
+                        if "account" in str(col).lower():
+                            account_col = col
+                            break
+                if not account_col:
+                    continue
+
+                col_data = df[account_col].astype(str)
+                for val in col_data:
+                    for pat in patterns:
+                        accounts.update(re.findall(pat, val))
         except Exception as e:
             self.logger.error(f"Failed to extract accounts: {e}")
 
