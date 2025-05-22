@@ -210,7 +210,11 @@ class ResultsViewer(QWidget):
                 categories = parent.config.get_account_categories(report_type)
                 formulas = parent.config.get_account_formulas(report_type)
                 if categories:
-                    calc = CategoryCalculator(categories, formulas)
+                    group_col = None
+                    if self.results_data and isinstance(self.results_data[0], dict):
+                        if "Center" in self.results_data[0]:
+                            group_col = "Center"
+                    calc = CategoryCalculator(categories, formulas, group_column=group_col)
                     self.results_data = calc.compute(list(self.results_data))
         
         # If columns not provided, try to get them from the first row

@@ -13,10 +13,29 @@ class CategoryCalculator:
         categories: Dict[str, Iterable[str]] | None = None,
         formulas: Dict[str, str] | None = None,
         account_column: str = "CAReportName",
+        group_column: str | None = "Center",
     ) -> None:
+        """Create a new calculator.
+
+        Parameters
+        ----------
+        categories:
+            Mapping of category name to a collection of account numbers.
+        formulas:
+            Optional mapping of formula name to a Python expression using the
+            category names as variables.
+        account_column:
+            Name of the column containing the account identifier in ``rows``.
+        group_column:
+            Optional column name used to group rows before aggregating.  If this
+            column is present in the input rows, totals and formulas are
+            computed separately for each unique value.
+        """
+
         self.categories = {k: list(v) for k, v in (categories or {}).items()}
         self.formulas = formulas or {}
         self.account_column = account_column
+        self.group_column = group_column
 
     def _resolve_account_column(self, rows: List[Dict[str, Any]]) -> str:
         """Return a suitable account column name for the given rows."""
@@ -52,7 +71,12 @@ class CategoryCalculator:
         return numeric_cols
 
     def compute(self, rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Return rows extended with category totals and formula rows."""
+        """Return rows extended with category totals and formula rows.
+
+        If ``group_column`` was supplied and is present in the data, totals are
+        calculated separately for each value of that column and the resulting
+        rows include the grouping value.
+        """
         if not rows:
             return []
 
@@ -60,27 +84,46 @@ class CategoryCalculator:
 
         result = list(rows)
         numeric_cols = self._numeric_columns(rows)
-        totals: Dict[str, Dict[str, float]] = {}
 
-        for name, accounts in self.categories.items():
-            totals[name] = {col: 0.0 for col in numeric_cols}
-            for row in rows:
-                acct = str(row.get(account_col, ""))
+        group_exists = bool(self.group_column and self.group_column in rows[0])
+        if group_exists:
+            groups = sorted({row[self.group_column] for row in rows})
+        else:
+            groups = [None]
+
+        totals: Dict[Any, Dict[str, Dict[str, float]]] = {
+            g: {name: {col: 0.0 for col in numeric_cols} for name in self.categories}
+            for g in groups
+        }
+
+        for row in rows:
+            group_val = row.get(self.group_column) if group_exists else None
+            acct = str(row.get(account_col, ""))
+            for name, accounts in self.categories.items():
                 if acct in accounts:
                     for col in numeric_cols:
                         val = row.get(col)
                         if isinstance(val, (int, float)):
-                            totals[name][col] += float(val)
-            result.append({account_col: name, **totals[name]})
+                            totals[group_val][name][col] += float(val)
 
-        for form_name, expr in self.formulas.items():
-            values = {}
-            for col in numeric_cols:
-                local = {k: totals.get(k, {}).get(col, 0.0) for k in self.categories}
-                try:
-                    values[col] = eval(expr, {}, local)
-                except Exception:
-                    values[col] = None
-            result.append({account_col: form_name, **values})
+        for g in groups:
+            for name in self.categories:
+                row_vals = {account_col: name, **totals[g][name]}
+                if group_exists:
+                    row_vals[self.group_column] = g
+                result.append(row_vals)
+
+            for form_name, expr in self.formulas.items():
+                values = {}
+                for col in numeric_cols:
+                    local = {k: totals[g].get(k, {}).get(col, 0.0) for k in self.categories}
+                    try:
+                        values[col] = eval(expr, {}, local)
+                    except Exception:
+                        values[col] = None
+                row_vals = {account_col: form_name, **values}
+                if group_exists:
+                    row_vals[self.group_column] = g
+                result.append(row_vals)
 
         return result

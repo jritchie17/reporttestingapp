@@ -1475,7 +1475,8 @@ class MainWindow(QMainWindow):
                 categories = self.config.get_account_categories(report_type)
                 formulas = self.config.get_account_formulas(report_type)
                 if categories:
-                    calc = CategoryCalculator(categories, formulas)
+                    group_col = "Center" if "Center" in filtered_sql_df.columns else None
+                    calc = CategoryCalculator(categories, formulas, group_column=group_col)
                     sql_rows = filtered_sql_df.to_dict(orient="records")
                     filtered_sql_df = pd.DataFrame(calc.compute(sql_rows))
 
@@ -1540,7 +1541,8 @@ class MainWindow(QMainWindow):
                 categories = self.config.get_account_categories(report_type)
                 formulas = self.config.get_account_formulas(report_type)
                 if categories:
-                    calc = CategoryCalculator(categories, formulas)
+                    group_col = "Center" if "Center" in filtered_sql_df.columns else None
+                    calc = CategoryCalculator(categories, formulas, group_column=group_col)
                     sql_rows = filtered_sql_df.to_dict(orient="records")
                     filtered_sql_df = pd.DataFrame(calc.compute(sql_rows))
 
