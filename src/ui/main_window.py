@@ -1467,6 +1467,17 @@ class MainWindow(QMainWindow):
                 for col in key_cols:
                     excel_vals = excel_df[col].dropna().unique()
                     filtered_sql_df = filtered_sql_df[filtered_sql_df[col].isin(excel_vals)]
+
+            # Apply account categories and formulas to SQL rows before comparison
+            report_type = self.report_selector.currentText()
+            categories = self.config.get_account_categories(report_type)
+            formulas = self.config.get_account_formulas(report_type)
+            if categories:
+                from src.utils.account_categories import CategoryCalculator
+                calc = CategoryCalculator(categories, formulas)
+                sql_rows = filtered_sql_df.to_dict(orient="records")
+                filtered_sql_df = pd.DataFrame(calc.compute(sql_rows))
+
             # Generate detailed DataFrame
             df = self.comparison_engine.generate_detailed_comparison_dataframe(sheet_name, excel_df, filtered_sql_df)
             all_dfs.append(df)

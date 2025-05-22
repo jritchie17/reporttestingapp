@@ -213,6 +213,21 @@ class TestCategoryCalculator(unittest.TestCase):
         net = next(r for r in result if r['CAReportName'] == 'Net')
         self.assertEqual(net['Amount'], -50)
 
+    def test_compute_detects_account_column(self):
+        rows = [
+            {'Center': 1, 'Account': '1234-5678', 'Amount': -100},
+            {'Center': 2, 'Account': '9999-0000', 'Amount': 50},
+        ]
+        calc = CategoryCalculator(self.categories, self.formulas)
+        result = calc.compute(rows)
+        self.assertEqual(len(result), len(rows) + 3)
+        cat_a = next(r for r in result if r['Account'] == 'CatA')
+        self.assertEqual(cat_a['Amount'], -100)
+        cat_b = next(r for r in result if r['Account'] == 'CatB')
+        self.assertEqual(cat_b['Amount'], 50)
+        net = next(r for r in result if r['Account'] == 'Net')
+        self.assertEqual(net['Amount'], -50)
+
 
 class TestAccountCategoryDialog(unittest.TestCase):
     def setUp(self):
