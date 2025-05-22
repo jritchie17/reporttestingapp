@@ -7,11 +7,12 @@ from decimal import Decimal
 
 from src.utils.account_categories import CategoryCalculator
 
-FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
+FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 
 
 def patch_qt_modules():
     """Provide minimal PyQt6 stubs so AccountCategoryDialog can be imported."""
+
     class Signal:
         def __init__(self):
             self._slots = []
@@ -147,30 +148,30 @@ def patch_qt_modules():
         def getText(*args, **kwargs):
             return "", False
 
-    widgets = types.ModuleType('PyQt6.QtWidgets')
+    widgets = types.ModuleType("PyQt6.QtWidgets")
     for name, obj in {
-        'QDialog': QDialog,
-        'QVBoxLayout': QVBoxLayout,
-        'QHBoxLayout': QHBoxLayout,
-        'QListWidget': QListWidget,
-        'QListWidgetItem': QListWidgetItem,
-        'QPushButton': QPushButton,
-        'QLineEdit': QLineEdit,
-        'QInputDialog': QInputDialog,
-        'QLabel': QLabel,
-        'QTabWidget': QTabWidget,
-        'QWidget': QWidget,
-        'QDialogButtonBox': QDialogButtonBox,
+        "QDialog": QDialog,
+        "QVBoxLayout": QVBoxLayout,
+        "QHBoxLayout": QHBoxLayout,
+        "QListWidget": QListWidget,
+        "QListWidgetItem": QListWidgetItem,
+        "QPushButton": QPushButton,
+        "QLineEdit": QLineEdit,
+        "QInputDialog": QInputDialog,
+        "QLabel": QLabel,
+        "QTabWidget": QTabWidget,
+        "QWidget": QWidget,
+        "QDialogButtonBox": QDialogButtonBox,
     }.items():
         setattr(widgets, name, obj)
 
-    core = types.ModuleType('PyQt6.QtCore')
+    core = types.ModuleType("PyQt6.QtCore")
     core.Qt = Qt
 
-    sys.modules.setdefault('PyQt6', types.ModuleType('PyQt6'))
-    sys.modules['PyQt6.QtWidgets'] = widgets
-    sys.modules['PyQt6.QtCore'] = core
-    sys.modules.setdefault('PyQt6.QtGui', types.ModuleType('PyQt6.QtGui'))
+    sys.modules.setdefault("PyQt6", types.ModuleType("PyQt6"))
+    sys.modules["PyQt6.QtWidgets"] = widgets
+    sys.modules["PyQt6.QtCore"] = core
+    sys.modules.setdefault("PyQt6.QtGui", types.ModuleType("PyQt6.QtGui"))
 
 
 class DummyConfig:
@@ -193,159 +194,212 @@ class DummyConfig:
 
 class TestCategoryCalculator(unittest.TestCase):
     def setUp(self):
-        df = pd.read_csv(os.path.join(FIXTURES, 'sql_data.csv'))
-        self.rows = df.to_dict(orient='records')
+        df = pd.read_csv(os.path.join(FIXTURES, "sql_data.csv"))
+        self.rows = df.to_dict(orient="records")
         self.categories = {
-            'CatA': ['1234-5678'],
-            'CatB': ['9999-0000'],
+            "CatA": ["1234-5678"],
+            "CatB": ["9999-0000"],
         }
-        self.formulas = {
-            'Net': 'CatA + CatB'
-        }
+        self.formulas = {"Net": "CatA + CatB"}
 
     def test_compute_totals_and_formulas(self):
         calc = CategoryCalculator(self.categories, self.formulas)
         result = calc.compute(list(self.rows))
         self.assertEqual(len(result), len(self.rows) + 3)
-        cat_a = next(r for r in result if r['CAReportName'] == 'CatA')
-        self.assertEqual(cat_a['Amount'], -100)
-        cat_b = next(r for r in result if r['CAReportName'] == 'CatB')
-        self.assertEqual(cat_b['Amount'], 50)
-        net = next(r for r in result if r['CAReportName'] == 'Net')
-        self.assertEqual(net['Amount'], -50)
+        cat_a = next(r for r in result if r["CAReportName"] == "CatA")
+        self.assertEqual(cat_a["Amount"], -100)
+        cat_b = next(r for r in result if r["CAReportName"] == "CatB")
+        self.assertEqual(cat_b["Amount"], 50)
+        net = next(r for r in result if r["CAReportName"] == "Net")
+        self.assertEqual(net["Amount"], -50)
+
+    def test_compute_with_sign_flip(self):
+        calc = CategoryCalculator(
+            self.categories, self.formulas, sign_flip_accounts=["1234-5678"]
+        )
+        result = calc.compute(list(self.rows))
+        cat_a = next(r for r in result if r["CAReportName"] == "CatA")
+        self.assertEqual(cat_a["Amount"], 100)
+        net = next(r for r in result if r["CAReportName"] == "Net")
+        self.assertEqual(net["Amount"], 150)
 
     def test_compute_detects_account_column(self):
         rows = [
-            {'Center': 1, 'Account': '1234-5678', 'Amount': -100},
-            {'Center': 2, 'Account': '9999-0000', 'Amount': 50},
+            {"Center": 1, "Account": "1234-5678", "Amount": -100},
+            {"Center": 2, "Account": "9999-0000", "Amount": 50},
         ]
         calc = CategoryCalculator(self.categories, self.formulas)
         result = calc.compute(rows)
         self.assertEqual(len(result), len(rows) + 3)
-        cat_a = next(r for r in result if r['Account'] == 'CatA')
-        self.assertEqual(cat_a['Amount'], -100)
-        cat_b = next(r for r in result if r['Account'] == 'CatB')
-        self.assertEqual(cat_b['Amount'], 50)
-        net = next(r for r in result if r['Account'] == 'Net')
-        self.assertEqual(net['Amount'], -50)
+        cat_a = next(r for r in result if r["Account"] == "CatA")
+        self.assertEqual(cat_a["Amount"], -100)
+        cat_b = next(r for r in result if r["Account"] == "CatB")
+        self.assertEqual(cat_b["Amount"], 50)
+        net = next(r for r in result if r["Account"] == "Net")
+        self.assertEqual(net["Amount"], -50)
 
     def test_account_code_with_text(self):
         rows = [
-            {'CAReportName': '1234-5678', 'Amount': -100},
-            {'CAReportName': '6101-6001 GI revenue', 'Amount': 30},
-            {'CAReportName': '9999-0000', 'Amount': 50},
+            {"CAReportName": "1234-5678", "Amount": -100},
+            {"CAReportName": "6101-6001 GI revenue", "Amount": 30},
+            {"CAReportName": "9999-0000", "Amount": 50},
         ]
         categories = {
-            'CatA': ['1234-5678'],
-            'CatB': ['9999-0000'],
-            'GI': ['61016001'],
+            "CatA": ["1234-5678"],
+            "CatB": ["9999-0000"],
+            "GI": ["61016001"],
         }
-        formulas = {
-            'Net': 'CatA + CatB + GI'
-        }
+        formulas = {"Net": "CatA + CatB + GI"}
         calc = CategoryCalculator(categories, formulas)
         result = calc.compute(rows)
 
         self.assertEqual(len(result), len(rows) + 4)
-        gi = next(r for r in result if r['CAReportName'] == 'GI')
-        self.assertEqual(gi['Amount'], 30)
-        net = next(r for r in result if r['CAReportName'] == 'Net')
-        self.assertEqual(net['Amount'], -20)
+        gi = next(r for r in result if r["CAReportName"] == "GI")
+        self.assertEqual(gi["Amount"], 30)
+        net = next(r for r in result if r["CAReportName"] == "Net")
+        self.assertEqual(net["Amount"], -20)
 
     def test_numeric_columns_skip_group_column(self):
         calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
         numeric = calc._numeric_columns(self.rows)
-        self.assertEqual(numeric, ['Amount'])
+        self.assertEqual(numeric, ["Amount"])
 
     def test_grouped_totals_and_formulas(self):
         calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
         result = calc.compute(list(self.rows))
         self.assertEqual(len(result), len(self.rows) + 6)
 
-        cat_a_c1 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 1)
-        self.assertEqual(cat_a_c1['Amount'], -100)
-        cat_b_c2 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 2)
-        self.assertEqual(cat_b_c2['Amount'], 50)
+        cat_a_c1 = next(
+            r for r in result if r["CAReportName"] == "CatA" and r["Center"] == 1
+        )
+        self.assertEqual(cat_a_c1["Amount"], -100)
+        cat_b_c2 = next(
+            r for r in result if r["CAReportName"] == "CatB" and r["Center"] == 2
+        )
+        self.assertEqual(cat_b_c2["Amount"], 50)
 
-        net_c1 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 1)
-        self.assertEqual(net_c1['Amount'], -100)
-        net_c2 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 2)
-        self.assertEqual(net_c2['Amount'], 50)
+        net_c1 = next(
+            r for r in result if r["CAReportName"] == "Net" and r["Center"] == 1
+        )
+        self.assertEqual(net_c1["Amount"], -100)
+        net_c2 = next(
+            r for r in result if r["CAReportName"] == "Net" and r["Center"] == 2
+        )
+        self.assertEqual(net_c2["Amount"], 50)
 
     def test_decimal_values_grouped(self):
         rows = [
-            {'Center': 1, 'CAReportName': '1234-5678', 'Amount': Decimal('1.5')},
-            {'Center': 1, 'CAReportName': '9999-0000', 'Amount': Decimal('2.5')},
-            {'Center': 2, 'CAReportName': '1234-5678', 'Amount': Decimal('3.5'), 'Qty': Decimal('1')},
-            {'Center': 2, 'CAReportName': '9999-0000', 'Amount': Decimal('4.5'), 'Qty': Decimal('2')},
+            {"Center": 1, "CAReportName": "1234-5678", "Amount": Decimal("1.5")},
+            {"Center": 1, "CAReportName": "9999-0000", "Amount": Decimal("2.5")},
+            {
+                "Center": 2,
+                "CAReportName": "1234-5678",
+                "Amount": Decimal("3.5"),
+                "Qty": Decimal("1"),
+            },
+            {
+                "Center": 2,
+                "CAReportName": "9999-0000",
+                "Amount": Decimal("4.5"),
+                "Qty": Decimal("2"),
+            },
         ]
         calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
         result = calc.compute(rows)
 
         self.assertEqual(len(result), len(rows) + 6)
 
-        cat_a_c1 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 1)
-        self.assertEqual(cat_a_c1['Amount'], 1.5)
-        self.assertEqual(cat_a_c1.get('Qty', 0), 0)
+        cat_a_c1 = next(
+            r for r in result if r["CAReportName"] == "CatA" and r["Center"] == 1
+        )
+        self.assertEqual(cat_a_c1["Amount"], 1.5)
+        self.assertEqual(cat_a_c1.get("Qty", 0), 0)
 
-        cat_b_c1 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 1)
-        self.assertEqual(cat_b_c1['Amount'], 2.5)
-        self.assertEqual(cat_b_c1.get('Qty', 0), 0)
+        cat_b_c1 = next(
+            r for r in result if r["CAReportName"] == "CatB" and r["Center"] == 1
+        )
+        self.assertEqual(cat_b_c1["Amount"], 2.5)
+        self.assertEqual(cat_b_c1.get("Qty", 0), 0)
 
-        net_c1 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 1)
-        self.assertEqual(net_c1['Amount'], 4.0)
-        self.assertEqual(net_c1.get('Qty', 0), 0)
+        net_c1 = next(
+            r for r in result if r["CAReportName"] == "Net" and r["Center"] == 1
+        )
+        self.assertEqual(net_c1["Amount"], 4.0)
+        self.assertEqual(net_c1.get("Qty", 0), 0)
 
-        cat_a_c2 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 2)
-        self.assertEqual(cat_a_c2['Amount'], 3.5)
-        self.assertEqual(cat_a_c2['Qty'], 1)
+        cat_a_c2 = next(
+            r for r in result if r["CAReportName"] == "CatA" and r["Center"] == 2
+        )
+        self.assertEqual(cat_a_c2["Amount"], 3.5)
+        self.assertEqual(cat_a_c2["Qty"], 1)
 
-        cat_b_c2 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 2)
-        self.assertEqual(cat_b_c2['Amount'], 4.5)
-        self.assertEqual(cat_b_c2['Qty'], 2)
+        cat_b_c2 = next(
+            r for r in result if r["CAReportName"] == "CatB" and r["Center"] == 2
+        )
+        self.assertEqual(cat_b_c2["Amount"], 4.5)
+        self.assertEqual(cat_b_c2["Qty"], 2)
 
-        net_c2 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 2)
-        self.assertEqual(net_c2['Amount'], 8.0)
-        self.assertEqual(net_c2['Qty'], 3)
+        net_c2 = next(
+            r for r in result if r["CAReportName"] == "Net" and r["Center"] == 2
+        )
+        self.assertEqual(net_c2["Amount"], 8.0)
+        self.assertEqual(net_c2["Qty"], 3)
 
     def test_decimal_amounts_non_numeric_first_row_grouped(self):
         """Ensure numeric column detection scans all rows and ignores bools."""
         rows = [
-            {'Center': 1, 'CAReportName': '1234-5678', 'Amount': 'N/A', 'Flag': True},
-            {'Center': 1, 'CAReportName': '9999-0000', 'Amount': Decimal('2')},
-            {'Center': 2, 'CAReportName': '1234-5678', 'Amount': Decimal('3')},
-            {'Center': 2, 'CAReportName': '9999-0000', 'Amount': Decimal('4'), 'Flag': False},
+            {"Center": 1, "CAReportName": "1234-5678", "Amount": "N/A", "Flag": True},
+            {"Center": 1, "CAReportName": "9999-0000", "Amount": Decimal("2")},
+            {"Center": 2, "CAReportName": "1234-5678", "Amount": Decimal("3")},
+            {
+                "Center": 2,
+                "CAReportName": "9999-0000",
+                "Amount": Decimal("4"),
+                "Flag": False,
+            },
         ]
 
         calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
         result = calc.compute(rows)
 
-        cat_a_c1 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 1)
-        self.assertEqual(cat_a_c1['Amount'], 0)
-        self.assertNotIn('Flag', cat_a_c1)
+        cat_a_c1 = next(
+            r for r in result if r["CAReportName"] == "CatA" and r["Center"] == 1
+        )
+        self.assertEqual(cat_a_c1["Amount"], 0)
+        self.assertNotIn("Flag", cat_a_c1)
 
-        cat_b_c1 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 1)
-        self.assertEqual(cat_b_c1['Amount'], 2)
-        self.assertNotIn('Flag', cat_b_c1)
+        cat_b_c1 = next(
+            r for r in result if r["CAReportName"] == "CatB" and r["Center"] == 1
+        )
+        self.assertEqual(cat_b_c1["Amount"], 2)
+        self.assertNotIn("Flag", cat_b_c1)
 
-        net_c1 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 1)
-        self.assertEqual(net_c1['Amount'], 2)
+        net_c1 = next(
+            r for r in result if r["CAReportName"] == "Net" and r["Center"] == 1
+        )
+        self.assertEqual(net_c1["Amount"], 2)
 
-        cat_a_c2 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 2)
-        self.assertEqual(cat_a_c2['Amount'], 3)
+        cat_a_c2 = next(
+            r for r in result if r["CAReportName"] == "CatA" and r["Center"] == 2
+        )
+        self.assertEqual(cat_a_c2["Amount"], 3)
 
-        cat_b_c2 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 2)
-        self.assertEqual(cat_b_c2['Amount'], 4)
+        cat_b_c2 = next(
+            r for r in result if r["CAReportName"] == "CatB" and r["Center"] == 2
+        )
+        self.assertEqual(cat_b_c2["Amount"], 4)
 
-        net_c2 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 2)
-        self.assertEqual(net_c2['Amount'], 7)
+        net_c2 = next(
+            r for r in result if r["CAReportName"] == "Net" and r["Center"] == 2
+        )
+        self.assertEqual(net_c2["Amount"], 7)
 
     def test_all_decimal_amounts_grouped(self):
         rows = [
-            {'Center': 1, 'CAReportName': '1234-5678', 'Amount': Decimal('1')},
-            {'Center': 1, 'CAReportName': '9999-0000', 'Amount': Decimal('2')},
-            {'Center': 2, 'CAReportName': '1234-5678', 'Amount': Decimal('3')},
-            {'Center': 2, 'CAReportName': '9999-0000', 'Amount': Decimal('4')},
+            {"Center": 1, "CAReportName": "1234-5678", "Amount": Decimal("1")},
+            {"Center": 1, "CAReportName": "9999-0000", "Amount": Decimal("2")},
+            {"Center": 2, "CAReportName": "1234-5678", "Amount": Decimal("3")},
+            {"Center": 2, "CAReportName": "9999-0000", "Amount": Decimal("4")},
         ]
 
         calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
@@ -353,39 +407,55 @@ class TestCategoryCalculator(unittest.TestCase):
 
         self.assertEqual(len(result), len(rows) + 6)
 
-        cat_a_c1 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 1)
-        self.assertEqual(cat_a_c1['Amount'], 1)
+        cat_a_c1 = next(
+            r for r in result if r["CAReportName"] == "CatA" and r["Center"] == 1
+        )
+        self.assertEqual(cat_a_c1["Amount"], 1)
 
-        cat_b_c1 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 1)
-        self.assertEqual(cat_b_c1['Amount'], 2)
+        cat_b_c1 = next(
+            r for r in result if r["CAReportName"] == "CatB" and r["Center"] == 1
+        )
+        self.assertEqual(cat_b_c1["Amount"], 2)
 
-        net_c1 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 1)
-        self.assertEqual(net_c1['Amount'], 3)
+        net_c1 = next(
+            r for r in result if r["CAReportName"] == "Net" and r["Center"] == 1
+        )
+        self.assertEqual(net_c1["Amount"], 3)
 
-        cat_a_c2 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 2)
-        self.assertEqual(cat_a_c2['Amount'], 3)
+        cat_a_c2 = next(
+            r for r in result if r["CAReportName"] == "CatA" and r["Center"] == 2
+        )
+        self.assertEqual(cat_a_c2["Amount"], 3)
 
-        cat_b_c2 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 2)
-        self.assertEqual(cat_b_c2['Amount'], 4)
+        cat_b_c2 = next(
+            r for r in result if r["CAReportName"] == "CatB" and r["Center"] == 2
+        )
+        self.assertEqual(cat_b_c2["Amount"], 4)
 
-        net_c2 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 2)
-        self.assertEqual(net_c2['Amount'], 7)
+        net_c2 = next(
+            r for r in result if r["CAReportName"] == "Net" and r["Center"] == 2
+        )
+        self.assertEqual(net_c2["Amount"], 7)
 
 
 class TestAccountCategoryDialog(unittest.TestCase):
     def setUp(self):
         patch_qt_modules()
         from src.ui.account_category_dialog import AccountCategoryDialog
+
         self.Dialog = AccountCategoryDialog
 
     def test_account_list_populated(self):
-        accounts = ['1111', '2222', '3333']
+        accounts = ["1111", "2222", "3333"]
         config = DummyConfig()
-        dialog = self.Dialog(config, 'Test', accounts)
+        dialog = self.Dialog(config, "Test", accounts)
         from PyQt6.QtCore import Qt
 
         self.assertEqual(dialog.account_list.count(), len(accounts))
-        texts = [dialog.account_list.item(i).text() for i in range(dialog.account_list.count())]
+        texts = [
+            dialog.account_list.item(i).text()
+            for i in range(dialog.account_list.count())
+        ]
         self.assertEqual(texts, sorted(accounts))
         for i in range(dialog.account_list.count()):
             item = dialog.account_list.item(i)
@@ -393,20 +463,23 @@ class TestAccountCategoryDialog(unittest.TestCase):
             self.assertEqual(item.checkState(), Qt.CheckState.Unchecked)
 
     def test_accounts_sorted_after_add(self):
-        accounts = ['2222', '3333']
+        accounts = ["2222", "3333"]
         config = DummyConfig()
-        dialog = self.Dialog(config, 'Test', accounts)
+        dialog = self.Dialog(config, "Test", accounts)
         from PyQt6.QtWidgets import QInputDialog
 
         def fake_get_text(*args, **kwargs):
-            return '1111', True
+            return "1111", True
 
         QInputDialog.getText = staticmethod(fake_get_text)
         dialog._add_account()
 
-        texts = [dialog.account_list.item(i).text() for i in range(dialog.account_list.count())]
-        self.assertEqual(texts, sorted(accounts + ['1111']))
+        texts = [
+            dialog.account_list.item(i).text()
+            for i in range(dialog.account_list.count())
+        ]
+        self.assertEqual(texts, sorted(accounts + ["1111"]))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
