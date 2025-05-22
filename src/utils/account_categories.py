@@ -6,6 +6,8 @@ from typing import Dict, Iterable, List, Any
 from decimal import Decimal
 import re
 
+from src.analyzer import sign_flip
+
 
 class CategoryCalculator:
     """Compute category totals and evaluate formulas."""
@@ -16,6 +18,7 @@ class CategoryCalculator:
         formulas: Dict[str, str] | None = None,
         account_column: str = "CAReportName",
         group_column: str | None = "Center",
+        sign_flip_accounts: Iterable[str] | None = None,
     ) -> None:
         """Create a new calculator.
 
@@ -32,12 +35,16 @@ class CategoryCalculator:
             Optional column name used to group rows before aggregating.  If this
             column is present in the input rows, totals and formulas are
             computed separately for each unique value.
+        sign_flip_accounts:
+            Collection of account identifiers whose numeric values should be
+            multiplied by ``-1`` before aggregation.
         """
 
         self.categories = {k: list(v) for k, v in (categories or {}).items()}
         self.formulas = formulas or {}
         self.account_column = account_column
         self.group_column = group_column
+        self.sign_flip_accounts = {str(a).strip() for a in sign_flip_accounts or []}
 
     def _resolve_account_column(self, rows: List[Dict[str, Any]]) -> str:
         """Return a suitable account column name for the given rows."""
@@ -125,7 +132,10 @@ class CategoryCalculator:
             groups = [None]
 
         totals: Dict[Any, Dict[str, Dict[str, Decimal]]] = {
-            g: {name: {col: Decimal("0") for col in numeric_cols} for name in self.categories}
+            g: {
+                name: {col: Decimal("0") for col in numeric_cols}
+                for name in self.categories
+            }
             for g in groups
         }
 
@@ -139,7 +149,13 @@ class CategoryCalculator:
                     if acct_code and cat_code and acct_code == cat_code:
                         for col in numeric_cols:
                             val = row.get(col)
-                            if isinstance(val, (int, float, Decimal)) and not isinstance(val, bool):
+                            if isinstance(
+                                val, (int, float, Decimal)
+                            ) and not isinstance(val, bool):
+                                if sign_flip.should_flip(
+                                    acct_raw, self.sign_flip_accounts
+                                ):
+                                    val = -val
                                 if isinstance(val, Decimal):
                                     totals[group_val][name][col] += val
                                 else:
@@ -156,7 +172,10 @@ class CategoryCalculator:
             for form_name, expr in self.formulas.items():
                 values = {}
                 for col in numeric_cols:
-                    local = {k: totals[g].get(k, {}).get(col, Decimal("0")) for k in self.categories}
+                    local = {
+                        k: totals[g].get(k, {}).get(col, Decimal("0"))
+                        for k in self.categories
+                    }
                     try:
                         values[col] = eval(expr, {}, local)
                     except Exception:
