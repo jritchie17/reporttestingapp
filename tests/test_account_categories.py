@@ -228,6 +228,21 @@ class TestCategoryCalculator(unittest.TestCase):
         net = next(r for r in result if r['Account'] == 'Net')
         self.assertEqual(net['Amount'], -50)
 
+    def test_grouped_totals_and_formulas(self):
+        calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
+        result = calc.compute(list(self.rows))
+        self.assertEqual(len(result), len(self.rows) + 6)
+
+        cat_a_c1 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 1)
+        self.assertEqual(cat_a_c1['Amount'], -100)
+        cat_b_c2 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 2)
+        self.assertEqual(cat_b_c2['Amount'], 50)
+
+        net_c1 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 1)
+        self.assertEqual(net_c1['Amount'], -100)
+        net_c2 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 2)
+        self.assertEqual(net_c2['Amount'], 50)
+
 
 class TestAccountCategoryDialog(unittest.TestCase):
     def setUp(self):
