@@ -229,6 +229,29 @@ class TestCategoryCalculator(unittest.TestCase):
         net = next(r for r in result if r['Account'] == 'Net')
         self.assertEqual(net['Amount'], -50)
 
+    def test_account_code_with_text(self):
+        rows = [
+            {'CAReportName': '1234-5678', 'Amount': -100},
+            {'CAReportName': '6101-6001 GI revenue', 'Amount': 30},
+            {'CAReportName': '9999-0000', 'Amount': 50},
+        ]
+        categories = {
+            'CatA': ['1234-5678'],
+            'CatB': ['9999-0000'],
+            'GI': ['61016001'],
+        }
+        formulas = {
+            'Net': 'CatA + CatB + GI'
+        }
+        calc = CategoryCalculator(categories, formulas)
+        result = calc.compute(rows)
+
+        self.assertEqual(len(result), len(rows) + 4)
+        gi = next(r for r in result if r['CAReportName'] == 'GI')
+        self.assertEqual(gi['Amount'], 30)
+        net = next(r for r in result if r['CAReportName'] == 'Net')
+        self.assertEqual(net['Amount'], -20)
+
     def test_numeric_columns_skip_group_column(self):
         calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
         numeric = calc._numeric_columns(self.rows)

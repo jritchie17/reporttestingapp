@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Dict, Iterable, List, Any
 from decimal import Decimal
+import re
 
 
 class CategoryCalculator:
@@ -75,6 +76,33 @@ class CategoryCalculator:
             numeric_cols.remove(self.group_column)
         return numeric_cols
 
+    @staticmethod
+    def _extract_account_code(text: str) -> str:
+        """Return a normalized account identifier from ``text``.
+
+        The method searches for common account patterns (with or without a
+        dash) and returns only the digits found. If no pattern is detected,
+        an empty string is returned.
+        """
+
+        if not text:
+            return ""
+
+        patterns = [
+            r"(\d{4}-?\d{4})",
+            r"(\d{5}-?\d{3})",
+            r"(\d{3}-?\d{5})",
+            r"(\d{4}-?\d{5})",
+            r"(\d{7,8})",
+        ]
+
+        for pat in patterns:
+            match = re.search(pat, str(text))
+            if match:
+                return match.group(1).replace("-", "")
+
+        return ""
+
     def compute(self, rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Return rows extended with category totals and formula rows.
 
@@ -103,16 +131,20 @@ class CategoryCalculator:
 
         for row in rows:
             group_val = row.get(self.group_column) if group_exists else None
-            acct = str(row.get(account_col, ""))
+            acct_raw = str(row.get(account_col, ""))
+            acct_code = self._extract_account_code(acct_raw)
             for name, accounts in self.categories.items():
-                if acct in accounts:
-                    for col in numeric_cols:
-                        val = row.get(col)
-                        if isinstance(val, (int, float, Decimal)) and not isinstance(val, bool):
-                            if isinstance(val, Decimal):
-                                totals[group_val][name][col] += val
-                            else:
-                                totals[group_val][name][col] += Decimal(str(val))
+                for acc in accounts:
+                    cat_code = self._extract_account_code(acc)
+                    if acct_code and cat_code and acct_code == cat_code:
+                        for col in numeric_cols:
+                            val = row.get(col)
+                            if isinstance(val, (int, float, Decimal)) and not isinstance(val, bool):
+                                if isinstance(val, Decimal):
+                                    totals[group_val][name][col] += val
+                                else:
+                                    totals[group_val][name][col] += Decimal(str(val))
+                        break
 
         for g in groups:
             for name in self.categories:
