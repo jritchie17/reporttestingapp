@@ -3,6 +3,7 @@ import logging
 import re
 from pathlib import Path
 from src.utils.logging_config import get_logger
+from src.utils.account_patterns import ACCOUNT_PATTERNS
 from src.plugins import load_plugins, Plugin
 from . import (
     column_matching,
@@ -512,8 +513,12 @@ class ComparisonEngine:
                 # Get account value for sign flip
                 acct = row.get(account_col_sql) or row.get(account_col_excel) or ''
                 acct_str = str(acct).strip()
-                match = re.search(r'\d{4}-\d{4}', acct_str)
-                acct_extracted = match.group(0) if match else acct_str
+                acct_extracted = acct_str
+                for pat in ACCOUNT_PATTERNS:
+                    match = re.search(pat, acct_str)
+                    if match:
+                        acct_extracted = match.group(1)
+                        break
                 # Apply sign flip if needed
                 sql_val_flipped = sql_val
                 try:

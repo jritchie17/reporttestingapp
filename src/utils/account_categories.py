@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Dict, Iterable, List, Any
 from decimal import Decimal
 import re
+from .account_patterns import ACCOUNT_PATTERNS
 
 from src.analyzer import sign_flip
 
@@ -103,15 +104,7 @@ class CategoryCalculator:
         if not text:
             return ""
 
-        patterns = [
-            r"(\d{4}-?\d{4})",
-            r"(\d{5}-?\d{3})",
-            r"(\d{3}-?\d{5})",
-            r"(\d{4}-?\d{5})",
-            r"(\d{7,10})",
-        ]
-
-        for pat in patterns:
+        for pat in ACCOUNT_PATTERNS:
             match = re.search(pat, str(text))
             if match:
                 return match.group(1).replace("-", "")

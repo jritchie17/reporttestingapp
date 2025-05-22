@@ -1416,13 +1416,8 @@ class MainWindow(QMainWindow):
         if not getattr(self, "excel_analyzer", None):
             return []
 
-        patterns = [
-            r"(\d{4}-?\d{4})",
-            r"(\d{5}-?\d{3})",
-            r"(\d{3}-?\d{5})",
-            r"(\d{4}-?\d{5})",
-            r"(\d{7,10})",
-        ]
+        from src.utils.account_patterns import ACCOUNT_PATTERNS
+        patterns = ACCOUNT_PATTERNS
         accounts = set()
         try:
             for sheet in self.excel_analyzer.sheet_names:

@@ -1159,13 +1159,8 @@ class ExcelViewer(QWidget):
                 return
             
             # Step 6: Extract account codes from the selected column across all selected sheets
-            # Support multiple account code formats
-            account_patterns = [
-                r'(\d{4}-\d{4})',     # Standard format (e.g., "1234-5678")
-                r'(\d{5}-\d{3})',     # Alternative format (e.g., "12345-678")
-                r'(\d{3}-\d{5})',     # Another format (e.g., "123-45678")
-                r'(\d{4}-\d{5})'      # Extended format (e.g., "1234-56789")
-            ]
+            from src.utils.account_patterns import ACCOUNT_PATTERNS
+            account_patterns = ACCOUNT_PATTERNS
             account_codes = set()
             missing_column_sheets = []
             
