@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableView, 
                              QLabel, QPushButton, QComboBox, QLineEdit, 
                              QHeaderView, QSplitter, QCheckBox, QGroupBox,
