@@ -24,17 +24,23 @@ class FormulaLineEdit(QLineEdit):
         self.setAcceptDrops(True)
 
     def dragEnterEvent(self, event):  # type: ignore[override]
+        """Accept drags that contain text or come from a list widget."""
 
-        if event.mimeData().hasText():
+        if event.mimeData().hasText() or isinstance(event.source(), QListWidget):
 
             event.acceptProposedAction()
         else:
             super().dragEnterEvent(event)
 
     def dropEvent(self, event):  # type: ignore[override]
+        """Insert dragged category name into the line edit."""
 
         if event.mimeData().hasText():
             self.insert(event.mimeData().text())
+
+            event.acceptProposedAction()
+        elif isinstance(event.source(), QListWidget) and event.source().currentItem():
+            self.insert(event.source().currentItem().text())
 
             event.acceptProposedAction()
         else:
