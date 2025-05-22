@@ -2,3 +2,71 @@ QWidget {
     background-color: #ffffff;
     color: #000000;
 }
+
+QPushButton {
+    background-color: #f0f0f0;
+    color: #000000;
+}
+
+QMenuBar {
+    background-color: #f0f0f0;
+    color: #000000;
+}
+
+QStatusBar {
+    background-color: #f0f0f0;
+    color: #000000;
+}
+
+QHeaderView::section {
+    background-color: #dcdcdc;
+    color: #000000;
+}
+
+/* Group boxes keep a white background with black text */
+QGroupBox {
+    background-color: #ffffff;
+    color: #000000;
+}
+QGroupBox::title {
+    background: transparent;
+}
+
+/* Tool bars use the same light background */
+QToolBar {
+    background: #f0f0f0;
+}
+QToolButton {
+    background-color: #dcdcdc;
+    color: #000000;
+}
+QToolButton:pressed {
+    background-color: #c0c0c0;
+}
+
+/* Tables keep a white background with subtle grid lines */
+QTableView {
+    background-color: #ffffff;
+    alternate-background-color: #f9f9f9;
+    gridline-color: #dcdcdc;
+    color: #000000;
+    selection-background-color: #cce8ff;
+    selection-color: #000000;
+}
+
+/* Tabs follow the light palette */
+QTabBar::tab {
+    background: #f0f0f0;
+    color: #000000;
+}
+QTabBar::tab:selected {
+    background: #dcdcdc;
+}
+QTabBar::tab:pressed {
+    background: #c0c0c0;
+}
+
+/* Buttons also get a pressed state */
+QPushButton:pressed {
+    background-color: #dcdcdc;
+}
