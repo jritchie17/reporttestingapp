@@ -46,6 +46,14 @@ class CategoryCalculator:
         self.group_column = group_column
         self.sign_flip_accounts = {str(a).strip() for a in sign_flip_accounts or []}
 
+        # Map original category names to safe Python identifiers for formula evaluation
+        self._safe_names: Dict[str, str] = {}
+        for idx, name in enumerate(self.categories):
+            safe = re.sub(r"\W|^(?=\d)", "_", name)
+            if not safe or safe in self._safe_names.values():
+                safe = f"cat_{idx}"
+            self._safe_names[name] = safe
+
     def _resolve_account_column(self, rows: List[Dict[str, Any]]) -> str:
         """Return a suitable account column name for the given rows."""
         if rows and self.account_column in rows[0]:
@@ -170,14 +178,21 @@ class CategoryCalculator:
                 result.append(row_vals)
 
             for form_name, expr in self.formulas.items():
+                # Replace category names with safe identifiers in the expression
+                safe_expr = expr
+                for name, safe in sorted(
+                    self._safe_names.items(), key=lambda x: len(x[0]), reverse=True
+                ):
+                    safe_expr = re.sub(r"\b" + re.escape(name) + r"\b", safe, safe_expr)
+
                 values = {}
                 for col in numeric_cols:
                     local = {
-                        k: totals[g].get(k, {}).get(col, Decimal("0"))
+                        self._safe_names[k]: totals[g].get(k, {}).get(col, Decimal("0"))
                         for k in self.categories
                     }
                     try:
-                        values[col] = eval(expr, {}, local)
+                        values[col] = eval(safe_expr, {}, local)
                     except Exception:
                         values[col] = None
                 row_vals = {account_col: form_name, **values}

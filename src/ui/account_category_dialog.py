@@ -16,6 +16,27 @@ from PyQt6.QtWidgets import (
 from src.utils.config import AppConfig
 
 
+class FormulaLineEdit(QLineEdit):
+    """QLineEdit that accepts drops of category names."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):  # type: ignore[override]
+        if event.mimeData().hasText():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dropEvent(self, event):  # type: ignore[override]
+        if event.mimeData().hasText():
+            self.insert(event.mimeData().text())
+            event.acceptProposedAction()
+        else:
+            super().dropEvent(event)
+
+
 class AccountCategoryDialog(QDialog):
     """Dialog for managing account categories and formulas."""
 
@@ -36,6 +57,12 @@ class AccountCategoryDialog(QDialog):
                     self.all_accounts.append(acct)
 
         self._init_ui()
+
+    def _refresh_drag_categories(self) -> None:
+        """Update the list of categories available for drag-and-drop."""
+        if hasattr(self, "category_drag_list"):
+            self.category_drag_list.clear()
+            self.category_drag_list.addItems(sorted(self.categories.keys()))
 
     # UI setup
     def _init_ui(self) -> None:
@@ -90,6 +117,9 @@ class AccountCategoryDialog(QDialog):
             self._populate_account_list(self.categories.get(first.text(), []))
         else:
             self._populate_account_list([])
+        # Sync formula tab category list if it exists
+        if hasattr(self, "category_drag_list"):
+            self._refresh_drag_categories()
 
     def _create_formulas_tab(self) -> None:
         tab = QWidget()
@@ -101,10 +131,32 @@ class AccountCategoryDialog(QDialog):
         layout.addWidget(self.formula_list)
 
         right = QVBoxLayout()
+
+        right.addWidget(QLabel("Categories:"))
+        self.category_drag_list = QListWidget()
+        self.category_drag_list.addItems(sorted(self.categories.keys()))
+        self.category_drag_list.setDragEnabled(True)
+        right.addWidget(self.category_drag_list)
+
         right.addWidget(QLabel("Formula expression (use category names):"))
-        self.formula_edit = QLineEdit()
+        self.formula_edit = FormulaLineEdit()
         self.formula_edit.textChanged.connect(self._formula_changed)
         right.addWidget(self.formula_edit)
+
+        ops = QHBoxLayout()
+        for label, text in [
+            ("+", "+"),
+            ("-", "-"),
+            ("*", "*"),
+            ("/", "/"),
+            ("*-1", "*-1"),
+            ("(", "("),
+            (")", ")"),
+        ]:
+            btn = QPushButton(label)
+            btn.clicked.connect(lambda _=False, t=text: self._insert_formula_text(t))
+            ops.addWidget(btn)
+        right.addLayout(ops)
 
         btns = QHBoxLayout()
         add_btn = QPushButton("Add")
@@ -173,6 +225,7 @@ class AccountCategoryDialog(QDialog):
                 self.categories[name] = []
                 self.category_list.addItem(name)
                 self.category_list.setCurrentRow(self.category_list.count() - 1)
+                self._refresh_drag_categories()
 
     def _delete_category(self):
         item = self.category_list.currentItem()
@@ -184,6 +237,7 @@ class AccountCategoryDialog(QDialog):
         row = self.category_list.row(item)
         self.category_list.takeItem(row)
         self.account_list.clear()
+        self._refresh_drag_categories()
 
     # Formula handlers
     def _on_formula_selected(self, current, previous):
@@ -198,6 +252,14 @@ class AccountCategoryDialog(QDialog):
         item = self.formula_list.currentItem()
         if item:
             self.formulas[item.text()] = self.formula_edit.text()
+
+    def _insert_formula_text(self, text: str) -> None:
+        """Insert ``text`` at the current cursor position in the formula field."""
+        cursor = self.formula_edit.cursorPosition()
+        current = self.formula_edit.text()
+        self.formula_edit.setText(current[:cursor] + text + current[cursor:])
+        self.formula_edit.setCursorPosition(cursor + len(text))
+        self._formula_changed()
 
     def _add_formula(self):
         name, ok = QInputDialog.getText(self, "Add Formula", "Formula name:")
