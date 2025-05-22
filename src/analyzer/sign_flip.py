@@ -3,14 +3,17 @@ from typing import Iterable, Any
 
 
 def _normalize_account(account: Any) -> str:
+    """Return digits-only account identifier."""
     acct_str = str(account).strip()
-    match = re.search(r"\d{4}-\d{4}", acct_str)
-    return match.group(0) if match else acct_str
+    if not acct_str:
+        return ""
+    digits = re.findall(r"\d", acct_str)
+    return "".join(digits)
 
 
 def should_flip(account: Any, sign_flip_accounts: Iterable[str]) -> bool:
     """Return True if the value should have its sign flipped."""
-    accounts = {str(a).strip() for a in sign_flip_accounts or []}
+    accounts = {_normalize_account(a) for a in sign_flip_accounts or []}
     return _normalize_account(account) in accounts
 
 

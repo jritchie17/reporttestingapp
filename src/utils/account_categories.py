@@ -108,7 +108,7 @@ class CategoryCalculator:
             r"(\d{5}-?\d{3})",
             r"(\d{3}-?\d{5})",
             r"(\d{4}-?\d{5})",
-            r"(\d{7,8})",
+            r"(\d{7,10})",
         ]
 
         for pat in patterns:

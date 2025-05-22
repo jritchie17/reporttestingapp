@@ -1430,7 +1430,7 @@ class MainWindow(QMainWindow):
                     self.excel_analyzer.analyze_sheet(sheet)
 
                 sheet_info = self.excel_analyzer.sheet_data[sheet]
-                df = sheet_info["dataframe"]
+                df = sheet_info.get("cleaned_dataframe") or sheet_info["dataframe"]
 
                 # If the dataframe has numeric column names, rebuild headers
                 cols_are_numeric = all(
