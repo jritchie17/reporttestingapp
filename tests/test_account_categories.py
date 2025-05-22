@@ -229,6 +229,11 @@ class TestCategoryCalculator(unittest.TestCase):
         net = next(r for r in result if r['Account'] == 'Net')
         self.assertEqual(net['Amount'], -50)
 
+    def test_numeric_columns_skip_group_column(self):
+        calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
+        numeric = calc._numeric_columns(self.rows)
+        self.assertEqual(numeric, ['Amount'])
+
     def test_grouped_totals_and_formulas(self):
         calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
         result = calc.compute(list(self.rows))

@@ -66,10 +66,13 @@ class CategoryCalculator:
         for row in rows:
             for key, val in row.items():
                 if key == self.group_column:
+                    # never treat the grouping column as numeric
                     continue
                 if isinstance(val, (int, float, Decimal)) and not isinstance(val, bool):
                     if key not in numeric_cols:
                         numeric_cols.append(key)
+        if self.group_column and self.group_column in numeric_cols:
+            numeric_cols.remove(self.group_column)
         return numeric_cols
 
     def compute(self, rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
