@@ -312,6 +312,37 @@ class TestCategoryCalculator(unittest.TestCase):
         net_c2 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 2)
         self.assertEqual(net_c2['Amount'], 7)
 
+    def test_all_decimal_amounts_grouped(self):
+        rows = [
+            {'Center': 1, 'CAReportName': '1234-5678', 'Amount': Decimal('1')},
+            {'Center': 1, 'CAReportName': '9999-0000', 'Amount': Decimal('2')},
+            {'Center': 2, 'CAReportName': '1234-5678', 'Amount': Decimal('3')},
+            {'Center': 2, 'CAReportName': '9999-0000', 'Amount': Decimal('4')},
+        ]
+
+        calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
+        result = calc.compute(rows)
+
+        self.assertEqual(len(result), len(rows) + 6)
+
+        cat_a_c1 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 1)
+        self.assertEqual(cat_a_c1['Amount'], 1)
+
+        cat_b_c1 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 1)
+        self.assertEqual(cat_b_c1['Amount'], 2)
+
+        net_c1 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 1)
+        self.assertEqual(net_c1['Amount'], 3)
+
+        cat_a_c2 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 2)
+        self.assertEqual(cat_a_c2['Amount'], 3)
+
+        cat_b_c2 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 2)
+        self.assertEqual(cat_b_c2['Amount'], 4)
+
+        net_c2 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 2)
+        self.assertEqual(net_c2['Amount'], 7)
+
 
 class TestAccountCategoryDialog(unittest.TestCase):
     def setUp(self):
