@@ -47,6 +47,8 @@ soo-preclose-tester
 You can customize the appearance under **Tools -> Settings -> User Interface**.
 The Theme drop-down defaults to *Brand* (applying the company's colors) but also allows Light, Dark, or System themes.
 
+To manage account mappings, open **Tools -> Manage Account Categories...**. When this dialog opens the application scans all currently loaded Excel sheets and pre-fills the account list automatically. Columns named `Account` or `CAReportName` are recognized without manual setup.
+
 For temp table query testing, you can use the specialized scripts:
 ```
 python src/analyzer/run_real_query.py
