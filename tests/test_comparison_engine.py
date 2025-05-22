@@ -2,6 +2,7 @@ import os
 import unittest
 import pandas as pd
 from src.analyzer.comparison_engine import ComparisonEngine
+from src.utils.account_categories import CategoryCalculator
 
 FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
 
@@ -26,6 +27,18 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         self.engine.set_sign_flip_accounts(['1234-5678'])
         df = self.engine.generate_detailed_comparison_dataframe('Sheet1', self.excel_df, sql_mod)
         self.assertIn('Does Not Match', df['Result'].values)
+
+    def test_detailed_dataframe_includes_formula_rows(self):
+        categories = {
+            'CatA': ['1234-5678'],
+        }
+        formulas = {
+            'Net': 'CatA'
+        }
+        calc = CategoryCalculator(categories, formulas)
+        sql_mod = pd.DataFrame(calc.compute(self.sql_df.to_dict(orient='records')))
+        df = self.engine.generate_detailed_comparison_dataframe('Sheet1', self.excel_df, sql_mod)
+        self.assertIn('Net', df['CAReport Name'].values)
 
     def test_identify_account_discrepancies(self):
         discrepancies = self.engine.identify_account_discrepancies(self.excel_df, self.sql_df)

@@ -23,6 +23,7 @@ from src.database.db_connector import DatabaseConnector
 from src.analyzer.excel_analyzer import ExcelAnalyzer
 from src.analyzer.comparison_engine import ComparisonEngine
 from src.utils.config import AppConfig
+from src.utils.account_categories import CategoryCalculator
 
 import qtawesome as qta
 import pandas as pd
@@ -1465,8 +1466,20 @@ class MainWindow(QMainWindow):
             filtered_sql_df = sql_df.copy()
             if key_cols:
                 for col in key_cols:
+                    if col in ["CAReportName", "Account"]:
+                        continue
                     excel_vals = excel_df[col].dropna().unique()
                     filtered_sql_df = filtered_sql_df[filtered_sql_df[col].isin(excel_vals)]
+            # Apply categories and formulas to SQL data
+            report_type = self.config.get("excel", "report_type")
+            if report_type:
+                categories = self.config.get_account_categories(report_type)
+                formulas = self.config.get_account_formulas(report_type)
+                if categories:
+                    calc = CategoryCalculator(categories, formulas)
+                    filtered_sql_df = pd.DataFrame(
+                        calc.compute(filtered_sql_df.to_dict(orient="records"))
+                    )
             # Generate detailed DataFrame
             df = self.comparison_engine.generate_detailed_comparison_dataframe(sheet_name, excel_df, filtered_sql_df)
             all_dfs.append(df)
