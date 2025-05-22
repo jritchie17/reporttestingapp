@@ -1416,13 +1416,8 @@ class MainWindow(QMainWindow):
         if not getattr(self, "excel_analyzer", None):
             return []
 
-        patterns = [
-            r"(\d{4}-?\d{4})",
-            r"(\d{5}-?\d{3})",
-            r"(\d{3}-?\d{5})",
-            r"(\d{4}-?\d{5})",
-            r"(\d{7,10})",
-        ]
+        from src.utils.account_patterns import ACCOUNT_PATTERNS
+        patterns = ACCOUNT_PATTERNS
         accounts = set()
         try:
             for sheet in self.excel_analyzer.sheet_names:
@@ -1451,15 +1446,10 @@ class MainWindow(QMainWindow):
                         df.columns = headers
 
                 for col in df.columns:
-                    col_name = str(col).strip()
-                    if (
-                        "account" in col_name.lower()
-                        or "careportname" in col_name.lower()
-                    ):
-                        col_data = df[col].astype(str)
-                        for val in col_data:
-                            for pat in patterns:
-                                accounts.update(re.findall(pat, val))
+                    col_data = df[col].astype(str)
+                    for val in col_data:
+                        for pat in patterns:
+                            accounts.update(re.findall(pat, val))
         except Exception as e:
             self.logger.error(f"Failed to extract accounts: {e}")
 
