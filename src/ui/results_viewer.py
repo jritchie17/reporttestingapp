@@ -415,50 +415,21 @@ class ResultsViewer(QWidget):
         return pd.DataFrame(self.results_data)
 
     def apply_widget_theme(self, theme: str):
-        """Apply theme-specific styling to the results viewer."""
-        if theme and theme.lower() == "dark":
-            qss = """
-            QTableView {
-                background-color: #2d2d2d;
-                alternate-background-color: #333333;
-                selection-background-color: #3a6ea5;
-                selection-color: #ffffff;
-                gridline-color: #4a4a4a;
-            }
-            QHeaderView::section {
-                background-color: #444444;
-                color: #e0e0e0;
-                padding: 4px;
-                border: 1px solid #555555;
-                font-weight: bold;
-            }
-            QLabel {
-                color: #e0e0e0;
-                background: transparent;
-            }
-            QPushButton {
-                background-color: #3a6ea5;
-                color: white;
-                border: 1px solid #555555;
-                border-radius: 3px;
-                padding: 6px 12px;
-            }
-            QPushButton:hover {
-                background-color: #4a7eb5;
-            }
-            QComboBox {
-                background-color: #333333;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-                padding: 5px;
-            }
-            QLineEdit {
-                background-color: #333333;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-                padding: 5px;
-            }
-            """
-            self.table_view.setStyleSheet(qss)
-        else:
-            self.table_view.setStyleSheet("")
+        """Apply base style and theme colors to the results viewer."""
+        themes_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "themes"
+        )
+
+        def load_qss(name: str) -> str:
+            path = os.path.join(themes_dir, name)
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    return f.read()
+            return ""
+
+        qss = load_qss("base.qss")
+        theme_lower = (theme or "").lower()
+        if theme_lower and theme_lower != "system":
+            qss += load_qss(f"{theme_lower}.qss")
+
+        self.table_view.setStyleSheet(qss)
