@@ -24,18 +24,22 @@ class FormulaLineEdit(QLineEdit):
         self.setAcceptDrops(True)
 
     def dragEnterEvent(self, event):  # type: ignore[override]
+ 8scdrt-codex/add-drag-and-drop-formula-functionality
         if event.mimeData().hasText() or isinstance(event.source(), QListWidget):
+
             event.acceptProposedAction()
         else:
             super().dragEnterEvent(event)
 
     def dropEvent(self, event):  # type: ignore[override]
+ 8scdrt-codex/add-drag-and-drop-formula-functionality
         text = event.mimeData().text()
         if not text and isinstance(event.source(), QListWidget):
             item = event.source().currentItem()
             text = item.text() if item else ""
         if text:
             self.insert(text)
+
             event.acceptProposedAction()
         else:
             super().dropEvent(event)
