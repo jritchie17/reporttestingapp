@@ -1,7 +1,6 @@
 QWidget {
     background-color: #ffffff;
     color: #004B8D;
-    font-family: "Proxima Nova", Arial, sans-serif;
 }
 QPushButton {
     background-color: #F58025;
@@ -23,28 +22,19 @@ QHeaderView::section {
 /* Group boxes keep a light background with branded border and text */
 QGroupBox {
     background-color: #ffffff;
-    border: 1px solid #3B6E8F;
-    border-radius: 4px;
-    margin-top: 1.5ex;
     color: #004B8D;
 }
 QGroupBox::title {
-    subcontrol-origin: margin;
-    subcontrol-position: top center;
-    padding: 0 4px;
     background: transparent;
 }
 
 /* Tool bars use a branded background and buttons */
 QToolBar {
     background: #3B6E8F;
-    spacing: 4px;
 }
 QToolButton {
     background-color: #F58025;
     color: white;
-    border-radius: 3px;
-    padding: 4px 6px;
 }
 QToolButton:pressed {
     background-color: #76A240;
@@ -61,17 +51,9 @@ QTableView {
 }
 
 /* Tabs follow the brand palette */
-QTabWidget::pane {
-    border: 1px solid #3B6E8F;
-}
 QTabBar::tab {
     background: #F58025;
     color: white;
-    padding: 4px 8px;
-    border: 1px solid #3B6E8F;
-    border-bottom: none;
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
 }
 QTabBar::tab:selected {
     background: #004B8D;
