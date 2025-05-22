@@ -3,6 +3,7 @@ import sys
 import types
 import pandas as pd
 import unittest
+from decimal import Decimal
 
 from src.utils.account_categories import CategoryCalculator
 
@@ -242,6 +243,42 @@ class TestCategoryCalculator(unittest.TestCase):
         self.assertEqual(net_c1['Amount'], -100)
         net_c2 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 2)
         self.assertEqual(net_c2['Amount'], 50)
+
+    def test_decimal_values_grouped(self):
+        rows = [
+            {'Center': 1, 'CAReportName': '1234-5678', 'Amount': Decimal('1.5')},
+            {'Center': 1, 'CAReportName': '9999-0000', 'Amount': Decimal('2.5')},
+            {'Center': 2, 'CAReportName': '1234-5678', 'Amount': Decimal('3.5'), 'Qty': Decimal('1')},
+            {'Center': 2, 'CAReportName': '9999-0000', 'Amount': Decimal('4.5'), 'Qty': Decimal('2')},
+        ]
+        calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
+        result = calc.compute(rows)
+
+        self.assertEqual(len(result), len(rows) + 6)
+
+        cat_a_c1 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 1)
+        self.assertEqual(cat_a_c1['Amount'], 1.5)
+        self.assertEqual(cat_a_c1.get('Qty', 0), 0)
+
+        cat_b_c1 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 1)
+        self.assertEqual(cat_b_c1['Amount'], 2.5)
+        self.assertEqual(cat_b_c1.get('Qty', 0), 0)
+
+        net_c1 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 1)
+        self.assertEqual(net_c1['Amount'], 4.0)
+        self.assertEqual(net_c1.get('Qty', 0), 0)
+
+        cat_a_c2 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 2)
+        self.assertEqual(cat_a_c2['Amount'], 3.5)
+        self.assertEqual(cat_a_c2['Qty'], 1)
+
+        cat_b_c2 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 2)
+        self.assertEqual(cat_b_c2['Amount'], 4.5)
+        self.assertEqual(cat_b_c2['Qty'], 2)
+
+        net_c2 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 2)
+        self.assertEqual(net_c2['Amount'], 8.0)
+        self.assertEqual(net_c2['Qty'], 3)
 
 
 class TestAccountCategoryDialog(unittest.TestCase):

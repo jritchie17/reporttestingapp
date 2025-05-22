@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Dict, Iterable, List, Any
+from decimal import Decimal
 
 
 class CategoryCalculator:
@@ -64,10 +65,11 @@ class CategoryCalculator:
         numeric_cols: List[str] = []
         for row in rows:
             for key, val in row.items():
-                if isinstance(val, (int, float)) and key not in numeric_cols:
-                    numeric_cols.append(key)
-            if numeric_cols:
-                break
+                if key == self.group_column:
+                    continue
+                if isinstance(val, (int, float, Decimal)) and not isinstance(val, bool):
+                    if key not in numeric_cols:
+                        numeric_cols.append(key)
         return numeric_cols
 
     def compute(self, rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -103,7 +105,7 @@ class CategoryCalculator:
                 if acct in accounts:
                     for col in numeric_cols:
                         val = row.get(col)
-                        if isinstance(val, (int, float)):
+                        if isinstance(val, (int, float, Decimal)) and not isinstance(val, bool):
                             totals[group_val][name][col] += float(val)
 
         for g in groups:
