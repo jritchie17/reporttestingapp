@@ -1421,7 +1421,7 @@ class MainWindow(QMainWindow):
             r"(\d{5}-?\d{3})",
             r"(\d{3}-?\d{5})",
             r"(\d{4}-?\d{5})",
-            r"(\d{7,8})",
+            r"(\d{7,10})",
         ]
         accounts = set()
         try:
