@@ -1216,15 +1216,45 @@ class MainWindow(QMainWindow):
         if not getattr(self, "excel_analyzer", None):
             return []
 
-        patterns = [r"(\d{4}-\d{4})", r"(\d{5}-\d{3})", r"(\d{3}-\d{5})", r"(\d{4}-\d{5})"]
+        patterns = [
+            r"(\d{4}-\d{4})",
+            r"(\d{5}-\d{3})",
+            r"(\d{3}-\d{5})",
+            r"(\d{4}-\d{5})",
+        ]
         accounts = set()
         try:
             for sheet in self.excel_analyzer.sheet_names:
                 if sheet not in self.excel_analyzer.sheet_data:
                     self.excel_analyzer.analyze_sheet(sheet)
-                df = self.excel_analyzer.sheet_data[sheet]["dataframe"]
+
+                sheet_info = self.excel_analyzer.sheet_data[sheet]
+                df = sheet_info["dataframe"]
+
+                # If the dataframe has numeric column names, rebuild headers
+                cols_are_numeric = all(
+                    isinstance(c, (int, float)) or str(c).isdigit() for c in df.columns
+                )
+                if cols_are_numeric:
+                    headers = None
+                    header_rows = sheet_info.get("header_indexes") or []
+                    if header_rows:
+                        header_row = max(header_rows)
+                        headers = [str(v).strip() for v in df.iloc[header_row].tolist()]
+                        df = df.iloc[header_row + 1 :].copy()
+                    elif "cleaned_dataframe" in sheet_info:
+                        df = sheet_info["cleaned_dataframe"].copy()
+                        headers = list(df.columns)
+
+                    if headers:
+                        df.columns = headers
+
                 for col in df.columns:
-                    if "account" in str(col).lower():
+                    col_name = str(col).strip()
+                    if (
+                        "account" in col_name.lower()
+                        or col_name.lower() == "careportname"
+                    ):
                         col_data = df[col].astype(str)
                         for val in col_data:
                             for pat in patterns:
