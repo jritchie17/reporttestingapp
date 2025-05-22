@@ -1252,7 +1252,7 @@ class MainWindow(QMainWindow):
                     col_name = str(col).strip()
                     if (
                         "account" in col_name.lower()
-                        or col_name.lower() == "careportname"
+                        or "careportname" in col_name.lower()
                     ):
                         col_data = df[col].astype(str)
                         for val in col_data:
