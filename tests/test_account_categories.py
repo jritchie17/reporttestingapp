@@ -280,6 +280,38 @@ class TestCategoryCalculator(unittest.TestCase):
         self.assertEqual(net_c2['Amount'], 8.0)
         self.assertEqual(net_c2['Qty'], 3)
 
+    def test_decimal_amounts_non_numeric_first_row_grouped(self):
+        """Ensure numeric column detection scans all rows and ignores bools."""
+        rows = [
+            {'Center': 1, 'CAReportName': '1234-5678', 'Amount': 'N/A', 'Flag': True},
+            {'Center': 1, 'CAReportName': '9999-0000', 'Amount': Decimal('2')},
+            {'Center': 2, 'CAReportName': '1234-5678', 'Amount': Decimal('3')},
+            {'Center': 2, 'CAReportName': '9999-0000', 'Amount': Decimal('4'), 'Flag': False},
+        ]
+
+        calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
+        result = calc.compute(rows)
+
+        cat_a_c1 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 1)
+        self.assertEqual(cat_a_c1['Amount'], 0)
+        self.assertNotIn('Flag', cat_a_c1)
+
+        cat_b_c1 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 1)
+        self.assertEqual(cat_b_c1['Amount'], 2)
+        self.assertNotIn('Flag', cat_b_c1)
+
+        net_c1 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 1)
+        self.assertEqual(net_c1['Amount'], 2)
+
+        cat_a_c2 = next(r for r in result if r['CAReportName'] == 'CatA' and r['Center'] == 2)
+        self.assertEqual(cat_a_c2['Amount'], 3)
+
+        cat_b_c2 = next(r for r in result if r['CAReportName'] == 'CatB' and r['Center'] == 2)
+        self.assertEqual(cat_b_c2['Amount'], 4)
+
+        net_c2 = next(r for r in result if r['CAReportName'] == 'Net' and r['Center'] == 2)
+        self.assertEqual(net_c2['Amount'], 7)
+
 
 class TestAccountCategoryDialog(unittest.TestCase):
     def setUp(self):
