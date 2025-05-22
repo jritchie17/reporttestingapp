@@ -158,12 +158,12 @@ class AccountCategoryDialog(QDialog):
     def _add_account(self):
         account, ok = QInputDialog.getText(self, "Add Account", "Account number:")
         if ok and account:
+            checked = self._current_accounts()
             if account not in self.all_accounts:
                 self.all_accounts.append(account)
-                item = QListWidgetItem(account)
-                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-                item.setCheckState(Qt.CheckState.Checked)
-                self.account_list.addItem(item)
+                self.all_accounts.sort()
+                checked.append(account)
+                self._populate_account_list(checked)
             self._accounts_changed()
 
     def _add_category(self):

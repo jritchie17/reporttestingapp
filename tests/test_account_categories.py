@@ -234,6 +234,21 @@ class TestAccountCategoryDialog(unittest.TestCase):
             self.assertTrue(item.flags() & Qt.ItemFlag.ItemIsUserCheckable)
             self.assertEqual(item.checkState(), Qt.CheckState.Unchecked)
 
+    def test_accounts_sorted_after_add(self):
+        accounts = ['2222', '3333']
+        config = DummyConfig()
+        dialog = self.Dialog(config, 'Test', accounts)
+        from PyQt6.QtWidgets import QInputDialog
+
+        def fake_get_text(*args, **kwargs):
+            return '1111', True
+
+        QInputDialog.getText = staticmethod(fake_get_text)
+        dialog._add_account()
+
+        texts = [dialog.account_list.item(i).text() for i in range(dialog.account_list.count())]
+        self.assertEqual(texts, sorted(accounts + ['1111']))
+
 
 if __name__ == '__main__':
     unittest.main()
