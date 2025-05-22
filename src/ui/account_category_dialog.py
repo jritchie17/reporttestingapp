@@ -24,14 +24,18 @@ class FormulaLineEdit(QLineEdit):
         self.setAcceptDrops(True)
 
     def dragEnterEvent(self, event):  # type: ignore[override]
+
         if event.mimeData().hasText():
+
             event.acceptProposedAction()
         else:
             super().dragEnterEvent(event)
 
     def dropEvent(self, event):  # type: ignore[override]
+
         if event.mimeData().hasText():
             self.insert(event.mimeData().text())
+
             event.acceptProposedAction()
         else:
             super().dropEvent(event)
@@ -50,11 +54,8 @@ class AccountCategoryDialog(QDialog):
         }
         self.formulas = dict(config.get_account_formulas(report_type))
 
-        self.all_accounts = sorted(set(accounts or []))
-        for acct_list in self.categories.values():
-            for acct in acct_list:
-                if acct not in self.all_accounts:
-                    self.all_accounts.append(acct)
+        category_accounts = {acct for lst in self.categories.values() for acct in lst}
+        self.all_accounts = sorted(set(accounts or []) | category_accounts)
 
         self._init_ui()
 
