@@ -93,8 +93,8 @@ class CategoryCalculator:
         else:
             groups = [None]
 
-        totals: Dict[Any, Dict[str, Dict[str, float]]] = {
-            g: {name: {col: 0.0 for col in numeric_cols} for name in self.categories}
+        totals: Dict[Any, Dict[str, Dict[str, Decimal]]] = {
+            g: {name: {col: Decimal("0") for col in numeric_cols} for name in self.categories}
             for g in groups
         }
 
@@ -106,7 +106,10 @@ class CategoryCalculator:
                     for col in numeric_cols:
                         val = row.get(col)
                         if isinstance(val, (int, float, Decimal)) and not isinstance(val, bool):
-                            totals[group_val][name][col] += float(val)
+                            if isinstance(val, Decimal):
+                                totals[group_val][name][col] += val
+                            else:
+                                totals[group_val][name][col] += Decimal(str(val))
 
         for g in groups:
             for name in self.categories:
@@ -118,7 +121,7 @@ class CategoryCalculator:
             for form_name, expr in self.formulas.items():
                 values = {}
                 for col in numeric_cols:
-                    local = {k: totals[g].get(k, {}).get(col, 0.0) for k in self.categories}
+                    local = {k: totals[g].get(k, {}).get(col, Decimal("0")) for k in self.categories}
                     try:
                         values[col] = eval(expr, {}, local)
                     except Exception:
