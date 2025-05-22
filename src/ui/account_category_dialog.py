@@ -184,7 +184,7 @@ class AccountCategoryDialog(QDialog):
 
     # Category handlers
     def _on_category_selected(self, current, previous):
-        if previous:
+        if previous and previous.text() in self.categories:
             name = previous.text()
             self.categories[name] = self._current_accounts()
         if current:
@@ -253,7 +253,7 @@ class AccountCategoryDialog(QDialog):
 
     # Formula handlers
     def _on_formula_selected(self, current, previous):
-        if previous:
+        if previous and previous.text() in self.formulas:
             self.formulas[previous.text()] = self.formula_edit.text()
         if current:
             self.formula_edit.setText(self.formulas.get(current.text(), ""))
