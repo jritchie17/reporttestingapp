@@ -437,6 +437,17 @@ class TestCategoryCalculator(unittest.TestCase):
         )
         self.assertEqual(net_c2["Amount"], 7)
 
+    def test_formula_with_special_category_names(self):
+        categories = {
+            "Revenue Accounts": ["1234-5678"],
+            "Expense-Accounts": ["9999-0000"],
+        }
+        formulas = {"Net Profit": "Revenue Accounts + Expense-Accounts"}
+        calc = CategoryCalculator(categories, formulas)
+        result = calc.compute(list(self.rows))
+        profit = next(r for r in result if r["CAReportName"] == "Net Profit")
+        self.assertEqual(profit["Amount"], -50)
+
 
 class TestAccountCategoryDialog(unittest.TestCase):
     def setUp(self):
