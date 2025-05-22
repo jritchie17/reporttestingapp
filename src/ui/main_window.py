@@ -1866,22 +1866,30 @@ class MainWindow(QMainWindow):
     def apply_theme(self):
         """Apply application-wide stylesheet based on configuration"""
         theme = self.config.get("ui", "theme")
-        if not theme or theme.lower() == "system":
-            QApplication.instance().setStyleSheet("")
-            theme = "system"
 
         themes_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "themes"
         )
-        if theme.lower() == "brand":
-            theme_file = os.path.join(themes_dir, "brand.qss")
-        else:
-            theme_file = os.path.join(themes_dir, f"{theme.lower()}.qss")
-        if os.path.exists(theme_file):
-            with open(theme_file, "r", encoding="utf-8") as f:
-                QApplication.instance().setStyleSheet(f.read())
-        else:
-            QApplication.instance().setStyleSheet("")
+
+        def load_qss(name: str) -> str:
+            path = os.path.join(themes_dir, name)
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    return f.read()
+            return ""
+
+        style = load_qss("base.qss")
+
+        theme_lower = (theme or "").lower()
+        if theme_lower and theme_lower != "system":
+            if theme_lower == "brand":
+                style += load_qss("brand.qss")
+            else:
+                style += load_qss(f"{theme_lower}.qss")
+
+        QApplication.instance().setStyleSheet(style)
+        if not theme:
+            theme = "system"
 
         # Propagate theme to child widgets
         for widget in [
