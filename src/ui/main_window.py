@@ -1216,10 +1216,11 @@ class MainWindow(QMainWindow):
             return []
 
         patterns = [
-            r"(\d{4}-\d{4})",
-            r"(\d{5}-\d{3})",
-            r"(\d{3}-\d{5})",
-            r"(\d{4}-\d{5})",
+            r"(\d{4}-?\d{4})",
+            r"(\d{5}-?\d{3})",
+            r"(\d{3}-?\d{5})",
+            r"(\d{4}-?\d{5})",
+            r"(\d{7,8})",
         ]
         accounts = set()
         try:
