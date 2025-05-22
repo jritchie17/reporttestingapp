@@ -37,7 +37,6 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1200, 800)
         
         # Load configuration
-        from src.utils.config import AppConfig
         self.config = AppConfig()
         
         # Set up logging
