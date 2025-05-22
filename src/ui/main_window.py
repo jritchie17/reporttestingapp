@@ -1471,15 +1471,13 @@ class MainWindow(QMainWindow):
 
 
                 # If headers haven't been imported yet, fall back to the
-                # position used by the Extract SQL feature (second column,
-                # or third if Sheet_Name is present)
+                # position used by the Extract SQL feature (second column).
+                # Previously the code shifted to the third column when a
+                # ``Sheet_Name`` column was present. This caused the wrong
+                # column to be selected for certain spreadsheets, so always
+                # use the second column instead.
                 if account_col is None:
                     fallback_idx = 1
-                    if (
-                        len(df.columns) > 2
-                        and str(df.columns[0]).strip() == "Sheet_Name"
-                    ):
-                        fallback_idx = 2
                     if len(df.columns) > fallback_idx:
                         account_col = df.columns[fallback_idx]
                     else:
