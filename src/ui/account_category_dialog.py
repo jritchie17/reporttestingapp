@@ -12,7 +12,9 @@ from PyQt6.QtWidgets import (
     QTabWidget,
     QWidget,
     QDialogButtonBox,
+    QMessageBox,
 )
+from copy import deepcopy
 from src.utils.config import AppConfig
 
 
@@ -62,6 +64,9 @@ class AccountCategoryDialog(QDialog):
 
         category_accounts = {acct for lst in self.categories.values() for acct in lst}
         self.all_accounts = sorted(set(accounts or []) | category_accounts)
+
+        self._original_categories = deepcopy(self.categories)
+        self._original_formulas = deepcopy(self.formulas)
 
         self._init_ui()
 
@@ -296,4 +301,57 @@ class AccountCategoryDialog(QDialog):
 
         self.config.set_account_categories(self.report_type, self.categories)
         self.config.set_account_formulas(self.report_type, self.formulas)
+        self._original_categories = deepcopy(self.categories)
+        self._original_formulas = deepcopy(self.formulas)
         self.accept()
+
+    def reject(self):
+        """Prompt to save changes when closing without pressing OK."""
+        if self._is_modified():
+            result = QMessageBox.question(
+                self,
+                "Unsaved Changes",
+                "Save changes before closing?",
+                QMessageBox.StandardButton.Save
+                | QMessageBox.StandardButton.Discard
+                | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save,
+            )
+            if result == QMessageBox.StandardButton.Save:
+                self.save()
+            elif result == QMessageBox.StandardButton.Discard:
+                super().reject()
+            else:
+                return
+        else:
+            super().reject()
+
+    def closeEvent(self, event):  # type: ignore[override]
+        """Handle window close button to check for unsaved changes."""
+        if self._is_modified():
+            result = QMessageBox.question(
+                self,
+                "Unsaved Changes",
+                "Save changes before closing?",
+                QMessageBox.StandardButton.Save
+                | QMessageBox.StandardButton.Discard
+                | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save,
+            )
+            if result == QMessageBox.StandardButton.Save:
+                self.save()
+                event.accept()
+            elif result == QMessageBox.StandardButton.Discard:
+                event.accept()
+            else:
+                event.ignore()
+        else:
+            event.accept()
+
+    def _is_modified(self) -> bool:
+        if set(self.categories.keys()) != set(self._original_categories.keys()):
+            return True
+        for key, accounts in self.categories.items():
+            if sorted(accounts) != sorted(self._original_categories.get(key, [])):
+                return True
+        return self.formulas != self._original_formulas
