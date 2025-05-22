@@ -89,6 +89,22 @@ def patch_qt_modules():
         def currentItem(self):
             return self._current
 
+        def setCurrentRow(self, row):
+            if 0 <= row < len(self.items):
+                self.setCurrentItem(self.items[row])
+            else:
+                self.setCurrentItem(None)
+
+        def row(self, item):
+            try:
+                return self.items.index(item)
+            except ValueError:
+                return -1
+
+        def takeItem(self, row):
+            if 0 <= row < len(self.items):
+                return self.items.pop(row)
+
     class QWidget:
         def __init__(self, *args, **kwargs):
             pass
@@ -100,7 +116,11 @@ def patch_qt_modules():
             pass
 
     class QDialog(QWidget):
-        pass
+        def accept(self):
+            pass
+
+        def reject(self):
+            pass
 
     class QVBoxLayout(QWidget):
         pass
@@ -126,6 +146,9 @@ def patch_qt_modules():
             self._text = text
             self.textChanged.emit(text)
 
+        def clear(self):
+            self.setText("")
+
     class QLabel(QWidget):
         pass
 
@@ -143,6 +166,18 @@ def patch_qt_modules():
             self.accepted = Signal()
             self.rejected = Signal()
 
+    class QMessageBox:
+        class StandardButton:
+            Save = 1
+            Discard = 2
+            Cancel = 3
+
+        next_result = StandardButton.Save
+
+        @staticmethod
+        def question(*args, **kwargs):
+            return QMessageBox.next_result
+
     class QInputDialog:
         @staticmethod
         def getText(*args, **kwargs):
@@ -158,6 +193,7 @@ def patch_qt_modules():
         "QPushButton": QPushButton,
         "QLineEdit": QLineEdit,
         "QInputDialog": QInputDialog,
+        "QMessageBox": QMessageBox,
         "QLabel": QLabel,
         "QTabWidget": QTabWidget,
         "QWidget": QWidget,
@@ -490,6 +526,44 @@ class TestAccountCategoryDialog(unittest.TestCase):
             for i in range(dialog.account_list.count())
         ]
         self.assertEqual(texts, sorted(accounts + ["1111"]))
+
+    def test_add_delete_and_save(self):
+        config = DummyConfig()
+        dialog = self.Dialog(config, "Test", [])
+
+        from PyQt6.QtWidgets import QInputDialog
+
+        QInputDialog.getText = staticmethod(lambda *a, **k: ("Cat1", True))
+        dialog._add_category()
+        QInputDialog.getText = staticmethod(lambda *a, **k: ("Form1", True))
+        dialog._add_formula()
+
+        dialog._delete_category()
+        dialog._delete_formula()
+
+        dialog.save()
+
+        self.assertEqual(config.get_account_categories("Test"), {})
+        self.assertEqual(config.get_account_formulas("Test"), {})
+
+    def test_reject_discards_changes(self):
+        config = DummyConfig()
+        config.set_account_categories("Test", {"Orig": ["1"]})
+        config.set_account_formulas("Test", {"F": "Orig"})
+
+        dialog = self.Dialog(config, "Test", [])
+
+        dialog.category_list.setCurrentRow(0)
+        dialog._delete_category()
+        dialog.formula_list.setCurrentRow(0)
+        dialog._delete_formula()
+
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.next_result = QMessageBox.StandardButton.Discard
+        dialog.reject()
+
+        self.assertEqual(config.get_account_categories("Test"), {"Orig": ["1"]})
+        self.assertEqual(config.get_account_formulas("Test"), {"F": "Orig"})
 
 
 if __name__ == "__main__":
