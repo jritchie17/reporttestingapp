@@ -62,13 +62,14 @@ class TestWorkflowWizard(unittest.TestCase):
         window.compare_results = MagicMock(side_effect=lambda: calls.append('compare'))
 
         window.excel_viewer.clean_data = MagicMock(side_effect=lambda: calls.append('clean'))
+        window.excel_viewer.remove_empty_data_rows = MagicMock(side_effect=lambda: calls.append('remove_empty'))
         window.excel_viewer.extract_sql_codes = MagicMock(side_effect=lambda: calls.append('extract'))
         window.excel_viewer.import_column_headers = MagicMock(side_effect=lambda: calls.append('headers'))
 
         wizard = self.WorkflowWizard(window)
         wizard.start()
 
-        self.assertEqual(calls, ['excel', 'clean', 'sql', 'extract', 'execute', 'headers', 'compare'])
+        self.assertEqual(calls, ['excel', 'clean', 'remove_empty', 'sql', 'extract', 'execute', 'headers', 'compare'])
         window.tab_widget.setCurrentIndex.assert_called_with(2)
 
 
