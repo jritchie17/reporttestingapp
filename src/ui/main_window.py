@@ -35,6 +35,7 @@ from src.ui.results_viewer import ResultsViewer
 from src.ui.comparison_view import ComparisonView
 from src.ui.settings_dialog import SettingsDialog
 from src.ui.account_category_dialog import AccountCategoryDialog
+from src.ui.workflow_wizard import WorkflowWizard
 
 # Import backend services
 from src.database.db_connector import DatabaseConnector
@@ -201,6 +202,10 @@ class MainWindow(QMainWindow):
         compare_action.triggered.connect(self.compare_results)
         tools_menu.addAction(compare_action)
 
+        workflow_action = QAction(qta.icon("fa5s.magic"), "Start Workflow...", self)
+        workflow_action.triggered.connect(self.start_workflow)
+        tools_menu.addAction(workflow_action)
+
 
         # Reset Application
         reset_action = QAction(qta.icon("fa5s.sync"), "Reset Application", self)
@@ -254,6 +259,11 @@ class MainWindow(QMainWindow):
         compare_action.triggered.connect(self.compare_results)
         toolbar.addAction(compare_action)
         self._apply_hover_animation(toolbar.widgetForAction(compare_action))
+
+        workflow_action = QAction(qta.icon("fa5s.magic"), "Start Workflow...", self)
+        workflow_action.triggered.connect(self.start_workflow)
+        toolbar.addAction(workflow_action)
+        self._apply_hover_animation(toolbar.widgetForAction(workflow_action))
 
 
         # Reset application
@@ -1349,6 +1359,11 @@ class MainWindow(QMainWindow):
         dialog = AccountCategoryDialog(self.config, report_type, accounts, self)
         if dialog.exec():
             self.status_bar.showMessage("Account categories updated")
+
+    def start_workflow(self):
+        """Launch the workflow wizard and run all steps."""
+        wizard = WorkflowWizard(self)
+        wizard.start()
 
     def _gather_accounts_from_excel(self):
         """Extract account numbers from loaded Excel sheets."""
