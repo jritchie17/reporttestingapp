@@ -46,3 +46,20 @@ QTabBar::tab {
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
 }
+
+QComboBox {
+    border: 1px solid;
+    border-radius: 3px;
+    padding: 2px 4px;
+}
+
+QComboBox::drop-down {
+    border-left: none;
+}
+
+QCheckBox::indicator {
+    border: 1px solid;
+    width: 13px;
+    height: 13px;
+    border-radius: 2px;
+}
