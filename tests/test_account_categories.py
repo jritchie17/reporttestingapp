@@ -233,6 +233,20 @@ class TestCategoryCalculator(unittest.TestCase):
         )
         self.assertEqual(net_c2["Amount"], 7)
 
+    def test_formula_with_account_reference(self):
+        rows = [
+            {"CAReportName": "1234-5678", "Amount": -100},
+            {"CAReportName": "5555-5555", "Amount": 20},
+        ]
+        categories = {"CatA": ["1234-5678"]}
+        formulas = {"NetAcct": "CatA + 5555-5555"}
+        calc = CategoryCalculator(categories, formulas)
+        result = calc.compute(list(rows))
+
+        net = next(r for r in result if r["CAReportName"] == "NetAcct")
+        self.assertEqual(net["Amount"], -80)
+        self.assertFalse(any(r["CAReportName"] == "5555-5555" for r in result))
+
     def test_all_decimal_amounts_grouped(self):
         rows = [
             {"Center": 1, "CAReportName": "1234-5678", "Amount": Decimal("1")},
