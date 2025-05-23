@@ -914,8 +914,9 @@ class ExcelViewer(QWidget):
             return
         
         try:
-            # Consider only data columns (column index 2+, which is the 3rd column onwards)
-            data_columns = self.df.columns[2:]
+            # Consider only data columns starting at configured index
+            first_col = self.report_config.get("first_data_column", 2)
+            data_columns = self.df.columns[first_col:]
             if len(data_columns) == 0:
                 # No data columns to check
                 return
@@ -1044,8 +1045,9 @@ class ExcelViewer(QWidget):
                     skipped_sheets.append(f"{sheet_name} (not enough columns)")
                     continue
                 
-                # Consider only data columns (column index 2+, which is the 3rd column onwards)
-                data_columns = df.columns[2:]
+                # Consider only data columns starting at configured index
+                first_col = self.report_config.get("first_data_column", 2)
+                data_columns = df.columns[first_col:]
                 
                 # Find rows where all data columns are NULL/NaN or empty string
                 empty_condition = df[data_columns].isna().all(axis=1) | (df[data_columns] == '').all(axis=1)
@@ -1616,8 +1618,9 @@ class ExcelViewer(QWidget):
             clean_df = clean_df.loc[~((clean_df.isna().all(axis=1)) | 
                                 (clean_df.astype(str).apply(lambda x: x.str.strip() == '').all(axis=1)))]
 
-            # Convert all columns to numeric (except Sheet_Name and the label/description column), round, and set back
-            for col in clean_df.columns[2:]:  # skip first two columns
+            # Convert all columns to numeric starting from first_data_column
+            first_col = self.report_config.get("first_data_column", 2)
+            for col in clean_df.columns[first_col:]:
                 clean_df[col] = pd.to_numeric(clean_df[col], errors='coerce').round(2)
 
             # Add a new column with the sheet name at the beginning

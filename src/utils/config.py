@@ -72,7 +72,8 @@ class AppConfig:
                 "comparison_threshold": 1.0  # 1% difference allowed
             },
             "account_categories": {},
-            "account_formulas": {}
+            "account_formulas": {},
+            "report_configs": self.initialize_report_configs()
         }
         
         # Create config file if it doesn't exist
@@ -99,6 +100,13 @@ class AppConfig:
                         if key not in config[section]:
                             config[section][key] = default_config[section][key]
                             updated = True
+
+            # Merge report_configs separately to preserve user additions
+            merged_reports = default_config["report_configs"].copy()
+            merged_reports.update(config.get("report_configs", {}))
+            if config.get("report_configs") != merged_reports:
+                updated = True
+            config["report_configs"] = merged_reports
             
             if updated:
                 self.save_config(config)
@@ -228,4 +236,61 @@ class AppConfig:
             self.config["account_formulas"] = {}
 
         self.config["account_formulas"][report_type] = formulas
+        self.save_config()
+
+    # Report configuration helpers -------------------------------------------------
+
+    def initialize_report_configs(self):
+        """Return default report configurations."""
+        return {
+            "SOO PreClose": {
+                "header_rows": [5, 6],
+                "skip_rows": 7,
+                "first_data_column": 2,
+                "description": "SOO PreClose report with headers on rows 6 and 7",
+            },
+            "SOO MFR": {
+                "header_rows": [3, 4],
+                "skip_rows": 5,
+                "first_data_column": 2,
+                "description": "SOO MFR report with headers on rows 4 and 5",
+            },
+            "Executive Book": {
+                "header_rows": [2, 3],
+                "skip_rows": 4,
+                "first_data_column": 2,
+                "description": "Executive Book report with headers on rows 3 and 4",
+            },
+            "Statement of Operations": {
+                "header_rows": [4, 5],
+                "skip_rows": 6,
+                "first_data_column": 2,
+                "description": "Statement of Operations report with headers on rows 5 and 6",
+            },
+            "Corp SOO": {
+                "header_rows": [5, 6],
+                "skip_rows": 7,
+                "first_data_column": 2,
+                "description": "Corporate SOO report with headers on rows 6 and 7",
+            },
+            "AR Center": {
+                "header_rows": [4, 5],
+                "skip_rows": 6,
+                "first_data_column": 2,
+                "description": "AR Center report with headers on rows 5 and 6",
+            },
+        }
+
+    def get_report_config(self, name):
+        """Retrieve report configuration by name."""
+        cfg = self.config.get("report_configs", {}).get(name)
+        if cfg and "first_data_column" not in cfg:
+            cfg["first_data_column"] = 2
+        return cfg
+
+    def set_report_config(self, name, cfg):
+        """Set a report configuration and persist it."""
+        if "report_configs" not in self.config:
+            self.config["report_configs"] = {}
+        self.config["report_configs"][name] = cfg
         self.save_config()
