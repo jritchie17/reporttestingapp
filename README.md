@@ -50,6 +50,14 @@ The Theme drop-down defaults to *Brand* (applying the company's colors) but also
 
 To manage account mappings, open **Tools -> Manage Account Categories...**. When this dialog opens the application scans all currently loaded Excel sheets and pre-fills the account list automatically. Columns named `Account` or `CAReportName` are recognized without manual setup.
 
+### Report Configurations
+Open **Tools → Report Configurations** to define how each report type should be parsed. For every report you can set:
+- `header_rows` – the rows that contain column headers
+- `skip_rows` – how many rows to skip before reading data
+- `first_data_column` – the first column index treated as numeric data
+
+These options control how the `_clean_dataframe` helper processes sheets for that report type.
+
 For temp table query testing, you can use the specialized scripts:
 ```
 python src/analyzer/run_real_query.py
