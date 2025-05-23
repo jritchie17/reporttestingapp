@@ -29,7 +29,7 @@ QGroupBox {
     color: #000000;
 }
 QGroupBox::title {
-    background: transparent;
+    background-color: #ffffff;
 }
 
 /* Tool bars use the same light background */
