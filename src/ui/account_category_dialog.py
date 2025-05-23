@@ -150,7 +150,7 @@ class AccountCategoryDialog(QDialog):
         self.category_drag_list.setDragEnabled(True)
         right.addWidget(self.category_drag_list)
 
-        right.addWidget(QLabel("Formula expression (use category names):"))
+        right.addWidget(QLabel("Formula expression (use category names or account numbers):"))
         self.formula_edit = FormulaLineEdit()
         self.formula_edit.textChanged.connect(self._formula_changed)
         right.addWidget(self.formula_edit)

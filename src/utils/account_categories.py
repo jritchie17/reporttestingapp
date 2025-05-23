@@ -126,6 +126,28 @@ class CategoryCalculator:
         result = list(rows)
         numeric_cols = self._numeric_columns(rows)
 
+        # Identify account numbers referenced directly in formulas
+        account_refs = set()
+        for expr in self.formulas.values():
+            for pat in ACCOUNT_PATTERNS:
+                for match in re.findall(pat, expr):
+                    account_refs.add(match)
+
+        # Create local mapping of safe names including referenced accounts
+        safe_names = dict(self._safe_names)
+        for acct in account_refs:
+            if acct not in safe_names:
+                safe = re.sub(r"\W|^(?=\d)", "_", acct)
+                if not safe or safe in safe_names.values():
+                    base = "acct"
+                    idx = 0
+                    new_safe = base
+                    while new_safe in safe_names.values():
+                        idx += 1
+                        new_safe = f"{base}_{idx}"
+                    safe = new_safe
+                safe_names[acct] = safe
+
         group_exists = bool(self.group_column and self.group_column in rows[0])
         if group_exists:
             groups = sorted({row[self.group_column] for row in rows})
@@ -136,6 +158,14 @@ class CategoryCalculator:
             g: {
                 name: {col: Decimal("0") for col in numeric_cols}
                 for name in self.categories
+            }
+            for g in groups
+        }
+
+        account_totals: Dict[Any, Dict[str, Dict[str, Decimal]]] = {
+            g: {
+                acc: {col: Decimal("0") for col in numeric_cols}
+                for acc in account_refs
             }
             for g in groups
         }
@@ -163,6 +193,20 @@ class CategoryCalculator:
                                     totals[group_val][name][col] += Decimal(str(val))
                         break
 
+            for acc in account_refs:
+                acc_code = self._extract_account_code(acc)
+                if acct_code and acc_code and acct_code == acc_code:
+                    for col in numeric_cols:
+                        val = row.get(col)
+                        if isinstance(val, (int, float, Decimal)) and not isinstance(val, bool):
+                            if sign_flip.should_flip(acct_raw, self.sign_flip_accounts):
+                                val = -val
+                            if isinstance(val, Decimal):
+                                account_totals[group_val][acc][col] += val
+                            else:
+                                account_totals[group_val][acc][col] += Decimal(str(val))
+                    break
+
         for g in groups:
             for name in self.categories:
                 row_vals = {account_col: name, **totals[g][name]}
@@ -171,19 +215,21 @@ class CategoryCalculator:
                 result.append(row_vals)
 
             for form_name, expr in self.formulas.items():
-                # Replace category names with safe identifiers in the expression
+                # Replace category names and account refs with safe identifiers
                 safe_expr = expr
                 for name, safe in sorted(
-                    self._safe_names.items(), key=lambda x: len(x[0]), reverse=True
+                    safe_names.items(), key=lambda x: len(x[0]), reverse=True
                 ):
                     safe_expr = re.sub(r"\b" + re.escape(name) + r"\b", safe, safe_expr)
 
                 values = {}
                 for col in numeric_cols:
                     local = {
-                        self._safe_names[k]: totals[g].get(k, {}).get(col, Decimal("0"))
+                        safe_names[k]: totals[g].get(k, {}).get(col, Decimal("0"))
                         for k in self.categories
                     }
+                    for acc in account_refs:
+                        local[safe_names[acc]] = account_totals[g].get(acc, {}).get(col, Decimal("0"))
                     try:
                         values[col] = eval(safe_expr, {}, local)
                     except Exception:
