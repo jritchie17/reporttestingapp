@@ -41,7 +41,8 @@ def patch_qt_modules():
     for name in [
         'src.ui.excel_viewer', 'src.ui.sql_editor', 'src.ui.results_viewer',
         'src.ui.comparison_view', 'src.ui.settings_dialog',
-        'src.ui.account_category_dialog', 'src.ui.hover_anim_filter'
+        'src.ui.account_category_dialog', 'src.ui.report_config_dialog',
+        'src.ui.hover_anim_filter'
     ]:
         sys.modules.setdefault(name, types.ModuleType(name))
 

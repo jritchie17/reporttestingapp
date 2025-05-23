@@ -35,6 +35,7 @@ from src.ui.results_viewer import ResultsViewer
 from src.ui.comparison_view import ComparisonView
 from src.ui.settings_dialog import SettingsDialog
 from src.ui.account_category_dialog import AccountCategoryDialog
+from src.ui.report_config_dialog import ReportConfigDialog
 from src.ui.workflow_wizard import WorkflowWizard
 
 # Import backend services
@@ -69,8 +70,8 @@ class MainWindow(QMainWindow):
         self.db_connector = None
         self.comparison_engine = None
 
-        # Initialize report configuration
-        self.report_configs = self.initialize_report_configs()
+        # Load report configuration from AppConfig
+        self.report_configs = self.config.get("report_configs") or {}
 
         # Set up the UI
         self.hover_filter = HoverAnimationFilter()
@@ -221,6 +222,12 @@ class MainWindow(QMainWindow):
         manage_cats_action.triggered.connect(self.open_account_categories)
         tools_menu.addAction(manage_cats_action)
 
+        manage_reports_action = QAction(
+            qta.icon("fa5s.table"), "Manage Report Types...", self
+        )
+        manage_reports_action.triggered.connect(self.open_report_configs)
+        tools_menu.addAction(manage_reports_action)
+
         # Settings
         settings_action = QAction(qta.icon("fa5s.cog"), "Settings", self)
         settings_action.triggered.connect(self.open_settings)
@@ -307,16 +314,7 @@ class MainWindow(QMainWindow):
         header_layout.addWidget(QLabel("Report:"))
         self.report_selector = QComboBox()
         self.report_selector.setMinimumWidth(150)
-        self.report_selector.addItems(
-            [
-                "SOO PreClose",
-                "SOO MFR",
-                "Executive Book",
-                "Statement of Operations",
-                "Corp SOO",
-                "AR Center",
-            ]
-        )
+        self.report_selector.addItems(self.report_configs.keys())
         self.report_selector.currentIndexChanged.connect(self.report_type_changed)
         header_layout.addWidget(self.report_selector)
 
@@ -1376,6 +1374,21 @@ class MainWindow(QMainWindow):
         if dialog.exec():
             self.status_bar.showMessage("Account categories updated")
 
+    def open_report_configs(self):
+        """Open dialog to manage report configurations."""
+        dialog = ReportConfigDialog(self.config, self)
+        if dialog.exec():
+            # Reload configs and update selector
+            self.report_configs = self.config.get("report_configs") or {}
+            current = self.report_selector.currentText()
+            self.report_selector.blockSignals(True)
+            self.report_selector.clear()
+            self.report_selector.addItems(self.report_configs.keys())
+            idx = self.report_selector.findText(current)
+            if idx >= 0:
+                self.report_selector.setCurrentIndex(idx)
+            self.report_selector.blockSignals(False)
+
     def start_workflow(self):
         """Launch the workflow wizard and run all steps."""
         wizard = WorkflowWizard(self)
@@ -1531,50 +1544,16 @@ class MainWindow(QMainWindow):
         # Update any components that need to know about the report type
         self.update_components_for_report_type(report_type)
 
-    def initialize_report_configs(self):
-        """Initialize configurations for different report types"""
-        configs = {
-            "SOO PreClose": {
-                "header_rows": [5, 6],  # Rows 6 and 7 (0-indexed as 5 and 6)
-                "skip_rows": 7,  # Skip rows 0-6 (header is at 5-6)
-                "description": "SOO PreClose report with headers on rows 6 and 7",
-            },
-            "SOO MFR": {
-                "header_rows": [3, 4],  # Rows 4 and 5 (0-indexed as 3 and 4)
-                "skip_rows": 5,  # Skip rows 0-4
-                "description": "SOO MFR report with headers on rows 4 and 5",
-            },
-            "Executive Book": {
-                "header_rows": [2, 3],  # Rows 3 and 4 (0-indexed as 2 and 3)
-                "skip_rows": 4,  # Skip rows 0-3
-                "description": "Executive Book report with headers on rows 3 and 4",
-            },
-            "Statement of Operations": {
-                "header_rows": [4, 5],  # Rows 5 and 6 (0-indexed as 4 and 5)
-                "skip_rows": 6,  # Skip rows 0-5
-                "description": "Statement of Operations report with headers on rows 5 and 6",
-            },
-            "Corp SOO": {
-                "header_rows": [5, 6],  # Rows 6 and 7 (0-indexed as 5 and 6)
-                "skip_rows": 7,  # Skip rows 0-6
-                "description": "Corporate SOO report with headers on rows 6 and 7",
-            },
-            "AR Center": {
-                "header_rows": [4, 5],  # Rows 5 and 6 (0-indexed as 4 and 5)
-                "skip_rows": 6,  # Skip rows 0-5
-                "description": "AR Center report with headers on rows 5 and 6",
-            },
-        }
-        return configs
 
     def update_components_for_report_type(self, report_type):
         """Update application components based on the selected report type"""
-        if report_type not in self.report_configs:
+        report_config = self.config.get_report_config(report_type)
+        if not report_config:
             self.logger.warning(f"Unknown report type: {report_type}")
             return
 
-        # Get the report configuration
-        report_config = self.report_configs[report_type]
+        # Update local copy
+        self.report_configs[report_type] = report_config
 
         # Update Excel viewer with the report configuration
         if hasattr(self, "excel_viewer"):
