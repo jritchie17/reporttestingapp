@@ -13,6 +13,7 @@ class WorkflowWizard(QWizard):
         self.steps = [
             ("Load Excel", self.main_window.open_excel_file),
             ("Clean Sheets", self._clean_sheets),
+            ("Remove Empty Rows", self._remove_empty_rows),
             ("Load SQL", self.main_window.open_sql_file),
             ("Extract SQL Codes", self._extract_sql_codes),
             ("Execute SQL", self.main_window.execute_sql),
@@ -33,6 +34,11 @@ class WorkflowWizard(QWizard):
         viewer = getattr(self.main_window, "excel_viewer", None)
         if viewer and hasattr(viewer, "clean_data"):
             viewer.clean_data()
+
+    def _remove_empty_rows(self):
+        viewer = getattr(self.main_window, "excel_viewer", None)
+        if viewer and hasattr(viewer, "remove_empty_data_rows"):
+            viewer.remove_empty_data_rows()
 
     def _extract_sql_codes(self):
         viewer = getattr(self.main_window, "excel_viewer", None)
