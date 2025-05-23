@@ -356,16 +356,26 @@ class MainWindow(QMainWindow):
         comparison_layout = QVBoxLayout(self.comparison_tab)
         self.comparison_view = ComparisonView()
         comparison_layout.addWidget(self.comparison_view)
+
+        # Export buttons layout
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+
         # Add Export Results button
         self.export_results_button = QPushButton("Export Results")
+        self.export_results_button.setFixedWidth(120)
         self.export_results_button.clicked.connect(self.export_detailed_results)
         self._apply_hover_animation(self.export_results_button)
-        comparison_layout.addWidget(self.export_results_button)
+        button_layout.addWidget(self.export_results_button)
+
         # Add Export PDF button
         self.export_pdf_button = QPushButton("Export PDF")
+        self.export_pdf_button.setFixedWidth(120)
         self.export_pdf_button.clicked.connect(self.export_pdf_report)
         self._apply_hover_animation(self.export_pdf_button)
-        comparison_layout.addWidget(self.export_pdf_button)
+        button_layout.addWidget(self.export_pdf_button)
+
+        comparison_layout.addLayout(button_layout)
         self.tab_widget.addTab(self.comparison_tab, "Comparison")
 
         # Apply hover animation to tab bar buttons
