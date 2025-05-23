@@ -201,13 +201,6 @@ class MainWindow(QMainWindow):
         compare_action.triggered.connect(self.compare_results)
         tools_menu.addAction(compare_action)
 
-        # Generate SQL
-        generate_action = QAction(
-            qta.icon("fa5s.magic"), "Generate SQL from Excel", self
-        )
-        generate_action.setShortcut("F7")
-        generate_action.triggered.connect(self.generate_sql)
-        tools_menu.addAction(generate_action)
 
         # Reset Application
         reset_action = QAction(qta.icon("fa5s.sync"), "Reset Application", self)
@@ -262,11 +255,6 @@ class MainWindow(QMainWindow):
         toolbar.addAction(compare_action)
         self._apply_hover_animation(toolbar.widgetForAction(compare_action))
 
-        # Generate SQL
-        generate_action = QAction(qta.icon("fa5s.magic"), "Generate SQL", self)
-        generate_action.triggered.connect(self.generate_sql)
-        toolbar.addAction(generate_action)
-        self._apply_hover_animation(toolbar.widgetForAction(generate_action))
 
         # Reset application
         reset_action = QAction(qta.icon("fa5s.sync"), "Reset", self)
@@ -513,13 +501,6 @@ class MainWindow(QMainWindow):
             df = self.excel_analyzer.sheet_data[sheet_name]["dataframe"]
             self.excel_viewer.load_dataframe(df, sheet_name)
 
-            # Update SQL editor with suggested queries
-            suggested_queries = self.excel_analyzer.get_smart_query_suggestions(
-                sheet_name
-            )
-            if suggested_queries and self.config.get("testing", "show_suggestions"):
-                self.sql_editor.set_suggestions(suggested_queries)
-
             # Update status
             self.status_bar.showMessage(f"Loaded sheet: {sheet_name}")
 
@@ -744,58 +725,6 @@ class MainWindow(QMainWindow):
             )
         finally:
             progress.close()
-
-    def generate_sql(self):
-        """Generate SQL queries based on Excel data"""
-        if not self.excel_analyzer:
-            QMessageBox.warning(
-                self, "No Excel Data", "Please load an Excel file first."
-            )
-            return
-
-        current_sheet = self.sheet_selector.currentText()
-        if not current_sheet:
-            return
-
-        try:
-            # Analyze sheet if not already analyzed
-            if current_sheet not in self.excel_analyzer.sheet_data:
-                self.excel_analyzer.analyze_sheet(current_sheet)
-
-            # Get dataframe
-            df = self.excel_analyzer.sheet_data[current_sheet]["dataframe"]
-
-            # Initialize query builder
-            from src.utils.query_builder import QueryBuilder
-
-            query_builder = QueryBuilder()
-
-            # Generate queries
-            suggested_queries = query_builder.analyze_excel_for_query(df, current_sheet)
-
-            if suggested_queries:
-                # Set suggestions in SQL editor
-                self.sql_editor.set_suggestions(suggested_queries)
-
-                # Switch to SQL tab
-                self.tab_widget.setCurrentIndex(1)
-
-                self.status_bar.showMessage(
-                    f"Generated {len(suggested_queries)} SQL queries from Excel data"
-                )
-            else:
-                QMessageBox.information(
-                    self,
-                    "No Queries",
-                    "Could not generate SQL queries from the current Excel data.",
-                )
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Generation Error",
-                f"An error occurred when generating SQL queries: {str(e)}",
-            )
 
     def compare_results(self):
         """Compare Excel data with SQL results"""

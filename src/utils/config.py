@@ -69,7 +69,6 @@ class AppConfig:
             },
             "testing": {
                 "auto_generate_queries": True,
-                "show_suggestions": True,
                 "comparison_threshold": 1.0  # 1% difference allowed
             },
             "account_categories": {},

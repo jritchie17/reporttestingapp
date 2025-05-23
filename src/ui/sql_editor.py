@@ -1,7 +1,21 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
-                             QPushButton, QLabel, QComboBox, QToolBar, QMenu,
-                             QSplitter, QListWidget, QListWidgetItem, QToolButton,
-                             QFrame, QDialog, QDialogButtonBox, QGroupBox, QFormLayout)
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QTextEdit,
+    QPushButton,
+    QLabel,
+    QComboBox,
+    QToolBar,
+    QMenu,
+    QSplitter,
+    QToolButton,
+    QFrame,
+    QDialog,
+    QDialogButtonBox,
+    QGroupBox,
+    QFormLayout,
+)
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QColor, QTextCharFormat, QBrush, QSyntaxHighlighter, QTextCursor, QAction, QIcon
 import re
@@ -113,7 +127,7 @@ class SQLEditor(QWidget):
         # Create toolbar area
         self.create_toolbar(main_layout)
         
-        # Create main editor area with suggestions panel
+        # Create main editor area
         self.editor_area = QSplitter(Qt.Orientation.Horizontal)
         
         # SQL editor
@@ -130,25 +144,11 @@ class SQLEditor(QWidget):
         # Let the global theme handle widget styling
         self.setStyleSheet("")
         
-        # Suggestions panel
-        self.suggestions_panel = QWidget()
-        suggestions_layout = QVBoxLayout(self.suggestions_panel)
-        
-        suggestions_header = QLabel("Suggested Queries")
-        suggestions_header.setStyleSheet("font-weight: bold; font-size: 14px;")
-        suggestions_layout.addWidget(suggestions_header)
-        
-        self.suggestions_list = QListWidget()
-        self.suggestions_list.setMinimumWidth(250)
-        self.suggestions_list.itemDoubleClicked.connect(self.use_suggestion)
-        suggestions_layout.addWidget(self.suggestions_list)
-        
-        # Add to splitter
+        # Add editor to splitter
         self.editor_area.addWidget(self.editor)
-        self.editor_area.addWidget(self.suggestions_panel)
-        
-        # Set initial sizes
-        self.editor_area.setSizes([700, 300])
+
+        # Set initial size
+        self.editor_area.setSizes([1])
         
         main_layout.addWidget(self.editor_area)
         
@@ -265,9 +265,8 @@ class SQLEditor(QWidget):
         self.editor.clear()
         
     def clear_text(self):
-        """Clear the editor text and suggestions (for app reset)"""
+        """Clear the editor text (for app reset)"""
         self.editor.clear()
-        self.suggestions_list.clear()
         self.suggestions = []
         
     def insert_snippet(self, snippet):
@@ -277,22 +276,7 @@ class SQLEditor(QWidget):
         self.editor.setTextCursor(cursor)
         self.editor.setFocus()
         
-    def set_suggestions(self, suggestions):
-        """Set query suggestions based on Excel analysis"""
-        self.suggestions = suggestions
-        self.suggestions_list.clear()
-        
-        for suggestion in suggestions:
-            item = QListWidgetItem(suggestion.get("name", "Unnamed Query"))
-            item.setToolTip(suggestion.get("purpose", ""))
-            item.setData(Qt.ItemDataRole.UserRole, suggestion.get("sql", ""))
-            self.suggestions_list.addItem(item)
-            
-    def use_suggestion(self, item):
-        """Use a suggested query"""
-        sql = item.data(Qt.ItemDataRole.UserRole)
-        if sql:
-            self.set_text(sql)
+
             
     def has_content(self):
         """Check if the editor has content"""
@@ -315,17 +299,6 @@ class SQLEditor(QWidget):
             QLabel {
                 color: #e0e0e0;
                 background: transparent;
-            }
-            QListWidget {
-                background-color: #333333;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-            }
-            QListWidget::item {
-                padding: 4px;
-            }
-            QListWidget::item:selected {
-                background-color: #3a6ea5;
             }
             QPushButton {
                 background-color: #3a6ea5;

@@ -154,9 +154,6 @@ class SettingsDialog(QDialog):
         self.auto_generate = QCheckBox("Auto-generate SQL queries from Excel")
         layout.addRow("", self.auto_generate)
         
-        # Show suggestions
-        self.show_suggestions = QCheckBox("Show query suggestions")
-        layout.addRow("", self.show_suggestions)
         
         # Comparison threshold
         self.comparison_threshold = QDoubleSpinBox()
@@ -194,7 +191,6 @@ class SettingsDialog(QDialog):
         
         # Testing settings
         self.auto_generate.setChecked(self.config.get("testing", "auto_generate_queries"))
-        self.show_suggestions.setChecked(self.config.get("testing", "show_suggestions"))
         self.comparison_threshold.setValue(self.config.get("testing", "comparison_threshold") * 100)  # Convert to percentage
 
     def _on_theme_changed(self, index):
@@ -227,7 +223,6 @@ class SettingsDialog(QDialog):
         
         # Testing settings
         self.config.set("testing", "auto_generate_queries", self.auto_generate.isChecked())
-        self.config.set("testing", "show_suggestions", self.show_suggestions.isChecked())
         self.config.set("testing", "comparison_threshold", self.comparison_threshold.value() / 100.0)  # Convert from percentage
         
         # Save configuration to file
