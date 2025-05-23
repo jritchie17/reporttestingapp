@@ -202,7 +202,7 @@ class MainWindow(QMainWindow):
         compare_action.triggered.connect(self.compare_results)
         tools_menu.addAction(compare_action)
 
-        workflow_action = QAction(qta.icon("fa5s.magic"), "Start Workflow...", self)
+        workflow_action = QAction(qta.icon("fa5s.magic"), "Start Testing", self)
         workflow_action.triggered.connect(self.start_workflow)
         tools_menu.addAction(workflow_action)
 
@@ -260,7 +260,7 @@ class MainWindow(QMainWindow):
         toolbar.addAction(compare_action)
         self._apply_hover_animation(toolbar.widgetForAction(compare_action))
 
-        workflow_action = QAction(qta.icon("fa5s.magic"), "Start Workflow...", self)
+        workflow_action = QAction(qta.icon("fa5s.magic"), "Start Testing", self)
         workflow_action.triggered.connect(self.start_workflow)
         toolbar.addAction(workflow_action)
         self._apply_hover_animation(toolbar.widgetForAction(workflow_action))
@@ -326,6 +326,12 @@ class MainWindow(QMainWindow):
         self.sheet_selector.setMinimumWidth(200)
         self.sheet_selector.currentIndexChanged.connect(self.switch_sheet)
         header_layout.addWidget(self.sheet_selector)
+
+        # Start Testing button
+        self.start_button = QPushButton(qta.icon("fa5s.magic"), "Start Testing")
+        self.start_button.clicked.connect(self.start_workflow)
+        self._apply_hover_animation(self.start_button)
+        header_layout.addWidget(self.start_button)
 
         self.main_layout.addWidget(header_widget)
 

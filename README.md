@@ -10,6 +10,7 @@ A high-quality application for testing Excel reports against SQL databases, espe
 - Support for all Excel sheets and formats
 - Intelligent data matching algorithms
 - Configurable report types and parameters
+- Quick **Start Testing** button to launch the automated workflow
 - Choose from Light, Dark, Brand, or System interface themes (Brand is the default)
 
 ## Requirements
