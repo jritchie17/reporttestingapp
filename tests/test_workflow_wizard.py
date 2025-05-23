@@ -3,54 +3,9 @@ import types
 import unittest
 from unittest.mock import MagicMock
 
+from tests.qt_stubs import patch_qt_modules
 
-def patch_qt_modules():
-    widgets = types.ModuleType('PyQt6.QtWidgets')
-    widget_attrs = [
-        "QMainWindow", "QTabWidget", "QApplication", "QWidget", "QVBoxLayout",
-        "QHBoxLayout", "QLabel", "QPushButton", "QFileDialog", "QStatusBar",
-        "QMenuBar", "QMenu", "QToolBar", "QSplitter", "QComboBox",
-        "QLineEdit", "QProgressDialog", "QDialog", "QListWidget",
-        "QDialogButtonBox", "QWizard", "QWizardPage"
-    ]
-    for attr in widget_attrs:
-        setattr(widgets, attr, type(attr, (), {}))
 
-    class QMessageBox:
-        @staticmethod
-        def warning(*args, **kwargs):
-            pass
-
-        @staticmethod
-        def critical(*args, **kwargs):
-            pass
-
-    widgets.QMessageBox = QMessageBox
-
-    core = types.ModuleType('PyQt6.QtCore')
-    for attr in ["Qt", "QSize"]:
-        setattr(core, attr, type(attr, (), {}))
-
-    gui = types.ModuleType('PyQt6.QtGui')
-    for attr in ["QIcon", "QAction", "QFont"]:
-        setattr(gui, attr, type(attr, (), {}))
-
-    sys.modules.setdefault('PyQt6', types.ModuleType('PyQt6'))
-    sys.modules['PyQt6.QtWidgets'] = widgets
-    sys.modules['PyQt6.QtCore'] = core
-    sys.modules['PyQt6.QtGui'] = gui
-
-    qta = types.ModuleType('qtawesome')
-    qta.icon = lambda *args, **kwargs: None
-    sys.modules['qtawesome'] = qta
-
-    for name in [
-        'src.ui.excel_viewer', 'src.ui.sql_editor', 'src.ui.results_viewer',
-        'src.ui.comparison_view', 'src.ui.settings_dialog',
-        'src.ui.account_category_dialog', 'src.ui.report_config_dialog',
-        'src.ui.hover_anim_filter'
-    ]:
-        sys.modules.setdefault(name, types.ModuleType(name))
 
 
 class TestWorkflowWizard(unittest.TestCase):

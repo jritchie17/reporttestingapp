@@ -3,42 +3,11 @@ import sys
 import types
 import unittest
 
+from tests.qt_stubs import patch_qt_modules
+
 import pandas as pd
 
 
-def patch_qt_modules():
-    """Provide minimal PyQt stubs so ExcelViewer can be imported."""
-    widgets = types.ModuleType('PyQt6.QtWidgets')
-    widget_attrs = [
-        'QWidget', 'QVBoxLayout', 'QHBoxLayout', 'QTableView', 'QLabel',
-        'QPushButton', 'QComboBox', 'QLineEdit', 'QHeaderView', 'QSplitter',
-        'QCheckBox', 'QGroupBox', 'QFormLayout', 'QSpinBox', 'QTabWidget',
-        'QStyledItemDelegate', 'QInputDialog', 'QListWidget', 'QDialog',
-        'QTextEdit', 'QDialogButtonBox', 'QRadioButton', 'QButtonGroup',
-        'QListWidgetItem'
-    ]
-    for attr in widget_attrs:
-        setattr(widgets, attr, type(attr, (), {}))
-
-    core = types.ModuleType('PyQt6.QtCore')
-    for attr in [
-        'Qt', 'QAbstractTableModel', 'QModelIndex', 'QVariant',
-        'pyqtSignal', 'QEvent', 'QSize'
-    ]:
-        setattr(core, attr, type(attr, (), {}))
-
-    gui = types.ModuleType('PyQt6.QtGui')
-    for attr in ['QFont', 'QColor', 'QBrush', 'QIcon', 'QGuiApplication', 'QCursor']:
-        setattr(gui, attr, type(attr, (), {}))
-
-    sys.modules.setdefault('PyQt6', types.ModuleType('PyQt6'))
-    sys.modules['PyQt6.QtWidgets'] = widgets
-    sys.modules['PyQt6.QtCore'] = core
-    sys.modules['PyQt6.QtGui'] = gui
-
-    qta = types.ModuleType('qtawesome')
-    qta.icon = lambda *args, **kwargs: None
-    sys.modules['qtawesome'] = qta
 
 
 class TestCleanDataframeDuplicates(unittest.TestCase):
