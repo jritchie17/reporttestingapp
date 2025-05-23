@@ -1611,7 +1611,27 @@ class ExcelViewer(QWidget):
             else:
                 # If there's a mismatch, just create default headers
                 clean_df.columns = [f"Column_{i+1}" for i in range(len(clean_df.columns))]
-                print(f"Warning: Header count mismatch for {sheet_name}: {len(new_headers)} headers for {len(clean_df.columns)} columns")
+                print(
+                    f"Warning: Header count mismatch for {sheet_name}: {len(new_headers)} headers for {len(clean_df.columns)} columns"
+                )
+
+            # Ensure column names are unique to avoid pandas returning DataFrame
+            # slices when referencing by name which can break numeric conversion
+            seen = {}
+            unique_cols = []
+            for col in clean_df.columns:
+                if col in seen:
+                    seen[col] += 1
+                    new_col = f"{col}_{seen[col]}"
+                    while new_col in seen:
+                        seen[new_col] = seen.get(new_col, 0) + 1
+                        new_col = f"{new_col}_{seen[new_col]}"
+                    unique_cols.append(new_col)
+                    seen[new_col] = 0
+                else:
+                    seen[col] = 0
+                    unique_cols.append(col)
+            clean_df.columns = unique_cols
             
             # Remove blank rows
             row_count_before = len(clean_df)
@@ -1620,8 +1640,11 @@ class ExcelViewer(QWidget):
 
             # Convert all columns to numeric starting from first_data_column
             first_col = self.report_config.get("first_data_column", 2)
-            for col in clean_df.columns[first_col:]:
-                clean_df[col] = pd.to_numeric(clean_df[col], errors='coerce').round(2)
+            for idx in range(first_col, len(clean_df.columns)):
+                col_name = clean_df.columns[idx]
+                clean_df.iloc[:, idx] = pd.to_numeric(
+                    clean_df.iloc[:, idx], errors="coerce"
+                ).round(2)
 
             # Add a new column with the sheet name at the beginning
             clean_df.insert(0, "Sheet_Name", sheet_name)
