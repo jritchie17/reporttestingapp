@@ -1,4 +1,10 @@
-from PyQt6.QtWidgets import QWizard, QWizardPage, QVBoxLayout, QLabel
+from PyQt6.QtWidgets import (
+    QWizard,
+    QWizardPage,
+    QVBoxLayout,
+    QLabel,
+    QMessageBox,
+)
 
 
 class WorkflowWizard(QWizard):
@@ -52,12 +58,19 @@ class WorkflowWizard(QWizard):
 
     def start(self):
         """Execute all steps sequentially."""
-        for _, action in self.steps:
+        for title, action in self.steps:
             try:
-                if callable(action):
-                    action()
-            except Exception:
-                pass
+                result = action() if callable(action) else None
+                if result is False:
+                    QMessageBox.warning(self, "Workflow Failed", f"{title} failed")
+                    self.finished.emit(0)
+                    return
+            except Exception as exc:
+                QMessageBox.critical(
+                    self, "Workflow Error", f"{title} failed: {exc}"
+                )
+                self.finished.emit(0)
+                return
 
         # Show comparison results
         if hasattr(self.main_window, "tab_widget"):

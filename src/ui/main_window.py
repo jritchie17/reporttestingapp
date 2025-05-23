@@ -613,12 +613,19 @@ class MainWindow(QMainWindow):
             )
 
     def execute_sql(self):
-        """Execute the current SQL query"""
+        """Execute the current SQL query
+
+        Returns
+        -------
+        bool
+            ``True`` if the query executed successfully, ``False`` if an error
+            occurred.
+        """
         if not self.db_connector:
             QMessageBox.warning(
                 self, "Not Connected", "Please connect to a database first."
             )
-            return
+            return False
 
         # Get SQL content
         sql_content = self.sql_editor.get_text()
@@ -627,7 +634,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(
                 self, "Empty SQL", "Please enter a SQL query to execute."
             )
-            return
+            return False
 
         # Show indeterminate progress dialog
         progress = QProgressDialog("Running SQL query...", None, 0, 0, self)
@@ -722,7 +729,7 @@ class MainWindow(QMainWindow):
                     self, "Query Error", f"Error executing query: {result['error']}"
                 )
                 self.status_bar.showMessage(f"Query failed: {result['error']}")
-                return
+                return False
 
             # Load results into viewer
             if "data" in result:
@@ -743,8 +750,11 @@ class MainWindow(QMainWindow):
                 "Execute Error",
                 f"An error occurred when executing the SQL query: {str(e)}",
             )
+            return False
         finally:
             progress.close()
+
+        return True
 
     def compare_results(self):
         """Compare Excel data with SQL results"""
