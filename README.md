@@ -26,12 +26,22 @@ A high-quality application for testing Excel reports against SQL databases, espe
 
 ## Installation
 
+### From Source
+
 1. Clone this repository
 2. Install the project into your environment:
    ```
    pip install .
    ```
 3. Configure your database settings in the application
+
+### Using the Executable
+
+For Windows users, a standalone executable is available that doesn't require Python to be installed:
+
+1. Download the latest release
+2. Extract the zip file
+3. Run the `SOO_PreClose_Tester.exe` file in the extracted folder or use the provided `Run_SOO_PreClose_Tester.bat` file
 
 ## Usage
 
@@ -44,6 +54,8 @@ or simply use the console script:
 ```
 soo-preclose-tester
 ```
+
+If you're using the executable version, simply double-click the `SOO_PreClose_Tester.exe` file or run the `Run_SOO_PreClose_Tester.bat` batch file.
 
 You can customize the appearance under **Tools -> Settings -> User Interface**.
 The Theme drop-down defaults to *Brand* (applying the company's colors) but also allows Light, Dark, or System themes.
@@ -85,6 +97,22 @@ Use `pytest` to run the unit tests:
 ```
 pytest
 ```
+
+## Building the Executable
+
+If you want to build the executable yourself:
+
+1. Install PyInstaller:
+   ```
+   pip install pyinstaller
+   ```
+
+2. Run the build command:
+   ```
+   pyinstaller soo_preclose.spec
+   ```
+
+3. The executable will be generated in the `dist/SOO_PreClose_Tester` directory
 
 ## Plugins
 

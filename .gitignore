@@ -64,3 +64,9 @@ SOO PreClose*.xlsx
 ~$*.xlsx
 7B5C9400
 C9FA6A00
+
+# Build files
+build/
+dist/
+*.zip
+SOO_PreClose_Tester_*.zip

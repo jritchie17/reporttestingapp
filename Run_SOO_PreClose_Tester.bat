@@ -1,0 +1,3 @@
+@echo off
+echo Starting SOO PreClose Tester...
+start "SOO PreClose Tester" "%~dp0dist\SOO_PreClose_Tester\SOO_PreClose_Tester.exe" 
