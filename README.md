@@ -111,6 +111,8 @@ If you want to build the executable yourself:
    ```
    pyinstaller soo_preclose.spec
    ```
+   This specification disables UPX compression for greater
+   compatibility with some systems.
 
 3. The executable will be generated in the `dist/SOO_PreClose_Tester` directory
 
