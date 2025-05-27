@@ -27,6 +27,7 @@ wheels/
 # PyInstaller
 *.manifest
 *.spec
+!soo_preclose.spec
 
 # Installer logs
 pip-log.txt
