@@ -1856,6 +1856,19 @@ class ExcelViewer(QWidget):
             # Update the dataframe
             self.df = cleaned_df
             self.filtered_df = cleaned_df.copy()
+
+            # Propagate cleaned dataframe back to the analyzer
+            from src.ui.main_window import MainWindow
+            parent = self.window()
+            if (
+                parent
+                and isinstance(parent, MainWindow)
+                and hasattr(parent, "excel_analyzer")
+                and self.sheet_name in parent.excel_analyzer.sheet_data
+            ):
+                parent.excel_analyzer.sheet_data[self.sheet_name][
+                    "dataframe"
+                ] = cleaned_df.copy()
             
             # Reload the dataframe to update the view
             self.load_dataframe(self.df, self.sheet_name)

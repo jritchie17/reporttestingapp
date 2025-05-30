@@ -79,6 +79,57 @@ class TestMFRCleaning(unittest.TestCase):
         result = engine.compare_dataframes(analyzer.sheet_data["Sheet1"]["dataframe"], sql_df)
         self.assertTrue(result["summary"]["overall_match"])
 
+    def test_clean_sheet_updates_analyzer(self):
+        """Cleaning a sheet should update the analyzer's dataframe."""
+        from src.ui.excel_viewer import ExcelViewer
+        from src.analyzer.excel_analyzer import ExcelAnalyzer
+
+        class DummyButton:
+            def setEnabled(self, val):
+                self.enabled = val
+
+            def setToolTip(self, text):
+                self.tip = text
+
+        viewer = ExcelViewer.__new__(ExcelViewer)
+        viewer.report_config = {
+            'header_rows': [0],
+            'skip_rows': 1,
+            'first_data_column': 1,
+            'description': ''
+        }
+        viewer.report_type = None
+
+        df = pd.DataFrame([
+            ['A', 'B'],
+            [1, 2],
+            [3, 4]
+        ])
+
+        viewer.df = df
+        viewer.filtered_df = df.copy()
+        viewer.sheet_name = 'Sheet1'
+        viewer.clean_button = DummyButton()
+        viewer.update_button_states = lambda *a, **k: None
+        viewer.load_dataframe = lambda *a, **k: None
+
+        analyzer = ExcelAnalyzer('dummy.xlsx')
+        analyzer.sheet_names = ['Sheet1']
+        analyzer.sheet_data['Sheet1'] = {'dataframe': df.copy()}
+
+        class Parent:
+            def __init__(self, an):
+                self.excel_analyzer = an
+
+        parent = Parent(analyzer)
+        viewer.window = lambda: parent
+
+        viewer.clean_sheet()
+
+        cleaned = analyzer.sheet_data['Sheet1']['dataframe']
+        self.assertEqual(list(cleaned.columns), ['Sheet_Name', 'A', 'B'])
+        self.assertEqual(len(cleaned), 2)
+
     def test_mfr_headers_prefixed(self):
         from src.ui.excel_viewer import ExcelViewer
         viewer = ExcelViewer.__new__(ExcelViewer)
