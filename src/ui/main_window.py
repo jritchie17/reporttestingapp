@@ -1408,7 +1408,7 @@ class MainWindow(QMainWindow):
                     self.excel_analyzer.analyze_sheet(sheet)
 
                 sheet_info = self.excel_analyzer.sheet_data[sheet]
-                df = sheet_info.get("cleaned_dataframe") or sheet_info["dataframe"]
+                df = sheet_info["dataframe"]
 
                 # If the dataframe has numeric column names, rebuild headers
                 cols_are_numeric = all(
@@ -1421,8 +1421,7 @@ class MainWindow(QMainWindow):
                         header_row = max(header_rows)
                         headers = [str(v).strip() for v in df.iloc[header_row].tolist()]
                         df = df.iloc[header_row + 1 :].copy()
-                    elif "cleaned_dataframe" in sheet_info:
-                        df = sheet_info["cleaned_dataframe"].copy()
+                    else:
                         headers = list(df.columns)
 
                     if headers:
