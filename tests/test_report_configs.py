@@ -78,6 +78,29 @@ class ReportConfigTests(unittest.TestCase):
             else:
                 del os.environ['HOME']
 
+    def test_mfr_preclose_default_config(self):
+        from src.utils.config import AppConfig
+
+        with tempfile.TemporaryDirectory() as tmp:
+            old_home = os.environ.get('HOME')
+            os.environ['HOME'] = tmp
+
+            cfg = AppConfig()
+            self.assertEqual(
+                cfg.get_report_config('MFR PreClose'),
+                {
+                    'header_rows': [9],
+                    'skip_rows': 10,
+                    'first_data_column': 4,
+                    'description': 'MFR PreClose report with header on row 10'
+                }
+            )
+
+            if old_home is not None:
+                os.environ['HOME'] = old_home
+            else:
+                del os.environ['HOME']
+
 
 if __name__ == '__main__':
     unittest.main()
