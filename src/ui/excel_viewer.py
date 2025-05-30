@@ -904,6 +904,119 @@ class ExcelViewer(QWidget):
         finally:
             progress.close()
 
+    def _base_clean_dataframe(self, df, sheet_name):
+        """Base implementation for cleaning a dataframe."""
+        try:
+            # Get the header rows based on the report configuration
+            header_row_indices = self.report_config["header_rows"]
+            skip_rows = self.report_config["skip_rows"]
+
+            # Make sure we have enough rows
+            if len(df) <= max(header_row_indices):
+                print(f"Sheet {sheet_name} doesn't have enough rows for cleaning")
+                return None
+
+            # Get header rows from the configuration
+            header_rows = []
+            for idx in header_row_indices:
+                header_rows.append(df.iloc[idx])
+
+            # Check if there are any non-empty values in the header rows
+            header_has_values = []
+            for row in header_rows:
+                has_values = sum(1 for x in row if pd.notna(x) and str(x).strip()) > 0
+                header_has_values.append(has_values)
+
+            # Create a copy of the data portion of the dataframe (after headers)
+            data_df = df.iloc[skip_rows:].copy()
+
+            # Detect completely empty columns in the DATA ONLY
+            empty_cols = []
+            for i in range(data_df.shape[1]):
+                col_data = data_df.iloc[:, i]
+                is_empty = col_data.isna().all() or (col_data.astype(str).str.strip() == '').all()
+                if is_empty:
+                    empty_cols.append(i)
+
+            # Create a list of columns to keep
+            columns_to_keep = [i for i in range(data_df.shape[1]) if i not in empty_cols]
+
+            # Concatenate headers, handling NaN values
+            new_headers = []
+            for i in columns_to_keep:
+                header_values = []
+                for idx, header_row in enumerate(header_rows):
+                    if i < len(header_row):
+                        value = header_row.iloc[i]
+                        if not pd.isna(value) and str(value).strip():
+                            header_values.append(str(value).strip())
+
+                # Join all non-empty header values or use a default column name
+                if header_values:
+                    new_header = " ".join(header_values)
+                else:
+                    new_header = f"Column_{i+1}"
+
+                # Replace any newlines or excessive whitespace
+                new_header = new_header.replace('\n', ' ').replace('\r', ' ')
+                new_header = ' '.join(new_header.split())
+
+                new_headers.append(new_header)
+
+            # Create a new dataframe with only non-empty columns
+            clean_df = data_df.iloc[:, columns_to_keep].copy()
+
+            # Set the new headers
+            if len(new_headers) == len(clean_df.columns):
+                clean_df.columns = new_headers
+            else:
+                # If there's a mismatch, just create default headers
+                clean_df.columns = [f"Column_{i+1}" for i in range(len(clean_df.columns))]
+                print(
+                    f"Warning: Header count mismatch for {sheet_name}: {len(new_headers)} headers for {len(clean_df.columns)} columns"
+                )
+
+            # Ensure column names are unique to avoid pandas returning DataFrame slices
+            # when referencing by name which can break numeric conversion
+            seen = {}
+            unique_cols = []
+            for col in clean_df.columns:
+                if col in seen:
+                    seen[col] += 1
+                    new_col = f"{col}_{seen[col]}"
+                    while new_col in seen:
+                        seen[new_col] = seen.get(new_col, 0) + 1
+                        new_col = f"{new_col}_{seen[new_col]}"
+                    unique_cols.append(new_col)
+                    seen[new_col] = 0
+                else:
+                    seen[col] = 0
+                    unique_cols.append(col)
+            clean_df.columns = unique_cols
+
+            # Remove blank rows
+            clean_df = clean_df.loc[~((clean_df.isna().all(axis=1)) |
+                                (clean_df.astype(str).apply(lambda x: x.str.strip() == '').all(axis=1)))]
+
+            # Convert all columns to numeric starting from first_data_column
+            first_col = self.report_config.get("first_data_column", 2)
+            for idx in range(first_col, len(clean_df.columns)):
+                col_name = clean_df.columns[idx]
+                clean_df.iloc[:, idx] = pd.to_numeric(
+                    clean_df.iloc[:, idx], errors="coerce"
+                ).round(2)
+
+            # Add a new column with the sheet name at the beginning
+            clean_df.insert(0, "Sheet_Name", sheet_name)
+
+            return clean_df
+
+        except Exception as e:
+            print(f"Error cleaning sheet {sheet_name}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
+
     def remove_empty_data_rows(self):
         """Remove empty data rows based on the selected scope - current sheet or all sheets"""
         # Check if applying to current sheet or all sheets
@@ -1539,127 +1652,50 @@ class ExcelViewer(QWidget):
             progress.close()
     
     def _clean_dataframe(self, df, sheet_name):
-        """Clean a dataframe using the report configuration
-        This is a utility function used by clean_sheet and clean_all_sheets.
-        
-        Args:
-            df: The dataframe to clean
-            sheet_name: The name of the sheet
-            
-        Returns:
-            The cleaned dataframe or None if cleaning failed
-        """
-        try:
-            # Get the header rows based on the report configuration
-            header_row_indices = self.report_config["header_rows"]
-            skip_rows = self.report_config["skip_rows"]
-            
-            # Make sure we have enough rows
-            if len(df) <= max(header_row_indices):
-                print(f"Sheet {sheet_name} doesn't have enough rows for cleaning")
-                return None
-                
-            # Get header rows from the configuration
-            header_rows = []
-            for idx in header_row_indices:
-                header_rows.append(df.iloc[idx])
-            
-            # Check if there are any non-empty values in the header rows
-            header_has_values = []
-            for row in header_rows:
-                has_values = sum(1 for x in row if pd.notna(x) and str(x).strip()) > 0
-                header_has_values.append(has_values)
-                
-            # Create a copy of the data portion of the dataframe (after headers)
-            data_df = df.iloc[skip_rows:].copy()
-            
-            # Detect completely empty columns in the DATA ONLY
-            empty_cols = []
-            for i in range(data_df.shape[1]):
-                col_data = data_df.iloc[:, i]
-                is_empty = col_data.isna().all() or (col_data.astype(str).str.strip() == '').all()
-                if is_empty:
-                    empty_cols.append(i)
-            
-            # Create a list of columns to keep
-            columns_to_keep = [i for i in range(data_df.shape[1]) if i not in empty_cols]
-            
-            # Concatenate headers, handling NaN values
-            new_headers = []
-            for i in columns_to_keep:
-                header_values = []
-                for idx, header_row in enumerate(header_rows):
-                    if i < len(header_row):
-                        value = header_row.iloc[i]
-                        if not pd.isna(value) and str(value).strip():
-                            header_values.append(str(value).strip())
-                
-                # Join all non-empty header values or use a default column name
-                if header_values:
-                    new_header = " ".join(header_values)
-                else:
-                    new_header = f"Column_{i+1}"
-                    
-                # Replace any newlines or excessive whitespace
-                new_header = new_header.replace('\n', ' ').replace('\r', ' ')
-                new_header = ' '.join(new_header.split())
-                
-                new_headers.append(new_header)
-            
-            # Create a new dataframe with only non-empty columns
-            clean_df = data_df.iloc[:, columns_to_keep].copy()
-            
-            # Set the new headers
-            if len(new_headers) == len(clean_df.columns):
-                clean_df.columns = new_headers
+        """Clean a dataframe using the report configuration."""
+        clean_df = self._base_clean_dataframe(df, sheet_name)
+        if clean_df is None:
+            return None
+
+        if self.report_type == "SOO MFR":
+            from PyQt6.QtWidgets import QInputDialog
+
+            if not hasattr(self, "_mfr_month_year"):
+                months = [
+                    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+                ]
+                mon, ok1 = QInputDialog.getItem(self, "Month", "Select Month", months, 0, False)
+                years = [str(y) for y in range(2000, 2101)]
+                yr_text, ok2 = QInputDialog.getItem(self, "Year", "Select Year", years, 0, False)
+                if not (ok1 and ok2):
+                    return clean_df
+                try:
+                    yr = int(yr_text)
+                except ValueError:
+                    return clean_df
+                self._mfr_month_year = (mon, yr)
             else:
-                # If there's a mismatch, just create default headers
-                clean_df.columns = [f"Column_{i+1}" for i in range(len(clean_df.columns))]
-                print(
-                    f"Warning: Header count mismatch for {sheet_name}: {len(new_headers)} headers for {len(clean_df.columns)} columns"
-                )
+                mon, yr = self._mfr_month_year
 
-            # Ensure column names are unique to avoid pandas returning DataFrame
-            # slices when referencing by name which can break numeric conversion
-            seen = {}
-            unique_cols = []
-            for col in clean_df.columns:
-                if col in seen:
-                    seen[col] += 1
-                    new_col = f"{col}_{seen[col]}"
-                    while new_col in seen:
-                        seen[new_col] = seen.get(new_col, 0) + 1
-                        new_col = f"{new_col}_{seen[new_col]}"
-                    unique_cols.append(new_col)
-                    seen[new_col] = 0
-                else:
-                    seen[col] = 0
-                    unique_cols.append(col)
-            clean_df.columns = unique_cols
-            
-            # Remove blank rows
-            row_count_before = len(clean_df)
-            clean_df = clean_df.loc[~((clean_df.isna().all(axis=1)) | 
-                                (clean_df.astype(str).apply(lambda x: x.str.strip() == '').all(axis=1)))]
+            prefixes = (
+                (range(4, 10), f"{mon} {yr} "),
+                (range(10, 13), f"{mon} {yr - 1} "),
+                (range(13, 17), f"YTD {mon} {yr} "),
+                (range(17, 20), f"YTD {mon} {yr - 1} "),
+            )
 
-            # Convert all columns to numeric starting from first_data_column
-            first_col = self.report_config.get("first_data_column", 2)
-            for idx in range(first_col, len(clean_df.columns)):
-                col_name = clean_df.columns[idx]
-                clean_df.iloc[:, idx] = pd.to_numeric(
-                    clean_df.iloc[:, idx], errors="coerce"
-                ).round(2)
-
-            # Add a new column with the sheet name at the beginning
-            clean_df.insert(0, "Sheet_Name", sheet_name)
+            for cols, prefix in prefixes:
+                for i in cols:
+                    if i < len(clean_df.columns):
+                        clean_df.rename(
+                            columns={clean_df.columns[i]: prefix + clean_df.columns[i]},
+                            inplace=True,
+                        )
 
             return clean_df
-            
-        except Exception as e:
-            print(f"Error cleaning sheet {sheet_name}: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return None
+
+        return clean_df
 
     def clean_sheet(self):
         """Clean the current sheet based on the report configuration"""
