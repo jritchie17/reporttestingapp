@@ -11,6 +11,24 @@ from PyQt6.QtGui import QFont, QColor, QBrush, QIcon, QGuiApplication, QCursor
 import numpy as np
 import re  # For regex pattern matching
 
+
+def _dedupe_columns(cols):
+    """Remove numeric suffixes and reapply them only where needed."""
+    # Strip any trailing ``_<number>`` pattern(s)
+    stripped = [re.sub(r"(_\d+)+$", "", c) for c in cols]
+
+    counts = {}
+    deduped = []
+    for col in stripped:
+        count = counts.get(col, 0)
+        if count:
+            deduped.append(f"{col}_{count}")
+        else:
+            deduped.append(col)
+        counts[col] = count + 1
+
+    return deduped
+
 class EditableHeaderView(QHeaderView):
     """Custom header view that allows editing headers with double click"""
     headerDataChanged = pyqtSignal(int, Qt.Orientation, object)
@@ -1703,6 +1721,9 @@ class ExcelViewer(QWidget):
                             columns={clean_df.columns[i]: prefix + clean_df.columns[i]},
                             inplace=True,
                         )
+
+            # Remove leftover numeric suffixes when prefixes make names unique
+            clean_df.columns = _dedupe_columns(list(clean_df.columns))
 
             return clean_df
 
