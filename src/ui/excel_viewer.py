@@ -734,6 +734,26 @@ class ExcelViewer(QWidget):
             self.df.columns = new_columns
             self.filtered_df.columns = new_columns
 
+            # Propagate updated columns back to the analyzer if possible
+            from src.ui.main_window import MainWindow
+            parent = self.window()
+            if (
+                parent
+                and isinstance(parent, MainWindow)
+                and hasattr(parent, "excel_analyzer")
+                and self.sheet_name
+                and self.sheet_name in parent.excel_analyzer.sheet_data
+            ):
+                analyzer_df = parent.excel_analyzer.sheet_data[self.sheet_name][
+                    "dataframe"
+                ]
+                # Copy to avoid accidental sharing of stale references
+                updated_df = analyzer_df.copy()
+                updated_df.columns = new_columns
+                parent.excel_analyzer.sheet_data[self.sheet_name][
+                    "dataframe"
+                ] = updated_df
+
             # Update filter dropdown preserving selection
             current_text = self.filter_column.currentText()
             self.filter_column.clear()

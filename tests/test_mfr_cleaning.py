@@ -7,6 +7,78 @@ class TestMFRCleaning(unittest.TestCase):
     def setUp(self):
         patch_qt_modules()
 
+    def test_apply_headers_updates_analyzer(self):
+        """Importing headers should update analyzer sheet data and affect comparison."""
+        from src.ui.excel_viewer import ExcelViewer
+        from src.analyzer.excel_analyzer import ExcelAnalyzer
+        from src.analyzer.comparison_engine import ComparisonEngine
+
+        class DummyCombo:
+            def __init__(self):
+                self.items = []
+                self.current = ""
+
+            def currentText(self):
+                return self.current
+
+            def clear(self):
+                self.items = []
+
+            def addItems(self, items):
+                self.items.extend(items)
+
+            def findText(self, text):
+                try:
+                    return self.items.index(text)
+                except ValueError:
+                    return -1
+
+            def setCurrentIndex(self, idx):
+                if 0 <= idx < len(self.items):
+                    self.current = self.items[idx]
+
+        class DummyTable:
+            def setModel(self, model):
+                self.model = model
+
+            def resizeColumnsToContents(self):
+                pass
+
+        # Set up viewer without full Qt init
+        viewer = ExcelViewer.__new__(ExcelViewer)
+        viewer.df = pd.DataFrame({"A": [1], "B": [2]})
+        viewer.filtered_df = viewer.df.copy()
+        viewer.sheet_name = "Sheet1"
+        viewer.filter_column = DummyCombo()
+        viewer.table_view = DummyTable()
+        viewer.current_theme = "light"
+        viewer.update_view = lambda: None
+
+        # Set up analyzer and parent window
+        analyzer = ExcelAnalyzer("dummy.xlsx")
+        analyzer.sheet_names = ["Sheet1"]
+        analyzer.sheet_data["Sheet1"] = {"dataframe": viewer.df.copy()}
+
+        class Parent:
+            def __init__(self, an):
+                self.excel_analyzer = an
+
+        parent = Parent(analyzer)
+        viewer.window = lambda: parent
+
+        # Apply headers from SQL
+        viewer._apply_sql_headers(["X", "Y"])
+
+        self.assertEqual(
+            list(analyzer.sheet_data["Sheet1"]["dataframe"].columns), ["X", "Y"]
+        )
+
+        # Comparison should succeed with new headers
+        engine = ComparisonEngine()
+        sql_df = pd.DataFrame({"X": [1], "Y": [2]})
+        result = engine.compare_dataframes(analyzer.sheet_data["Sheet1"]["dataframe"], sql_df)
+        self.assertTrue(result["summary"]["overall_match"])
+
     def test_mfr_headers_prefixed(self):
         from src.ui.excel_viewer import ExcelViewer
         viewer = ExcelViewer.__new__(ExcelViewer)
