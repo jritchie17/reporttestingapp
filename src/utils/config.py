@@ -250,10 +250,10 @@ class AppConfig:
                 "description": "SOO PreClose report with headers on rows 6 and 7",
             },
             "SOO MFR": {
-                "header_rows": [3, 4],
-                "skip_rows": 5,
-                "first_data_column": 2,
-                "description": "SOO MFR report with headers on rows 4 and 5",
+                "header_rows": [9],
+                "skip_rows": 10,
+                "first_data_column": 4,
+                "description": "SOO MFR report with header on row 10",
             },
             "Executive Book": {
                 "header_rows": [2, 3],

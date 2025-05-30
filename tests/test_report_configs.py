@@ -55,6 +55,29 @@ class ReportConfigTests(unittest.TestCase):
         self.assertEqual(cleaned.iloc[0, 1], 1)
         self.assertEqual(cleaned.iloc[1, 1], 3)
 
+    def test_soo_mfr_default_config(self):
+        from src.utils.config import AppConfig
+
+        with tempfile.TemporaryDirectory() as tmp:
+            old_home = os.environ.get('HOME')
+            os.environ['HOME'] = tmp
+
+            cfg = AppConfig()
+            self.assertEqual(
+                cfg.get_report_config('SOO MFR'),
+                {
+                    'header_rows': [9],
+                    'skip_rows': 10,
+                    'first_data_column': 4,
+                    'description': 'SOO MFR report with header on row 10'
+                }
+            )
+
+            if old_home is not None:
+                os.environ['HOME'] = old_home
+            else:
+                del os.environ['HOME']
+
 
 if __name__ == '__main__':
     unittest.main()
