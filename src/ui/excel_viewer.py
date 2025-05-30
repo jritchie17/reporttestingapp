@@ -125,11 +125,18 @@ class PandasTableModel(QAbstractTableModel):
                 return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
                 
         return QVariant()
-        
+
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
-                return str(self._headers[section])
+                # Gracefully handle invalid section indices which can occur if
+                # the view requests a header after the underlying model has
+                # changed (e.g. when switching sheets). Returning an empty
+                # string avoids an IndexError that would otherwise crash the
+                # application.
+                if 0 <= section < len(self._headers):
+                    return str(self._headers[section])
+                return ""
             else:
                 return str(section + 1)  # 1-based row indexing
                 
