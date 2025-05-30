@@ -99,6 +99,35 @@ class TestMFRCleaning(unittest.TestCase):
         self.assertEqual(cleaned.columns[3], 'May 2025 D')
         self.assertEqual(cleaned.columns[4], 'May 2025 E')
 
+    def test_duplicate_headers_suffix_removed(self):
+        """Numbering applied to resolve duplicates should be dropped if prefixes make them unique."""
+        from src.ui.excel_viewer import ExcelViewer
+        viewer = ExcelViewer.__new__(ExcelViewer)
+        viewer.report_config = {
+            'header_rows': [0],
+            'skip_rows': 1,
+            'first_data_column': 2,
+            'description': ''
+        }
+        viewer.report_type = 'SOO MFR'
+
+        df = pd.DataFrame([
+            ['A','B','Acct','D','E','F','G','H','Acct','J','K','L'],
+            [1,2,3,4,5,6,7,8,9,10,11,12]
+        ])
+
+        from PyQt6.QtWidgets import QInputDialog
+        responses = iter([('May', True), ('2025', True)])
+        QInputDialog.getItem = staticmethod(lambda *a, **k: next(responses))
+
+        cleaned = ExcelViewer._clean_dataframe(viewer, df, 'Sheet1')
+        self.assertIsNotNone(cleaned)
+
+        # Suffix numbering should be removed when not needed
+        self.assertIn('May 2025 Acct', cleaned.columns)
+        self.assertIn('May 2024 Acct', cleaned.columns)
+        self.assertNotIn('May 2024 Acct_1', cleaned.columns)
+
 
 if __name__ == '__main__':
     unittest.main()
