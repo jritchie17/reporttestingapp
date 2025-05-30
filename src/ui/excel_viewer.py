@@ -709,8 +709,58 @@ class ExcelViewer(QWidget):
             mapping_dialog.exec()
         else:
             from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.warning(self, "Cannot Access SQL Results", 
+            QMessageBox.warning(self, "Cannot Access SQL Results",
                                 "Unable to access SQL query results. Please run a SQL query first.")
+
+    def _apply_sql_headers(self, selected_columns, dialog=None):
+        """Apply SQL column headers to the current sheet."""
+        if self.df is None or self.df.empty:
+            return
+
+        try:
+            new_columns = list(self.df.columns)
+
+            # Skip the Sheet_Name column if present
+            start_idx = 1 if new_columns and new_columns[0] == "Sheet_Name" else 0
+
+            for i, col_name in enumerate(selected_columns):
+                if i + start_idx < len(new_columns):
+                    new_columns[i + start_idx] = col_name
+
+            # Ensure uniqueness of column names
+            new_columns = _dedupe_columns(new_columns)
+
+            # Apply updated columns to both dataframes
+            self.df.columns = new_columns
+            self.filtered_df.columns = new_columns
+
+            # Update filter dropdown preserving selection
+            current_text = self.filter_column.currentText()
+            self.filter_column.clear()
+            self.filter_column.addItems([str(col) for col in self.df.columns])
+            index = self.filter_column.findText(current_text)
+            if index >= 0:
+                self.filter_column.setCurrentIndex(index)
+
+            # Refresh model and view
+            self.model = PandasTableModel(
+                self.filtered_df, self.current_theme.lower() == "dark"
+            )
+            self.table_view.setModel(self.model)
+            self.table_view.resizeColumnsToContents()
+            self.update_view()
+
+            if dialog is not None:
+                dialog.accept()
+
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+
+            QMessageBox.critical(
+                self,
+                "Error Applying Headers",
+                f"An error occurred while applying headers: {str(e)}",
+            )
     
     def _import_column_headers_to_all_sheets(self):
         """Import column headers from SQL query results to all sheets"""
