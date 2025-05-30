@@ -1657,7 +1657,10 @@ class ExcelViewer(QWidget):
         if clean_df is None:
             return None
 
-        if self.report_type == "SOO MFR":
+        # Remove original row indices left from the source file
+        clean_df = clean_df.reset_index(drop=True)
+
+        if self.report_type in ("SOO MFR", "MFR PreClose"):
             from PyQt6.QtWidgets import QInputDialog
 
             if not hasattr(self, "_mfr_month_year"):

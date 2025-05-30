@@ -255,6 +255,12 @@ class AppConfig:
                 "first_data_column": 4,
                 "description": "SOO MFR report with header on row 10",
             },
+            "MFR PreClose": {
+                "header_rows": [9],
+                "skip_rows": 10,
+                "first_data_column": 4,
+                "description": "MFR PreClose report with header on row 10",
+            },
             "Executive Book": {
                 "header_rows": [2, 3],
                 "skip_rows": 4,
