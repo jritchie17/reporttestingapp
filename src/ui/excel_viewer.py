@@ -1082,7 +1082,10 @@ class ExcelViewer(QWidget):
                 ).round(2)
 
             # Add a new column with the sheet name at the beginning
-            clean_df.insert(0, "Sheet_Name", sheet_name)
+            # Skip this for SOO MFR where including the sheet name would
+            # interfere with comparisons.
+            if self.report_type != "SOO MFR":
+                clean_df.insert(0, "Sheet_Name", sheet_name)
 
             return clean_df
 
@@ -1771,10 +1774,13 @@ class ExcelViewer(QWidget):
             else:
                 mon, yr = self._mfr_month_year
 
-            # Determine where the actual numeric data starts.  The base
-            # cleaning routine inserts a ``Sheet_Name`` column at position 0,
-            # so offset the configured ``first_data_column`` by one.
-            data_start = self.report_config.get("first_data_column", 2) + 1
+            # Determine where the actual numeric data starts. The base cleaning
+            # routine normally inserts a ``Sheet_Name`` column at position 0.
+            # For SOO MFR that column is omitted, so only offset when it is
+            # present.
+            data_start = self.report_config.get("first_data_column", 2)
+            if self.report_type != "SOO MFR":
+                data_start += 1
 
             # Build the prefix ranges relative to ``data_start`` so that the
             # correct columns are renamed even when ``first_data_column`` is
