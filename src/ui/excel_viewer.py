@@ -1685,6 +1685,21 @@ class ExcelViewer(QWidget):
         # Remove original row indices left from the source file
         clean_df = clean_df.reset_index(drop=True)
 
+        # If the first row appears to repeat the column headers (which can occur
+        # when export utilities duplicate the header row), drop it so that the
+        # actual data starts immediately after the configured ``skip_rows``
+        if not clean_df.empty:
+            header_vals = [str(c).strip().lower() for c in clean_df.columns]
+            row_vals = [str(v).strip().lower() for v in clean_df.iloc[0].tolist()]
+
+            # Ignore the sheet name column when comparing
+            if header_vals and header_vals[0] == "sheet_name":
+                header_vals = header_vals[1:]
+                row_vals = row_vals[1:]
+
+            if row_vals == header_vals:
+                clean_df = clean_df.iloc[1:].reset_index(drop=True)
+
         if self.report_type in ("SOO MFR", "MFR PreClose"):
             from PyQt6.QtWidgets import QInputDialog
 
