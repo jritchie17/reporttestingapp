@@ -30,7 +30,7 @@ class TestMFRCleaning(unittest.TestCase):
         cleaned = ExcelViewer._clean_dataframe(viewer, df, 'Sheet1')
         self.assertIsNotNone(cleaned)
         expected = [
-            'Sheet_Name','A','B','C',
+            'A','B','C',
             'May 2025 D','May 2025 E','May 2025 F','May 2025 G','May 2025 H','May 2025 I',
             'May 2024 J','May 2024 K','May 2024 L',
             'YTD May 2025 M','YTD May 2025 N','YTD May 2025 O','YTD May 2025 P',
@@ -96,6 +96,7 @@ class TestMFRCleaning(unittest.TestCase):
 
         # Columns C and D correspond to indices 2 and 3. With ``first_data_column``
         # set to 2, these should receive prefixes.
+        self.assertEqual(cleaned.columns[2], 'May 2025 C')
         self.assertEqual(cleaned.columns[3], 'May 2025 D')
         self.assertEqual(cleaned.columns[4], 'May 2025 E')
 
