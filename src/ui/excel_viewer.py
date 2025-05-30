@@ -1681,11 +1681,19 @@ class ExcelViewer(QWidget):
             else:
                 mon, yr = self._mfr_month_year
 
+            # Determine where the actual numeric data starts.  The base
+            # cleaning routine inserts a ``Sheet_Name`` column at position 0,
+            # so offset the configured ``first_data_column`` by one.
+            data_start = self.report_config.get("first_data_column", 2) + 1
+
+            # Build the prefix ranges relative to ``data_start`` so that the
+            # correct columns are renamed even when ``first_data_column`` is
+            # customised by different report configurations.
             prefixes = (
-                (range(4, 10), f"{mon} {yr} "),
-                (range(10, 13), f"{mon} {yr - 1} "),
-                (range(13, 17), f"YTD {mon} {yr} "),
-                (range(17, 20), f"YTD {mon} {yr - 1} "),
+                (range(data_start, data_start + 6), f"{mon} {yr} "),
+                (range(data_start + 6, data_start + 9), f"{mon} {yr - 1} "),
+                (range(data_start + 9, data_start + 13), f"YTD {mon} {yr} "),
+                (range(data_start + 13, data_start + 16), f"YTD {mon} {yr - 1} "),
             )
 
             for cols, prefix in prefixes:

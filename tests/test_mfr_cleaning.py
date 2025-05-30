@@ -69,6 +69,36 @@ class TestMFRCleaning(unittest.TestCase):
         ]
         self.assertEqual(list(cleaned.columns), expected)
 
+    def test_prefix_respects_first_data_column(self):
+        """Columns starting at index defined by ``first_data_column`` should be
+        prefixed after cleaning."""
+        from src.ui.excel_viewer import ExcelViewer
+        viewer = ExcelViewer.__new__(ExcelViewer)
+        viewer.report_config = {
+            'header_rows': [0],
+            'skip_rows': 1,
+            'first_data_column': 2,
+            'description': ''
+        }
+        viewer.report_type = 'SOO MFR'
+
+        df = pd.DataFrame([
+            ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S'],
+            [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+        ])
+
+        from PyQt6.QtWidgets import QInputDialog
+        responses = iter([('May', True), ('2025', True)])
+        QInputDialog.getItem = staticmethod(lambda *a, **k: next(responses))
+
+        cleaned = ExcelViewer._clean_dataframe(viewer, df, 'Sheet1')
+        self.assertIsNotNone(cleaned)
+
+        # Columns C and D correspond to indices 2 and 3. With ``first_data_column``
+        # set to 2, these should receive prefixes.
+        self.assertEqual(cleaned.columns[3], 'May 2025 D')
+        self.assertEqual(cleaned.columns[4], 'May 2025 E')
+
 
 if __name__ == '__main__':
     unittest.main()
