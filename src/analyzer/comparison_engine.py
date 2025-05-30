@@ -319,19 +319,29 @@ class ComparisonEngine:
         if len(key_columns['excel']) == 2:
             return key_columns
         
-        # If we didn't find both key columns, try to find any columns that match exactly
-        exact_matches = []
+
+        # If we didn't find both key columns, try to find any columns that match
+        # exactly. Filter out columns that appear to be mostly numeric to avoid
+        # using value columns as join keys.
+        def _is_non_numeric(series):
+            try:
+                ratio = pd.to_numeric(series, errors="coerce").notna().mean()
+                return ratio < 0.5
+            except Exception:
+                return True
+
+        text_matches = []
         for mapping in column_mappings.values():
-            if mapping['match_score'] == 1.0:  # Exact match
-                exact_matches.append({
-                    'excel': mapping['excel_column'],
-                    'sql': mapping['sql_column']
-                })
-        
-        if exact_matches:
+            if mapping['match_score'] == 1.0:
+                ec = mapping['excel_column']
+                sc = mapping['sql_column']
+                if _is_non_numeric(excel_df[ec]) and _is_non_numeric(sql_df[sc]):
+                    text_matches.append({'excel': ec, 'sql': sc})
+
+        if text_matches:
             return {
-                'excel': [m['excel'] for m in exact_matches],
-                'sql': [m['sql'] for m in exact_matches]
+                'excel': [m['excel'] for m in text_matches],
+                'sql': [m['sql'] for m in text_matches]
             }
 
         return None
@@ -457,8 +467,15 @@ class ComparisonEngine:
             suggested,
         )
 
-    def generate_detailed_comparison_dataframe(self, sheet_name, excel_df, sql_df, column_mappings=None):
-        """Generate a DataFrame with all matches, mismatches, and missing records for export, including sign flip and field column."""
+    def generate_detailed_comparison_dataframe(
+        self, sheet_name, excel_df, sql_df, column_mappings=None, report_type=None
+    ):
+        """Generate a DataFrame with all matches, mismatches, and missing records
+        for export.
+
+        ``report_type`` allows callers to omit certain columns (e.g. ``Center`` or
+        sheet name) when not relevant to the report being exported.
+        """
         # Run the comparison to get the merged DataFrame and mappings
         if column_mappings is None:
             column_mappings = self.find_matching_columns(excel_df.columns, sql_df.columns)
@@ -495,6 +512,9 @@ class ComparisonEngine:
             if f'{col}_sql' in merged_df.columns:
                 account_col_sql = f'{col}_sql'
         
+        include_center = report_type not in ("SOO MFR",)
+        include_sheet = report_type not in ("SOO MFR",)
+
         output_rows = []
         for excel_idx, mapping in column_mappings.items():
             excel_col = mapping["excel_column"]
@@ -548,14 +568,17 @@ class ComparisonEngine:
                     result = 'Match' if is_match else 'Does Not Match'
                     excel_val_out = excel_val
                     sql_val_out = sql_val_flipped
-                output_rows.append({
-                    'Sheet': sheet_name,
-                    'Center': center,
-                    'CAReport Name': careport,
+                row_data = {
                     'Field': field,
                     'Excel Value': excel_val_out,
                     'DataBase Value': sql_val_out,
                     'Variance': variance,
-                    'Result': result
-                })
+                    'Result': result,
+                }
+                if include_sheet:
+                    row_data['Sheet'] = sheet_name
+                if include_center:
+                    row_data['Center'] = center
+                row_data['CAReport Name'] = careport
+                output_rows.append(row_data)
         return pd.DataFrame(output_rows) 

@@ -1686,8 +1686,9 @@ class MainWindow(QMainWindow):
                     filtered_sql_df = pd.DataFrame(calc.compute(sql_rows))
 
             # Generate detailed DataFrame
+            report_type = self.config.get("excel", "report_type")
             df = self.comparison_engine.generate_detailed_comparison_dataframe(
-                sheet_name, excel_df, filtered_sql_df
+                sheet_name, excel_df, filtered_sql_df, report_type=report_type
             )
             all_dfs.append(df)
         if not all_dfs:
@@ -1775,8 +1776,9 @@ class MainWindow(QMainWindow):
                     sql_rows = filtered_sql_df.to_dict(orient="records")
                     filtered_sql_df = pd.DataFrame(calc.compute(sql_rows))
 
+            report_type = self.config.get("excel", "report_type")
             df = self.comparison_engine.generate_detailed_comparison_dataframe(
-                sheet_name, excel_df, filtered_sql_df
+                sheet_name, excel_df, filtered_sql_df, report_type=report_type
             )
             all_dfs.append(df)
         if not all_dfs:
