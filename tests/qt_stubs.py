@@ -191,6 +191,10 @@ def patch_qt_modules():
         def getText(*args, **kwargs):
             return "", False
 
+        @staticmethod
+        def getItem(*args, **kwargs):
+            return "", False
+
     # Add complex widget classes
     for name, obj in {
         "QDialog": QDialog,
