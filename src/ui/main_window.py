@@ -1555,9 +1555,9 @@ class MainWindow(QMainWindow):
         # Update local copy
         self.report_configs[report_type] = report_config
 
-        # Update Excel viewer with the report configuration
+        # Update Excel viewer with the report configuration and type
         if hasattr(self, "excel_viewer"):
-            self.excel_viewer.set_report_config(report_config)
+            self.excel_viewer.set_report_config(report_config, report_type)
 
         # If we have an Excel analyzer, update its configuration as well
         if self.excel_analyzer:

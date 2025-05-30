@@ -169,6 +169,9 @@ class ExcelViewer(QWidget):
             "skip_rows": 7,         # Skip rows 0-6 (header is at 5-6)
             "description": "SOO PreClose report with headers on rows 6 and 7"
         }
+        # Current report type associated with the configuration
+        self.report_type = None
+
         
         self.init_ui()
         
@@ -519,9 +522,10 @@ class ExcelViewer(QWidget):
             
         return False
         
-    def set_report_config(self, config):
-        """Set the report configuration to use for sheet cleaning"""
+    def set_report_config(self, config, report_type=None):
+        """Set the report configuration and associated report type."""
         self.report_config = config
+        self.report_type = report_type
         
         # Update the clean button tooltip to reflect the new configuration
         if hasattr(self, 'clean_button'):
