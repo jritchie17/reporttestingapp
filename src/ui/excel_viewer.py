@@ -1381,15 +1381,27 @@ class ExcelViewer(QWidget):
             account_patterns = ACCOUNT_PATTERNS
             account_codes = set()
             missing_column_sheets = []
+
+            is_name_column = selected_column.strip().lower() in (
+                "careportname",
+                "ca report name",
+                "ca reportname",
+            )
             
             # First get account codes from the current sheet
             if self.df is not None and selected_column in self.df.columns:
                 column_data = self.df[selected_column].astype(str)
-                for value in column_data:
-                    for pattern in account_patterns:
-                        matches = re.findall(pattern, value)
-                        for match in matches:
-                            account_codes.add(match)
+                if is_name_column:
+                    for value in column_data:
+                        val = value.strip()
+                        if val:
+                            account_codes.add(val)
+                else:
+                    for value in column_data:
+                        for pattern in account_patterns:
+                            matches = re.findall(pattern, value)
+                            for match in matches:
+                                account_codes.add(match)
             else:
                 missing_column_sheets.append(self.sheet_name)
             
@@ -1413,11 +1425,17 @@ class ExcelViewer(QWidget):
                         # Check if the selected column exists in this sheet
                         if selected_column in sheet_df.columns:
                             column_data = sheet_df[selected_column].astype(str)
-                            for value in column_data:
-                                for pattern in account_patterns:
-                                    matches = re.findall(pattern, value)
-                                    for match in matches:
-                                        account_codes.add(match)
+                            if is_name_column:
+                                for value in column_data:
+                                    val = value.strip()
+                                    if val:
+                                        account_codes.add(val)
+                            else:
+                                for value in column_data:
+                                    for pattern in account_patterns:
+                                        matches = re.findall(pattern, value)
+                                        for match in matches:
+                                            account_codes.add(match)
                         else:
                             missing_column_sheets.append(sheet_name)
                     except Exception as e:
