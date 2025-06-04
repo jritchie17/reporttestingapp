@@ -51,3 +51,20 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         results = self.engine.compare_dataframes(self.excel_df, self.sql_df)
         self.assertIn('discrepancy_severity', results)
         self.assertIn('major', results['discrepancy_severity'])
+
+    def test_key_whitespace_and_case_normalization(self):
+        excel_df = pd.DataFrame({
+            'Center': [1],
+            'CAReportName': ['Acct A '],
+            'Amount': [100]
+        })
+        sql_df = pd.DataFrame({
+            'Center': [1],
+            'CAReportName': ['acct a'],
+            'Amount': [100]
+        })
+        engine = ComparisonEngine()
+        results = engine.compare_dataframes(excel_df, sql_df)
+        self.assertEqual(results['row_counts']['matched'], 1)
+        detailed = engine.generate_detailed_comparison_dataframe('Sheet1', excel_df, sql_df)
+        self.assertTrue((detailed['Result'] == 'Match').all())
