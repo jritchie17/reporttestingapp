@@ -117,9 +117,19 @@ class ComparisonEngine:
             
         self.logger.info(f"Using key columns for joining: {key_columns}")
         
-        # Create join keys
-        excel_keys = excel_df[key_columns['excel']].astype(str).agg('-'.join, axis=1)
-        sql_keys = sql_df[key_columns['sql']].astype(str).agg('-'.join, axis=1)
+        # Create join keys with normalized case/whitespace
+        excel_keys = (
+            excel_df[key_columns['excel']]
+            .astype(str)
+            .apply(lambda s: s.str.strip().str.lower())
+            .agg('-'.join, axis=1)
+        )
+        sql_keys = (
+            sql_df[key_columns['sql']]
+            .astype(str)
+            .apply(lambda s: s.str.strip().str.lower())
+            .agg('-'.join, axis=1)
+        )
         
         # --- Duplicate key detection ---
         excel_dup_keys = excel_keys[excel_keys.duplicated(keep=False)]
@@ -486,9 +496,19 @@ class ComparisonEngine:
         # Prepare sign flip accounts as a set of stripped strings
         sign_flip_accounts_str = set(str(acct).strip() for acct in getattr(self, 'sign_flip_accounts', set()))
         
-        # Create join keys
-        excel_keys = excel_df[key_columns['excel']].astype(str).agg('-'.join, axis=1)
-        sql_keys = sql_df[key_columns['sql']].astype(str).agg('-'.join, axis=1)
+        # Create join keys with normalized case/whitespace
+        excel_keys = (
+            excel_df[key_columns['excel']]
+            .astype(str)
+            .apply(lambda s: s.str.strip().str.lower())
+            .agg('-'.join, axis=1)
+        )
+        sql_keys = (
+            sql_df[key_columns['sql']]
+            .astype(str)
+            .apply(lambda s: s.str.strip().str.lower())
+            .agg('-'.join, axis=1)
+        )
         
         excel_df = excel_df.copy()
         sql_df = sql_df.copy()
