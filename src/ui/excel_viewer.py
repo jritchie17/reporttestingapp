@@ -1387,6 +1387,10 @@ class ExcelViewer(QWidget):
                 "ca report name",
                 "ca reportname",
             )
+            if not is_name_column and self.report_type in ("SOO MFR", "MFR PreClose"):
+                if self.df.columns.get_loc(selected_column) == 0:
+                    # CAReportName becomes column A after cleaning
+                    is_name_column = True
             
             # First get account codes from the current sheet
             if self.df is not None and selected_column in self.df.columns:
