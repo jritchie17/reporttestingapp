@@ -41,9 +41,19 @@ def compare_series(excel_series: Iterable[Any], sql_series: Iterable[Any], accou
             results["match_count"] += 1
             continue
         if e_null != s_null:
-            results["null_mismatch_count"] += 1
-            results["mismatch_count"] += 1
-            results["mismatch_rows"].append({"row": i, "excel_value": e_val, "sql_value": s_val_adj, "difference": "NULL mismatch"})
+            treated_as_match = False
+            if results["is_numeric"]:
+                # Treat NULL on one side and numeric zero on the other as a match
+                try:
+                    if (e_null and float(s_val_adj) == 0) or (s_null and float(e_val) == 0):
+                        results["match_count"] += 1
+                        treated_as_match = True
+                except Exception:
+                    pass
+            if not treated_as_match:
+                results["null_mismatch_count"] += 1
+                results["mismatch_count"] += 1
+                results["mismatch_rows"].append({"row": i, "excel_value": e_val, "sql_value": s_val_adj, "difference": "NULL mismatch"})
             continue
         if results["is_numeric"]:
             try:

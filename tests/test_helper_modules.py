@@ -28,6 +28,12 @@ class TestHelperModules(unittest.TestCase):
         res = row_comparison.compare_series(excel_series, sql_series, acct_series, sign_flip_accounts=['1234-5678'])
         self.assertEqual(res['mismatch_count'], 0)
 
+    def test_null_zero_match(self):
+        excel_series = pd.Series([None, 0, 5])
+        sql_series = pd.Series([0, None, 5])
+        res = row_comparison.compare_series(excel_series, sql_series)
+        self.assertEqual(res['mismatch_count'], 0)
+
     def test_report_generator(self):
         comparison_results = {
             'summary': {'mismatch_percentage': 0, 'matching_cells': 3, 'total_cells': 3},
