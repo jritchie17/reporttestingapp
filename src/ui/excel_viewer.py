@@ -1030,6 +1030,8 @@ class ExcelViewer(QWidget):
             for i in range(data_df.shape[1]):
                 col_data = data_df.iloc[:, i]
                 is_empty = col_data.isna().all() or (col_data.astype(str).str.strip() == '').all()
+                if self.report_type == "Corp SOO":
+                    is_empty = is_empty or (pd.to_numeric(col_data, errors="coerce").fillna(0) == 0).all()
                 if is_empty:
                     empty_cols.append(i)
 
@@ -1090,8 +1092,17 @@ class ExcelViewer(QWidget):
             clean_df.columns = unique_cols
 
             # Remove blank rows
-            clean_df = clean_df.loc[~((clean_df.isna().all(axis=1)) |
-                                (clean_df.astype(str).apply(lambda x: x.str.strip() == '').all(axis=1)))]
+            if self.report_type == "Corp SOO":
+                data_part = clean_df.iloc[:, 1:]
+                empty_cond = (
+                    data_part.isna().all(axis=1)
+                    | (data_part.astype(str).apply(lambda x: x.str.strip() == '').all(axis=1))
+                    | (pd.to_numeric(data_part.stack(), errors="coerce").unstack().fillna(0) == 0).all(axis=1)
+                )
+                clean_df = clean_df.loc[~empty_cond]
+            else:
+                clean_df = clean_df.loc[~((clean_df.isna().all(axis=1)) |
+                                    (clean_df.astype(str).apply(lambda x: x.str.strip() == '').all(axis=1)))]
 
             # Convert all columns to numeric starting from first_data_column
             first_col = self.report_config.get("first_data_column", 2)
@@ -1102,9 +1113,9 @@ class ExcelViewer(QWidget):
                 ).round(2)
 
             # Add a new column with the sheet name at the beginning
-            # Skip this for SOO MFR where including the sheet name would
+            # Skip this for SOO MFR and Corp SOO where including the sheet name would
             # interfere with comparisons.
-            if self.report_type != "SOO MFR":
+            if self.report_type not in ("SOO MFR", "Corp SOO"):
                 clean_df.insert(0, "Sheet_Name", sheet_name)
 
             return clean_df
@@ -1387,7 +1398,7 @@ class ExcelViewer(QWidget):
                 "ca report name",
                 "ca reportname",
             )
-            if not is_name_column and self.report_type in ("SOO MFR", "MFR PreClose"):
+            if not is_name_column and self.report_type in ("SOO MFR", "MFR PreClose", "Corp SOO"):
                 if self.df.columns.get_loc(selected_column) == 0:
                     # CAReportName becomes column A after cleaning
                     is_name_column = True

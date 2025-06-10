@@ -101,6 +101,29 @@ class ReportConfigTests(unittest.TestCase):
             else:
                 del os.environ['HOME']
 
+    def test_corp_soo_default_config(self):
+        from src.utils.config import AppConfig
+
+        with tempfile.TemporaryDirectory() as tmp:
+            old_home = os.environ.get('HOME')
+            os.environ['HOME'] = tmp
+
+            cfg = AppConfig()
+            self.assertEqual(
+                cfg.get_report_config('Corp SOO'),
+                {
+                    'header_rows': [5],
+                    'skip_rows': 6,
+                    'first_data_column': 2,
+                    'description': 'Corporate SOO report with header on row 6'
+                }
+            )
+
+            if old_home is not None:
+                os.environ['HOME'] = old_home
+            else:
+                del os.environ['HOME']
+
 
 if __name__ == '__main__':
     unittest.main()
