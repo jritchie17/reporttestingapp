@@ -97,6 +97,17 @@ Use `pytest` to run the unit tests:
 ```
 pytest
 ```
+Before running the tests in a fresh environment make sure the required
+dependencies are installed. A helper script is provided which installs the
+packages listed in `requirements.txt` as well as the lightweight PyQt stubs used
+by the tests:
+
+```bash
+./scripts/install_test_deps.sh
+```
+
+After installing the dependencies the test suite can be executed with
+`pytest -q`.
 
 ## Building the Executable
 
