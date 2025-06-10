@@ -31,5 +31,29 @@ class TestCorpSOOCleaning(unittest.TestCase):
         self.assertEqual(len(cleaned), 1)
         self.assertEqual(cleaned.iloc[0].tolist(), ['acct2', 1.0, 2.0])
 
+    def test_text_column_not_dropped(self):
+        """Purely textual columns should be preserved when cleaning."""
+        from src.ui.excel_viewer import ExcelViewer
+        viewer = ExcelViewer.__new__(ExcelViewer)
+        viewer.report_config = {
+            'header_rows': [0],
+            'skip_rows': 1,
+            'first_data_column': 2,
+            'description': ''
+        }
+        viewer.report_type = 'Corp SOO'
+
+        df = pd.DataFrame([
+            ['CAReportName', 'Val1', 'Val2'],
+            ['TextA', 0, 0],
+            ['TextB', 1, 2]
+        ])
+
+        cleaned = ExcelViewer._clean_dataframe(viewer, df, 'Sheet1')
+        self.assertIsNotNone(cleaned)
+        self.assertEqual(list(cleaned.columns), ['CAReportName', 'Val1', 'Val2'])
+        self.assertEqual(len(cleaned), 1)
+        self.assertEqual(cleaned.iloc[0].tolist(), ['TextB', 1.0, 2.0])
+
 if __name__ == '__main__':
     unittest.main()
