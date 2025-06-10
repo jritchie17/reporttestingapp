@@ -275,7 +275,7 @@ class AppConfig:
             },
             "Corp SOO": {
                 "header_rows": [5],
-                "skip_rows": 6,
+                "skip_rows": 7,
                 "first_data_column": 2,
                 "description": "Corporate SOO report with header on row 6"
             },
