@@ -274,10 +274,10 @@ class AppConfig:
                 "description": "Statement of Operations report with headers on rows 5 and 6",
             },
             "Corp SOO": {
-                "header_rows": [5, 6],
-                "skip_rows": 7,
+                "header_rows": [5],
+                "skip_rows": 6,
                 "first_data_column": 2,
-                "description": "Corporate SOO report with headers on rows 6 and 7",
+                "description": "Corporate SOO report with header on row 6"
             },
             "AR Center": {
                 "header_rows": [4, 5],

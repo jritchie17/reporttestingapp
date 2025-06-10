@@ -532,8 +532,8 @@ class ComparisonEngine:
             if f'{col}_sql' in merged_df.columns:
                 account_col_sql = f'{col}_sql'
         
-        include_center = report_type not in ("SOO MFR",)
-        include_sheet = report_type not in ("SOO MFR",)
+        include_center = report_type not in ("SOO MFR", "Corp SOO")
+        include_sheet = report_type not in ("SOO MFR", "Corp SOO")
 
         output_rows = []
         for excel_idx, mapping in column_mappings.items():
