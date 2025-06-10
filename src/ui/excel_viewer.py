@@ -1031,7 +1031,9 @@ class ExcelViewer(QWidget):
                 col_data = data_df.iloc[:, i]
                 is_empty = col_data.isna().all() or (col_data.astype(str).str.strip() == '').all()
                 if self.report_type == "Corp SOO":
-                    is_empty = is_empty or (pd.to_numeric(col_data, errors="coerce").fillna(0) == 0).all()
+                    numeric_series = pd.to_numeric(col_data, errors="coerce")
+                    if numeric_series.notna().any():
+                        is_empty = is_empty or numeric_series.fillna(0).eq(0).all()
                 if is_empty:
                     empty_cols.append(i)
 
