@@ -21,6 +21,7 @@ class TestCorpSOOCleaning(unittest.TestCase):
             ['A','B','C'],
             ['acct1','', ''],
             ['acct2',1,2],
+            ['acct2',0,'foo'],
             ['', '', ''],
             ['acct3',0,0]
         ])
@@ -28,8 +29,9 @@ class TestCorpSOOCleaning(unittest.TestCase):
         cleaned = ExcelViewer._clean_dataframe(viewer, df, 'Sheet1')
         self.assertIsNotNone(cleaned)
         self.assertEqual(list(cleaned.columns), ['A','B','C'])
-        self.assertEqual(len(cleaned), 1)
+        self.assertEqual(len(cleaned), 2)
         self.assertEqual(cleaned.iloc[0].tolist(), ['acct2', 1.0, 2.0])
+        self.assertEqual(cleaned.iloc[1].tolist(), ['acct2', 0, 'foo'])
 
     def test_text_column_not_dropped(self):
         """Purely textual columns should be preserved when cleaning."""
