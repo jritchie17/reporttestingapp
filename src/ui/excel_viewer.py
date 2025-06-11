@@ -1106,15 +1106,26 @@ class ExcelViewer(QWidget):
                 data_part = clean_df.iloc[:, 1:]
 
                 numeric_part = data_part.apply(pd.to_numeric, errors="coerce")
-                numeric_exists = numeric_part.notna().any(axis=1)
 
                 blank_mask = data_part.isna() | (
                     data_part.astype(str).apply(lambda x: x.str.strip() == "")
                 )
                 numeric_zero_mask = (numeric_part == 0) & numeric_part.notna()
 
-                empty_cond = (blank_mask | numeric_zero_mask).all(axis=1)
-                clean_df = clean_df.loc[~empty_cond]
+                first_col = clean_df.iloc[:, 0]
+                first_col_blank = first_col.isna() | (
+                    first_col.astype(str).str.strip() == ""
+                )
+
+                all_numeric_blank = blank_mask.all(axis=1)
+                all_numeric_blank_or_zero = (blank_mask | numeric_zero_mask).all(
+                    axis=1
+                )
+
+                remove_rows = (first_col_blank & all_numeric_blank_or_zero) | (
+                    (~first_col_blank) & all_numeric_blank
+                )
+                clean_df = clean_df.loc[~remove_rows]
             else:
                 clean_df = clean_df.loc[~((clean_df.isna().all(axis=1)) |
                                     (clean_df.astype(str).apply(lambda x: x.str.strip() == '').all(axis=1)))]
