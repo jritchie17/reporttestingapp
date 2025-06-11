@@ -1014,7 +1014,15 @@ class ExcelViewer(QWidget):
             # Get header rows from the configuration
             header_rows = []
             for idx in header_row_indices:
-                header_rows.append(df.iloc[idx])
+                row = df.iloc[idx].copy()
+                # Excel exports often use merged cells for headings. When these
+                # are read via ``pandas.read_excel`` the value only appears in
+                # the top-left cell of the merge while the remaining cells are
+                # ``NaN``.  Forward filling ensures that each column inherits the
+                # merged value so the header does not look empty in later
+                # processing.
+                row = row.ffill()
+                header_rows.append(row)
 
             # Check if there are any non-empty values in the header rows
             header_has_values = []
