@@ -1941,17 +1941,34 @@ class ExcelViewer(QWidget):
             
             # Get human-readable row descriptions (converting from 0-indexed to 1-indexed)
             header_rows_text = ", ".join([str(idx + 1) for idx in self.report_config["header_rows"]])
-            
+
+            # Build message elements based on report configuration
+            if len(self.report_config["header_rows"]) > 1:
+                header_note = f"- Headers from rows {header_rows_text} have been concatenated\n"
+            else:
+                header_note = f"- Header from row {header_rows_text} has been applied\n"
+
+            skip_note = (
+                f"- {self.report_config['skip_rows']} rows above the header have been removed\n"
+            )
+
+            sheet_col_note = ""
+            if self.report_type not in ("SOO MFR", "Corp SOO"):
+                sheet_col_note = "- A new column with the sheet name has been added\n"
+
             # Show a status message
             from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.information(self, "Sheet Cleaned", 
+            QMessageBox.information(
+                self,
+                "Sheet Cleaned",
                 f"The sheet has been cleaned successfully using {self.report_config['description']}:\n"
-                f"- Headers from rows {header_rows_text} have been concatenated\n"
-                f"- {self.report_config['skip_rows']} rows above the header have been removed\n"
+                f"{header_note}"
+                f"{skip_note}"
                 f"- Blank rows have been removed\n"
                 f"- Completely empty columns have been removed\n"
-                f"- A new column with the sheet name has been added\n\n"
-                f"You can now double-click on column headers to edit them.")
+                f"{sheet_col_note}\n"
+                f"You can now double-click on column headers to edit them."
+            )
             
             return True
             

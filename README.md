@@ -72,7 +72,7 @@ These options control how the `_clean_dataframe` helper processes sheets for tha
 
 The application ships with sensible defaults for many reports. In the default
 configuration the **Corp SOO** report uses `header_rows` `[5]` and `skip_rows`
-set to `6`, meaning the data begins on the seventh row of the sheet.
+set to `7`, meaning the data begins on the eighth row of the sheet.
 
 When Excel files are loaded the analyzer now automatically unmerges any merged
 cells.  The value from the top-left cell of a merged range is copied into all
