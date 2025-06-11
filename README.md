@@ -70,6 +70,10 @@ Open **Tools → Report Configurations** to define how each report type should b
 
 These options control how the `_clean_dataframe` helper processes sheets for that report type.
 
+The application ships with sensible defaults for many reports. In the default
+configuration the **Corp SOO** report uses `header_rows` `[5]` and `skip_rows`
+set to `6`, meaning the data begins on the seventh row of the sheet.
+
 For temp table query testing, you can use the specialized scripts:
 ```
 python src/analyzer/run_real_query.py
