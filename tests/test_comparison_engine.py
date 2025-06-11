@@ -68,3 +68,19 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         self.assertEqual(results['row_counts']['matched'], 1)
         detailed = engine.generate_detailed_comparison_dataframe('Sheet1', excel_df, sql_df)
         self.assertTrue((detailed['Result'] == 'Match').all())
+
+    def test_careportname_column_variations(self):
+        excel_df = pd.DataFrame({
+            'Center': [1],
+            'CaReportName': ['Acct A'],
+            'Amount': [100]
+        })
+        sql_df = pd.DataFrame({
+            'Center': [1],
+            'CA Report Name': ['Acct A'],
+            'Amount': [100]
+        })
+        engine = ComparisonEngine()
+        df = engine.generate_detailed_comparison_dataframe('Sheet1', excel_df, sql_df)
+        self.assertIn('CAReport Name', df.columns)
+        self.assertEqual(df['CAReport Name'].iloc[0], 'Acct A')

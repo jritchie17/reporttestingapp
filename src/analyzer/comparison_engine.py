@@ -22,6 +22,32 @@ class ComparisonEngine:
         self.sign_flip_accounts = set()  # Set of account numbers that should have their signs flipped
         self.plugins = self._load_plugins(plugin_dirs)
 
+    @staticmethod
+    def _find_account_columns(columns):
+        """Return likely account columns from merged dataframe columns."""
+        candidates = [
+            "Account",
+            "CAReportName",
+            "Account Number",
+            "Acct",
+            "AccountNumber",
+        ]
+        norm_map = {
+            re.sub(r"[\s_]+", "", c).lower(): c for c in candidates
+        }
+        acct_excel = None
+        acct_sql = None
+        for col in columns:
+            base = col.rsplit("_", 1)[0]
+            suffix = col.rsplit("_", 1)[-1]
+            norm = re.sub(r"[\s_]+", "", base).lower()
+            if norm in norm_map:
+                if suffix == "excel":
+                    acct_excel = col
+                elif suffix == "sql":
+                    acct_sql = col
+        return acct_excel, acct_sql
+
     def _setup_debug_logger(self):
         """Create a dedicated debug logger for row level comparison."""
         file_handler = logging.FileHandler('comparison_debug.log', mode='w')
@@ -154,14 +180,7 @@ class ComparisonEngine:
         )
         
         # --- Prepare for per-row sign flip ---
-        # Try to find the account column in the merged dataframe
-        account_col_excel = None
-        account_col_sql = None
-        for col in ['Account', 'CAReportName', 'Account Number', 'Acct', 'AccountNumber']:
-            if f'{col}_excel' in merged_df.columns:
-                account_col_excel = f'{col}_excel'
-            if f'{col}_sql' in merged_df.columns:
-                account_col_sql = f'{col}_sql'
+        account_col_excel, account_col_sql = self._find_account_columns(merged_df.columns)
         
         # Log merge results
         self.logger.info(f"Merge results - Total rows: {len(merged_df)}")
@@ -524,13 +543,7 @@ class ComparisonEngine:
         )
         
         # Try to find the account column in the merged dataframe
-        account_col_excel = None
-        account_col_sql = None
-        for col in ['Account', 'CAReportName', 'Account Number', 'Acct', 'AccountNumber']:
-            if f'{col}_excel' in merged_df.columns:
-                account_col_excel = f'{col}_excel'
-            if f'{col}_sql' in merged_df.columns:
-                account_col_sql = f'{col}_sql'
+        account_col_excel, account_col_sql = self._find_account_columns(merged_df.columns)
         
         include_center = report_type not in ("SOO MFR", "Corp SOO")
         include_sheet = report_type not in ("SOO MFR", "Corp SOO")
@@ -545,7 +558,13 @@ class ComparisonEngine:
                 continue
             for idx, row in merged_df.iterrows():
                 center = row.get('Center_excel') or row.get('Center_sql') or ''
-                careport = row.get('CAReportName_excel') or row.get('CAReportName_sql') or ''
+                careport = (
+                    row.get('CAReportName_excel')
+                    or row.get('CAReportName_sql')
+                    or (row.get(account_col_excel) if account_col_excel else None)
+                    or (row.get(account_col_sql) if account_col_sql else None)
+                    or ''
+                )
                 field = excel_col
                 excel_val = row.get(excel_merged_col, None)
                 sql_val = row.get(sql_merged_col, None)
