@@ -25,11 +25,41 @@ class ExcelAnalyzer:
         
     
     def load_excel(self):
-        """Load the Excel file and extract sheet names"""
+        """Load the Excel file and extract sheet names.
+
+        This now unmerges all cells before handing the workbook off to
+        ``pandas``.  When merged cells are encountered the value from the
+        top-left cell of the merge is propagated to the entire range so that
+        subsequent cleaning logic operates on a flat table.
+        """
         try:
-            self.excel_file = pd.ExcelFile(self.file_path)
+            from openpyxl import load_workbook
+            import io
+
+            wb = load_workbook(self.file_path)
+            for ws in wb.worksheets:
+                for merged in list(ws.merged_cells.ranges):
+                    min_row, min_col, max_row, max_col = (
+                        merged.min_row,
+                        merged.min_col,
+                        merged.max_row,
+                        merged.max_col,
+                    )
+                    value = ws.cell(row=min_row, column=min_col).value
+                    ws.unmerge_cells(str(merged))
+                    for r in range(min_row, max_row + 1):
+                        for c in range(min_col, max_col + 1):
+                            ws.cell(row=r, column=c).value = value
+
+            temp_buffer = io.BytesIO()
+            wb.save(temp_buffer)
+            temp_buffer.seek(0)
+
+            self.excel_file = pd.ExcelFile(temp_buffer)
             self.sheet_names = self.excel_file.sheet_names
-            self.logger.info(f"Successfully loaded Excel file with {len(self.sheet_names)} sheets")
+            self.logger.info(
+                f"Successfully loaded Excel file with {len(self.sheet_names)} sheets"
+            )
             return True
         except Exception as e:
             self.logger.error(f"Failed to load Excel file: {str(e)}")
