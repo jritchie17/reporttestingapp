@@ -35,7 +35,16 @@ def dataframe_to_table(df: pd.DataFrame) -> List[List[str]]:
 
 def main() -> None:
     # 1. Load Data
-    df = pd.read_csv(RESULTS_CSV)
+    df_all = pd.read_csv(RESULTS_CSV)
+
+    # Calculate basic counts
+    total_points = len(df_all)
+    match_count = (df_all["Result"] == "Match").sum()
+    mismatch_df = df_all[df_all["Result"] != "Match"]
+    mismatch_count = len(mismatch_df)
+
+    # Use only mismatches for the report
+    df = mismatch_df
 
     # 2. Generate Key Metrics Table
     key_metrics = (
@@ -82,6 +91,11 @@ def main() -> None:
         elements.append(Spacer(1, 12))
 
     elements.append(Paragraph(REPORT_TITLE, styles["Title"]))
+    elements.append(Paragraph("Amsurg QA Results", styles["Heading2"]))
+    elements.append(Spacer(1, 12))
+    elements.append(Paragraph(f"Total Points: {total_points}", styles["Normal"]))
+    elements.append(Paragraph(f"Matches: {match_count}", styles["Normal"]))
+    elements.append(Paragraph(f"Mismatches: {mismatch_count}", styles["Normal"]))
     elements.append(Spacer(1, 12))
     elements.append(Paragraph(summary_text, styles["Normal"]))
     elements.append(Spacer(1, 12))
