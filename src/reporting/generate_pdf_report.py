@@ -34,45 +34,46 @@ def dataframe_to_table(df: pd.DataFrame) -> List[List[str]]:
 
 
 def main() -> None:
+    """Generate a concise QA report PDF."""
     # 1. Load Data
     df = pd.read_csv(RESULTS_CSV)
 
-    # 2. Generate Key Metrics Table
-    key_metrics = (
-        df.groupby("CAReport Name")[["Variance", "Excel Value", "DataBase Value"]]
-        .sum()
+    total_points = len(df)
+    match_count = int((df["Result"] == "Match").sum())
+    mismatch_df = df[df["Result"] != "Match"]
+    mismatch_count = total_points - match_count
+
+    # 2. Summary table of mismatched accounts
+    mismatch_summary = (
+        mismatch_df["CAReport Name"]
+        .value_counts()
         .reset_index()
+        .rename(columns={"index": "CAReport Name", "CAReport Name": "Mismatch Count"})
     )
-    key_metrics.columns = [
-        "CAReport Name",
-        "Total Variance",
-        "Total Excel Value",
-        "Total Database Value",
-    ]
 
     # 3. Generate Visuals
-    plt.figure(figsize=(8, 4))
-    key_metrics.plot(
-        kind="bar",
-        x="CAReport Name",
-        y="Total Variance",
-        legend=False,
-        color="steelblue",
-    )
-    plt.title("Variance by CAReport Name")
-    plt.xticks(rotation=45, ha="right")
-    plt.tight_layout()
-    chart_path = os.path.join(BASE_DIR, "variance_by_careportname.png")
-    plt.savefig(chart_path, bbox_inches="tight", dpi=150)
+    plt.figure(figsize=(3, 3))
+    plt.pie([match_count, mismatch_count], labels=["Match", "Mismatch"], autopct="%1.0f%%")
+    pie_chart = os.path.join(BASE_DIR, "match_pie_chart.png")
+    plt.savefig(pie_chart, bbox_inches="tight", dpi=150)
     plt.close()
 
-    # 4. Executive Summary (example text)
-    summary_text = (
-        f"Total positive variance: ${key_metrics['Total Variance'].sum():,.2f}. "
-        f"Top item: {key_metrics.loc[key_metrics['Total Variance'].idxmax(), 'CAReport Name']}."
+    plt.figure(figsize=(6, 3))
+    mismatch_summary.head(10).plot(
+        kind="bar",
+        x="CAReport Name",
+        y="Mismatch Count",
+        legend=False,
+        color="firebrick",
     )
+    plt.title("Top Mismatched Accounts")
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+    bar_chart = os.path.join(BASE_DIR, "mismatch_by_careportname.png")
+    plt.savefig(bar_chart, bbox_inches="tight", dpi=150)
+    plt.close()
 
-    # 5. Build PDF with ReportLab
+    # 4. Build PDF with ReportLab
     doc = SimpleDocTemplate(OUTPUT_PDF, pagesize=letter)
     styles = getSampleStyleSheet()
     elements = []
@@ -82,13 +83,26 @@ def main() -> None:
         elements.append(Spacer(1, 12))
 
     elements.append(Paragraph(REPORT_TITLE, styles["Title"]))
+    elements.append(Paragraph("Amsurg QA Results", styles["Heading2"]))
     elements.append(Spacer(1, 12))
+
+    summary_text = (
+        f"Total data points tested: {total_points:,}<br/>"
+        f"Matching data points: {match_count:,}<br/>"
+        f"Mismatched data points: {mismatch_count:,}"
+    )
     elements.append(Paragraph(summary_text, styles["Normal"]))
     elements.append(Spacer(1, 12))
 
-    # Key metrics table
-    km_table = Table(dataframe_to_table(key_metrics))
-    km_table.setStyle(
+    # Charts
+    elements.append(Image(pie_chart, width=180, height=180))
+    elements.append(Spacer(1, 12))
+    elements.append(Image(bar_chart, width=400, height=200))
+    elements.append(Spacer(1, 12))
+
+    # Mismatch summary table
+    mismatch_table = Table(dataframe_to_table(mismatch_summary))
+    mismatch_table.setStyle(
         TableStyle(
             [
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2a4d69")),
@@ -98,26 +112,7 @@ def main() -> None:
             ]
         )
     )
-    elements.append(km_table)
-    elements.append(Spacer(1, 12))
-
-    # Chart image
-    elements.append(Image(chart_path, width=400, height=250))
-    elements.append(Spacer(1, 12))
-
-    # Detailed results table
-    detail_table = Table(dataframe_to_table(df), repeatRows=1)
-    detail_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2a4d69")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
-                ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ]
-        )
-    )
-    elements.append(detail_table)
+    elements.append(mismatch_table)
 
     doc.build(elements)
 
