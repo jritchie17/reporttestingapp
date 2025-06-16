@@ -75,6 +75,25 @@ def main() -> None:
         "Total Database Value",
     ]
 
+    # Calculate total absolute variance per account for a bar chart
+    TOP_N = 10
+    abs_var_df = (
+        mismatch_df.groupby("CAReport Name")["Variance"]
+        .apply(lambda x: x.abs().sum())
+        .reset_index(name="Total Absolute Variance")
+    )
+    abs_var_df = abs_var_df.sort_values("Total Absolute Variance", ascending=False).head(TOP_N)
+
+    plt.figure(figsize=(6, 4))
+    plt.barh(abs_var_df["CAReport Name"], abs_var_df["Total Absolute Variance"], color="#004B8D")
+    plt.xlabel("Total Absolute Variance")
+    plt.ylabel("CAReport Name")
+    plt.gca().invert_yaxis()
+    plt.tight_layout()
+    abs_var_chart_path = os.path.join(BASE_DIR, "top_abs_variance.png")
+    plt.savefig(abs_var_chart_path, bbox_inches="tight", dpi=150)
+    plt.close()
+
     # 3. Generate Visuals
     plt.figure(figsize=(8, 4))
     key_metrics.plot(
@@ -118,6 +137,10 @@ def main() -> None:
 
     # Pie chart image before tables
     elements.append(Image(pie_path, width=200, height=200))
+    elements.append(Spacer(1, 12))
+
+    # Horizontal bar chart of top absolute variances
+    elements.append(Image(abs_var_chart_path, width=400, height=250))
     elements.append(Spacer(1, 12))
 
     # Key metrics table
