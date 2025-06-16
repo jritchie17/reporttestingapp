@@ -39,35 +39,37 @@ def main() -> None:
 
     # 2. Generate Key Metrics Table
     key_metrics = (
-        df.groupby("Center")[["Variance", "Actual", "Budget"]].sum().reset_index()
+        df.groupby("CAReport Name")[["Variance", "Excel Value", "DataBase Value"]]
+        .sum()
+        .reset_index()
     )
     key_metrics.columns = [
-        "Center",
+        "CAReport Name",
         "Total Variance",
-        "Total Actual",
-        "Total Budget",
+        "Total Excel Value",
+        "Total Database Value",
     ]
 
     # 3. Generate Visuals
     plt.figure(figsize=(8, 4))
     key_metrics.plot(
         kind="bar",
-        x="Center",
+        x="CAReport Name",
         y="Total Variance",
         legend=False,
         color="steelblue",
     )
-    plt.title("Variance by Center")
+    plt.title("Variance by CAReport Name")
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
-    chart_path = os.path.join(BASE_DIR, "variance_by_center.png")
+    chart_path = os.path.join(BASE_DIR, "variance_by_careportname.png")
     plt.savefig(chart_path, bbox_inches="tight", dpi=150)
     plt.close()
 
     # 4. Executive Summary (example text)
     summary_text = (
         f"Total positive variance: ${key_metrics['Total Variance'].sum():,.2f}. "
-        f"Top performing center: {key_metrics.loc[key_metrics['Total Variance'].idxmax(), 'Center']}."
+        f"Top item: {key_metrics.loc[key_metrics['Total Variance'].idxmax(), 'CAReport Name']}."
     )
 
     # 5. Build PDF with ReportLab
