@@ -35,12 +35,12 @@ def dataframe_to_table(df: pd.DataFrame) -> List[List[str]]:
 
 def main() -> None:
     # 1. Load Data
-    df_all = pd.read_csv(RESULTS_CSV)
+    df = pd.read_csv(RESULTS_CSV)
 
     # Calculate basic counts
-    total_points = len(df_all)
-    match_count = (df_all["Result"] == "Match").sum()
-    mismatch_df = df_all[df_all["Result"] != "Match"]
+    total_points = len(df)
+    match_count = (df["Result"] == "Match").sum()
+    mismatch_df = df[df["Result"] != "Match"]
     mismatch_count = len(mismatch_df)
 
     # Use only mismatches for the report
