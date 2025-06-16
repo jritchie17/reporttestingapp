@@ -17,9 +17,12 @@ from reportlab.platypus import (
 
 # CONFIGURATION
 REPORT_TITLE = "SOO Preclose Financial Report"
-LOGO_PATH = "logo.png"  # Place your company logo here
-RESULTS_CSV = "results.csv"  # Path to your results data
-OUTPUT_PDF = "SOO_Preclose_Report.pdf"
+# Resolve paths relative to this file so it works regardless of the current
+# working directory.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOGO_PATH = os.path.join(BASE_DIR, "logo.png")  # Place your company logo here
+RESULTS_CSV = os.path.join(BASE_DIR, "results.csv")  # Path to your results data
+OUTPUT_PDF = os.path.join(BASE_DIR, "SOO_Preclose_Report.pdf")
 
 
 # Helper to build table data from a DataFrame
@@ -57,7 +60,7 @@ def main() -> None:
     plt.title("Variance by Center")
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
-    chart_path = "variance_by_center.png"
+    chart_path = os.path.join(BASE_DIR, "variance_by_center.png")
     plt.savefig(chart_path, bbox_inches="tight", dpi=150)
     plt.close()
 
