@@ -93,11 +93,13 @@ python src/analyzer/run_real_query.py
 First save your comparison results to a CSV file. In the GUI this can be done
 via **File -> Export Results**. Scripts under `src/analyzer` can also write the
 output directly. Once you have a `results.csv` (see
-`sample_data/comparison_results.csv` for an example), run the ReportLab-based
-generator:
+`sample_data/comparison_results.csv` for an example), run:
 ```
 python src/reporting/generate_pdf_report.py
 ```
+The generated PDF now contains an executive summary with totals, a match versus
+mismatch pie chart, and bar charts highlighting variance by account. Only
+mismatched accounts are shown in the detailed table.
 
 ### Launch the Dashboard
 To view mismatches interactively, install the optional dashboard
