@@ -48,26 +48,19 @@ def main() -> None:
     mismatch_df = df[df["Result"] != "Match"]
     mismatch_count = len(mismatch_df)
 
-    # Pie chart showing match vs mismatch counts using brand colors
-    plt.figure(figsize=(3, 3))
-    pie_path = os.path.join(BASE_DIR, "match_vs_mismatch.png")
-    plt.pie(
-        [match_count, mismatch_count],
-        labels=["Match", "Mismatch"],
-        colors=[BRAND_GREEN, BRAND_ORANGE],
-        autopct="%1.1f%%",
-        startangle=90,
-        wedgeprops={"width": 0.4},
+    # Use only mismatches marked as "Does Not Match" for the report
+    df = df[df["Result"] == "Does Not Match"]
+
+    # Calculate total absolute variance per account for a bar chart
+    TOP_N = 10
+    abs_var_df = (
+        df.groupby("CAReport Name")["Variance"]
+        .apply(lambda x: x.abs().sum())
+        .reset_index(name="Total Absolute Variance")
     )
-    plt.axis("equal")
-    plt.tight_layout()
-    plt.savefig(pie_path, bbox_inches="tight", dpi=150)
-    plt.close()
+    abs_var_df = abs_var_df.sort_values("Total Absolute Variance", ascending=False).head(TOP_N)
 
-    # Use only mismatches for the report
-    df = mismatch_df
-
-    # 2. Generate Key Metrics Table
+    # Aggregate metrics including totals for Excel and Database values
     key_metrics = (
         df.groupby("CAReport Name")[["Variance", "Excel Value", "DataBase Value"]]
         .sum()
@@ -79,44 +72,21 @@ def main() -> None:
         "Total Excel Value",
         "Total Database Value",
     ]
-
-    # Calculate total absolute variance per account for a bar chart
-    TOP_N = 10
-    abs_var_df = (
-        mismatch_df.groupby("CAReport Name")["Variance"]
-        .apply(lambda x: x.abs().sum())
-        .reset_index(name="Total Absolute Variance")
-    )
-    abs_var_df = abs_var_df.sort_values("Total Absolute Variance", ascending=False).head(TOP_N)
+    key_metrics = key_metrics.merge(abs_var_df, on="CAReport Name")
+    key_metrics = key_metrics.sort_values("Total Absolute Variance", ascending=False).head(TOP_N)
 
     plt.figure(figsize=(6, 4))
     plt.barh(
-        abs_var_df["CAReport Name"],
-        abs_var_df["Total Absolute Variance"],
+        key_metrics["CAReport Name"],
+        key_metrics["Total Absolute Variance"],
         color=BRAND_BLUE,
     )
     plt.xlabel("Total Absolute Variance")
     plt.ylabel("CAReport Name")
     plt.gca().invert_yaxis()
     plt.tight_layout()
-    abs_var_chart_path = os.path.join(BASE_DIR, "top_abs_variance.png")
-    plt.savefig(abs_var_chart_path, bbox_inches="tight", dpi=150)
-    plt.close()
-
-    # 3. Generate Visuals
-    plt.figure(figsize=(8, 4))
-    key_metrics.plot(
-        kind="bar",
-        x="CAReport Name",
-        y="Total Variance",
-        legend=False,
-        color=BRAND_BLUE,
-    )
-    plt.title("Variance by CAReport Name")
-    plt.xticks(rotation=45, ha="right")
-    plt.tight_layout()
-    chart_path = os.path.join(BASE_DIR, "variance_by_careportname.png")
-    plt.savefig(chart_path, bbox_inches="tight", dpi=150)
+    bar_chart_path = os.path.join(BASE_DIR, "top_abs_variance.png")
+    plt.savefig(bar_chart_path, bbox_inches="tight", dpi=150)
     plt.close()
 
     # 4. Executive Summary (example text)
@@ -137,19 +107,29 @@ def main() -> None:
     elements.append(Paragraph(REPORT_TITLE, styles["Title"]))
     elements.append(Paragraph("Amsurg QA Results", styles["Heading2"]))
     elements.append(Spacer(1, 12))
-    elements.append(Paragraph(f"Total Points: {total_points}", styles["Normal"]))
-    elements.append(Paragraph(f"Matches: {match_count}", styles["Normal"]))
-    elements.append(Paragraph(f"Mismatches: {mismatch_count}", styles["Normal"]))
+
+    metrics_data = [
+        ["Total Points", "Matches", "Mismatches"],
+        [str(total_points), str(match_count), str(mismatch_count)],
+    ]
+    metrics_table = Table(metrics_data)
+    metrics_table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(BRAND_BLUE)),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+            ]
+        )
+    )
+    elements.append(metrics_table)
     elements.append(Spacer(1, 12))
     elements.append(Paragraph(summary_text, styles["Normal"]))
     elements.append(Spacer(1, 12))
 
-    # Pie chart image before tables
-    elements.append(Image(pie_path, width=200, height=200))
-    elements.append(Spacer(1, 12))
-
     # Horizontal bar chart of top absolute variances
-    elements.append(Image(abs_var_chart_path, width=400, height=250))
+    elements.append(Image(bar_chart_path, width=400, height=250))
     elements.append(Spacer(1, 12))
 
     # Key metrics table
@@ -167,27 +147,12 @@ def main() -> None:
     elements.append(km_table)
     elements.append(Spacer(1, 12))
 
-    # Variance chart image
-    elements.append(Image(chart_path, width=400, height=250))
-    elements.append(Spacer(1, 12))
-
-    # Detailed results table
-    # Only show rows where the Result column is not "Match"
-    mismatch_df = df[df["Result"] != "Match"]
-    detail_table = Table(dataframe_to_table(mismatch_df), repeatRows=1)
-    detail_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(BRAND_BLUE)),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
-                ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ]
-        )
-    )
-    elements.append(detail_table)
 
     doc.build(elements)
+
+    # Clean up temporary images
+    if os.path.exists(bar_chart_path):
+        os.remove(bar_chart_path)
 
     print(f"PDF report generated: {OUTPUT_PDF}")
 
