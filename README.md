@@ -93,7 +93,8 @@ python src/analyzer/run_real_query.py
 First save your comparison results to a CSV file. In the GUI this can be done
 via **File -> Export Results**. Scripts under `src/analyzer` can also write the
 output directly. Once you have a `results.csv` (see
-`sample_data/comparison_results.csv` for an example), run:
+`sample_data/comparison_results.csv` for an example), run the ReportLab-based
+generator:
 ```
 python src/reporting/generate_pdf_report.py
 ```

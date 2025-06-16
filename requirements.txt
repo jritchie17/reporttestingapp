@@ -12,5 +12,5 @@ matplotlib==3.8.2
 seaborn==0.13.0
 python-dotenv==1.0.0
 jinja2
-weasyprint
-plotly 
+reportlab
+plotly
