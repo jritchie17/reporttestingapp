@@ -106,7 +106,9 @@ def main() -> None:
     elements.append(Spacer(1, 12))
 
     # Detailed results table
-    detail_table = Table(dataframe_to_table(df), repeatRows=1)
+    # Only show rows where the Result column is not "Match"
+    mismatch_df = df[df["Result"] != "Match"]
+    detail_table = Table(dataframe_to_table(mismatch_df), repeatRows=1)
     detail_table.setStyle(
         TableStyle(
             [
