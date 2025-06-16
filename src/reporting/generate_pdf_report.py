@@ -43,6 +43,22 @@ def main() -> None:
     mismatch_df = df[df["Result"] != "Match"]
     mismatch_count = len(mismatch_df)
 
+    # Pie chart showing match vs mismatch counts using brand colors
+    plt.figure(figsize=(3, 3))
+    pie_path = os.path.join(BASE_DIR, "match_vs_mismatch.png")
+    plt.pie(
+        [match_count, mismatch_count],
+        labels=["Match", "Mismatch"],
+        colors=["#76A240", "#F58025"],
+        autopct="%1.1f%%",
+        startangle=90,
+        wedgeprops={"width": 0.4},
+    )
+    plt.axis("equal")
+    plt.tight_layout()
+    plt.savefig(pie_path, bbox_inches="tight", dpi=150)
+    plt.close()
+
     # Use only mismatches for the report
     df = mismatch_df
 
@@ -100,6 +116,10 @@ def main() -> None:
     elements.append(Paragraph(summary_text, styles["Normal"]))
     elements.append(Spacer(1, 12))
 
+    # Pie chart image before tables
+    elements.append(Image(pie_path, width=200, height=200))
+    elements.append(Spacer(1, 12))
+
     # Key metrics table
     km_table = Table(dataframe_to_table(key_metrics))
     km_table.setStyle(
@@ -115,7 +135,7 @@ def main() -> None:
     elements.append(km_table)
     elements.append(Spacer(1, 12))
 
-    # Chart image
+    # Variance chart image
     elements.append(Image(chart_path, width=400, height=250))
     elements.append(Spacer(1, 12))
 
