@@ -97,9 +97,9 @@ output directly. Once you have a `results.csv` (see
 ```
 python src/reporting/generate_pdf_report.py
 ```
-The generated PDF now contains an executive summary with totals, a match versus
-mismatch pie chart, and bar charts highlighting variance by account. Only
-mismatched accounts are shown in the detailed table.
+The generated PDF now contains three summary cards with total points, matches
+and mismatches. Below the cards a bar chart highlights the accounts with the
+largest absolute variance and a small table lists those same accounts.
 
 ### Launch the Dashboard
 To view mismatches interactively, install the optional dashboard
