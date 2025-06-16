@@ -15,6 +15,11 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+# Brand color palette
+BRAND_BLUE = "#004B8D"
+BRAND_ORANGE = "#F58025"
+BRAND_GREEN = "#76A240"
+
 # CONFIGURATION
 REPORT_TITLE = "SOO Preclose Financial Report"
 # Resolve paths relative to this file so it works regardless of the current
@@ -49,7 +54,7 @@ def main() -> None:
     plt.pie(
         [match_count, mismatch_count],
         labels=["Match", "Mismatch"],
-        colors=["#76A240", "#F58025"],
+        colors=[BRAND_GREEN, BRAND_ORANGE],
         autopct="%1.1f%%",
         startangle=90,
         wedgeprops={"width": 0.4},
@@ -85,7 +90,11 @@ def main() -> None:
     abs_var_df = abs_var_df.sort_values("Total Absolute Variance", ascending=False).head(TOP_N)
 
     plt.figure(figsize=(6, 4))
-    plt.barh(abs_var_df["CAReport Name"], abs_var_df["Total Absolute Variance"], color="#004B8D")
+    plt.barh(
+        abs_var_df["CAReport Name"],
+        abs_var_df["Total Absolute Variance"],
+        color=BRAND_BLUE,
+    )
     plt.xlabel("Total Absolute Variance")
     plt.ylabel("CAReport Name")
     plt.gca().invert_yaxis()
@@ -101,7 +110,7 @@ def main() -> None:
         x="CAReport Name",
         y="Total Variance",
         legend=False,
-        color="steelblue",
+        color=BRAND_BLUE,
     )
     plt.title("Variance by CAReport Name")
     plt.xticks(rotation=45, ha="right")
@@ -148,7 +157,7 @@ def main() -> None:
     km_table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2a4d69")),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(BRAND_BLUE)),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
                 ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
                 ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
@@ -169,7 +178,7 @@ def main() -> None:
     detail_table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2a4d69")),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(BRAND_BLUE)),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
                 ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
                 ("FONTSIZE", (0, 0), (-1, -1), 8),
