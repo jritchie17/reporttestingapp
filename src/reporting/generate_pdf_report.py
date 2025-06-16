@@ -88,6 +88,7 @@ def main() -> None:
     bar_chart_path = os.path.join(BASE_DIR, "top_abs_variance.png")
     plt.savefig(bar_chart_path, bbox_inches="tight", dpi=150)
     plt.close()
+    temp_charts = [bar_chart_path]
 
     # 4. Executive Summary (example text)
     summary_text = (
@@ -150,9 +151,10 @@ def main() -> None:
 
     doc.build(elements)
 
-    # Clean up temporary images
-    if os.path.exists(bar_chart_path):
-        os.remove(bar_chart_path)
+    # Clean up temporary chart images
+    for chart in temp_charts:
+        if os.path.exists(chart):
+            os.remove(chart)
 
     print(f"PDF report generated: {OUTPUT_PDF}")
 
