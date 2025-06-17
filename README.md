@@ -75,14 +75,10 @@ configuration the **Corp SOO** report uses `header_rows` `[5]` and `skip_rows`
 set to `7`, meaning the data begins on the eighth row of the sheet.
 
 When Excel files are loaded the analyzer now automatically unmerges any merged
-cells.  The value from the top-left cell of a merged range is copied into all
-cells of that range before the data is handed off to `pandas`.  This ensures the
-cleaning logic works with consistent tabular data.
-
-When Excel files are loaded the analyzer now automatically unmerges any merged
-cells.  The value from the top-left cell of a merged range is copied into all
-cells of that range before the data is handed off to `pandas`.  This ensures the
-cleaning logic works with consistent tabular data.
+cells.  Only the value from the top-left cell of each merged range is
+preserved; the remaining cells are cleared.  This prevents duplicate columns
+when headers span multiple columns while still ensuring the cleaning logic
+operates on consistent tabular data.
 
 For temp table query testing, you can use the specialized scripts:
 ```
