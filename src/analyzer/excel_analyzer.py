@@ -28,9 +28,10 @@ class ExcelAnalyzer:
         """Load the Excel file and extract sheet names.
 
         This now unmerges all cells before handing the workbook off to
-        ``pandas``.  When merged cells are encountered the value from the
-        top-left cell of the merge is propagated to the entire range so that
-        subsequent cleaning logic operates on a flat table.
+        ``pandas``.  When merged cells are encountered only the top-left
+        cell retains its value while the remaining cells are cleared.  This
+        prevents accidental duplicate columns when merged headers span
+        multiple columns.
         """
         try:
             from openpyxl import load_workbook
@@ -47,9 +48,14 @@ class ExcelAnalyzer:
                     )
                     value = ws.cell(row=min_row, column=min_col).value
                     ws.unmerge_cells(str(merged))
+                    # Preserve the original value only in the first cell;
+                    # clear the others so they can be pruned later if empty.
                     for r in range(min_row, max_row + 1):
                         for c in range(min_col, max_col + 1):
-                            ws.cell(row=r, column=c).value = value
+                            if r == min_row and c == min_col:
+                                ws.cell(row=r, column=c).value = value
+                            else:
+                                ws.cell(row=r, column=c).value = None
 
             temp_buffer = io.BytesIO()
             wb.save(temp_buffer)
