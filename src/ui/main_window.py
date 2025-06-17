@@ -23,8 +23,8 @@ from PyQt6.QtWidgets import (
     QListWidget,
     QDialogButtonBox,
 )
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QIcon, QAction, QFont
+from PyQt6.QtCore import Qt, QSize, QUrl
+from PyQt6.QtGui import QIcon, QAction, QFont, QDesktopServices
 
 from src.ui.hover_anim_filter import HoverAnimationFilter
 
@@ -388,6 +388,13 @@ class MainWindow(QMainWindow):
         self.export_pdf_button.clicked.connect(self.export_pdf_report)
         self._apply_hover_animation(self.export_pdf_button)
         button_layout.addWidget(self.export_pdf_button)
+
+        # Add Export HTML button
+        self.export_html_button = QPushButton("Export HTML")
+        self.export_html_button.setFixedWidth(120)
+        self.export_html_button.clicked.connect(self.export_html_report)
+        self._apply_hover_animation(self.export_html_button)
+        button_layout.addWidget(self.export_html_button)
 
         comparison_layout.addLayout(button_layout)
         self.tab_widget.addTab(self.comparison_tab, "Comparison")
@@ -1810,8 +1817,90 @@ class MainWindow(QMainWindow):
                 self, "Export Error", f"Failed to generate PDF report: {str(e)}"
             )
 
+    def export_html_report(self):
+        """Export a modern HTML report of the comparison results"""
+        import pandas as pd
+        import subprocess
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
+        import os
+        import shutil
+
+        if not hasattr(self, "comparison_engine") or not hasattr(self, "excel_analyzer"):
+            QMessageBox.warning(self, "No Results", "Please run a comparison first.")
+            return
+        if not hasattr(self, "comparison_results_by_sheet") or not self.comparison_results_by_sheet:
+            QMessageBox.warning(self, "No Results", "Please run a comparison first.")
+            return
+
+        all_dfs = []
+        for sheet_name, result in self.comparison_results_by_sheet.items():
+            excel_df = self.excel_analyzer.sheet_data[sheet_name]["dataframe"]
+            sql_df = self.results_viewer.get_dataframe()
+            key_cols = []
+            for col in ["Center", "CAReportName", "Account", "Sheet_Name"]:
+                if col in excel_df.columns and col in sql_df.columns:
+                    key_cols.append(col)
+            filtered_sql_df = sql_df.copy()
+            if key_cols:
+                for col in key_cols:
+                    excel_vals = excel_df[col].dropna().unique()
+                    filtered_sql_df = filtered_sql_df[filtered_sql_df[col].isin(excel_vals)]
+
+            report_type = self.config.get("excel", "report_type")
+            if report_type:
+                categories = self.config.get_account_categories(report_type)
+                formulas = self.config.get_account_formulas(report_type)
+                if categories:
+                    group_col = "Center" if "Center" in filtered_sql_df.columns else None
+                    sign_flip = list(getattr(self.comparison_engine, "sign_flip_accounts", []))
+                    calc = CategoryCalculator(
+                        categories,
+                        formulas,
+                        group_column=group_col,
+                        sign_flip_accounts=sign_flip,
+                    )
+                    sql_rows = filtered_sql_df.to_dict(orient="records")
+                    filtered_sql_df = pd.DataFrame(calc.compute(sql_rows))
+
+            report_type = self.config.get("excel", "report_type")
+            df = self.comparison_engine.generate_detailed_comparison_dataframe(
+                sheet_name, excel_df, filtered_sql_df, report_type=report_type
+            )
+            all_dfs.append(df)
+        if not all_dfs:
+            QMessageBox.warning(self, "No Data", "No detailed results to export.")
+            return
+
+        combined_df = pd.concat(all_dfs, ignore_index=True)
+
+        reporting_dir = os.path.join(os.path.dirname(__file__), "..", "reporting")
+        results_csv = os.path.join(reporting_dir, "results.csv")
+        combined_df.to_csv(results_csv, index=False)
+
+        script_path = os.path.join(reporting_dir, "generate_html_report.py")
+        try:
+            subprocess.run(["python", script_path], check=True)
+            html_path = os.path.join(reporting_dir, "SOO_Preclose_Report.html")
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save HTML Report",
+                "SOO_Preclose_Report.html",
+                "HTML Files (*.html)",
+            )
+            if file_path:
+                shutil.copy(html_path, file_path)
+                QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
+                QMessageBox.information(
+                    self, "Export Successful", f"HTML report exported to {file_path}"
+                )
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Export Error", f"Failed to generate HTML report: {str(e)}"
+            )
+
     def update_button_states(self, has_data):
         self.export_pdf_button.setEnabled(has_data)
+        self.export_html_button.setEnabled(has_data)
 
     def apply_theme(self):
         """Apply application-wide stylesheet based on configuration"""
