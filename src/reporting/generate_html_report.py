@@ -156,27 +156,9 @@ def main() -> None:
     </style>
 </head>
 <body>
-<<<<<<< HEAD
-<div class='container'>
-<h1><center>{REPORT_TITLE} - AMSURG QA Validation</center></h1>
-<div class='cards'>
-<div class='card'><div>Total Data Points</div><div class='card-value'>{total_points}</div></div>
-<div class='card'><div>Total Matches</div><div class='card-value'>{total_matches}</div></div>
-<div class='card'><div>Total Mismatches</div><div class='card-value'>{total_mismatches}</div></div>
-</div>
-<div class='chart'><img src='data:image/png;base64,{img_data}' alt='Match Chart'></div>
-{notes_html}
-<h2>Mismatches</h2>
-<div class='table-container'>
-<table>
-<tr>{table_headers}</tr>
-{table_rows}
-</table>
-</div>
-</div>
-=======
+
     <div class='container'>
-        <h1>{REPORT_TITLE}</h1>
+        <h1><center>{REPORT_TITLE} - AMSURG QA Validation</center></h1>
         <div class='metrics'>
             <div class='metric-card'>
                 <div class='metric-title'>Total Data Points</div>
@@ -203,7 +185,7 @@ def main() -> None:
             </table>
         </div>
     </div>
->>>>>>> 2cb76d0330411bbe654828b9a4daf278e250fa86
+
 </body>
 </html>
 """
