@@ -26,6 +26,7 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         self.engine.set_sign_flip_accounts(['1234-5678'])
         df = self.engine.generate_detailed_comparison_dataframe('Sheet1', self.excel_df, sql_mod)
         self.assertIn('Does Not Match', df['Result'].values)
+        self.assertIn('Issue', df.columns)
 
     def test_identify_account_discrepancies(self):
         discrepancies = self.engine.identify_account_discrepancies(self.excel_df, self.sql_df)

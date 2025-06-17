@@ -92,7 +92,9 @@ python src/analyzer/run_real_query.py
 ### Generate the PDF report
 First save your comparison results to a CSV file. In the GUI this can be done
 via **File -> Export Results**. Scripts under `src/analyzer` can also write the
-output directly. Once you have a `results.csv` (see
+output directly. When exporting you will be prompted to enter optional testing
+notes which appear in the PDF and HTML reports. The exported CSV now includes a
+new **Issue** column describing each mismatch. Once you have a `results.csv` (see
 `sample_data/comparison_results.csv` for an example), run:
 ```
 python src/reporting/generate_pdf_report.py

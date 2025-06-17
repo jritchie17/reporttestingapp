@@ -14,7 +14,7 @@ ACCENT_GRAY = "#E9ECEF"
 TEXT_GRAY = "#495057"
 
 # CONFIGURATION
-REPORT_TITLE = "SOO Preclose Financial Report"
+REPORT_TITLE = os.getenv("REPORT_TITLE", "SOO Preclose Financial Report")
 # Resolve paths relative to this file so it works regardless of the current
 # working directory.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -614,6 +614,8 @@ class ComparisonEngine:
                     'Variance': variance,
                     'Result': result,
                 }
+                # Describe any problem in a human readable form
+                row_data['Issue'] = result if result != 'Match' else ''
                 if include_sheet:
                     row_data['Sheet'] = sheet_name
                 if include_center:
