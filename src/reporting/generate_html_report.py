@@ -15,8 +15,8 @@ RESULTS_CSV = os.path.join(BASE_DIR, "results.csv")
 OUTPUT_HTML = os.path.join(BASE_DIR, "SOO_Preclose_Report.html")
 
 
-def _generate_donut(match: int, mismatch: int) -> str:
-    fig, ax = plt.subplots(figsize=(3, 3))
+def _generate_donut(match: int, mismatch: int, size: float = 2.0) -> str:
+    fig, ax = plt.subplots(figsize=(size, size))
     ax.pie(
         [match, mismatch],
         colors=[BRAND_GREEN, BRAND_ORANGE],
@@ -40,7 +40,7 @@ def main() -> None:
     total_matches = df["Result"].isin(["Match", "Missing in Excel", "Missing in Database"]).sum()
     total_mismatches = (df["Result"] == "Does Not Match").sum()
     mismatch_df = df[df["Result"] == "Does Not Match"]
-    img_data = _generate_donut(total_matches, total_mismatches)
+    img_data = _generate_donut(total_matches, total_mismatches, size=2.0)
 
     notes_html = ""
     if TESTING_NOTES_PATH and os.path.exists(TESTING_NOTES_PATH):
