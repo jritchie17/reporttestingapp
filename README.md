@@ -95,7 +95,8 @@ via **File -> Export Results**. Scripts under `src/analyzer` can also write the
 output directly. When exporting you will be prompted to enter optional testing
 notes which appear in the PDF and HTML reports. You may also add an optional
 **Issue** column describing each mismatch. The report scripts handle this field
-if present. Once you have a `results.csv` (see `sample_data/comparison_results.csv`
+if present. The value for **Issue** can be edited directly in the results table
+before exporting. Once you have a `results.csv` (see `sample_data/comparison_results.csv`
 for an example that includes the column), run:
 ```
 python src/reporting/generate_pdf_report.py

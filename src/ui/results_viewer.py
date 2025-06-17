@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QFormLayout,
     QToolBar,
+    QAbstractItemView,
 )
 from PyQt6.QtCore import Qt, QAbstractTableModel, QModelIndex, QVariant
 from PyQt6.QtGui import QFont, QColor, QBrush, QAction
@@ -122,6 +123,39 @@ class ResultsTableModel(QAbstractTableModel):
 
         return QVariant()
 
+    def flags(self, index):
+        """Return item flags with editing enabled for the Issue column."""
+        if not index.isValid():
+            return Qt.ItemFlag.NoItemFlags
+
+        base_flags = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+
+        try:
+            col_name = self._columns[index.column()]
+        except Exception:
+            col_name = None
+
+        if col_name == "Issue":
+            return base_flags | Qt.ItemFlag.ItemIsEditable
+        return base_flags
+
+    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+        """Update the underlying data and notify views."""
+        if (
+            not index.isValid()
+            or role != Qt.ItemDataRole.EditRole
+            or index.row() >= len(self._data)
+        ):
+            return False
+
+        try:
+            column_name = self._columns[index.column()]
+        except Exception:
+            return False
+
+        self._data[index.row()][column_name] = value
+        self.dataChanged.emit(index, index, [Qt.ItemDataRole.DisplayRole])
+        return True
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
@@ -168,6 +202,11 @@ class ResultsViewer(QWidget):
         self.table_view.setAlternatingRowColors(True)
         self.table_view.setSortingEnabled(True)
         self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.table_view.setEditTriggers(
+            QAbstractItemView.EditTrigger.DoubleClicked
+            | QAbstractItemView.EditTrigger.EditKeyPressed
+            | QAbstractItemView.EditTrigger.SelectedClicked
+        )
         self.table_view.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Interactive
         )
@@ -321,12 +360,12 @@ class ResultsViewer(QWidget):
 
     def export_results(self):
         """Export results to a file"""
-        if not self.results_data:
+        if not hasattr(self, "model") or not self.model or not self.model._data:
             QMessageBox.warning(self, "No Data", "There are no results to export.")
             return
 
         # Create a dataframe from the results
-        df = pd.DataFrame(self.results_data)
+        df = pd.DataFrame(self.model._data)
 
         # Show file dialog
         file_path, _ = QFileDialog.getSaveFileName(
@@ -351,7 +390,7 @@ class ResultsViewer(QWidget):
                 with open(file_path, "w") as f:
                     # Create a simple tabular text format
                     f.write("\t".join(self.columns) + "\n")
-                    for row in self.results_data:
+                    for row in self.model._data:
                         f.write(
                             "\t".join(str(row.get(col, "")) for col in self.columns)
                             + "\n"
@@ -376,12 +415,12 @@ class ResultsViewer(QWidget):
 
     def copy_to_clipboard(self):
         """Copy results to clipboard"""
-        if not self.results_data:
+        if not hasattr(self, "model") or not self.model or not self.model._data:
             QMessageBox.warning(self, "No Data", "There are no results to copy.")
             return
 
         # Create a dataframe from the results
-        df = pd.DataFrame(self.results_data)
+        df = pd.DataFrame(self.model._data)
 
         # Copy to clipboard
         df.to_clipboard(index=False)
@@ -410,10 +449,10 @@ class ResultsViewer(QWidget):
 
     def get_dataframe(self):
         """Get the results as a pandas DataFrame"""
-        if not self.results_data:
+        if not hasattr(self, "model") or not self.model:
             return pd.DataFrame()
 
-        return pd.DataFrame(self.results_data)
+        return pd.DataFrame(self.model._data)
 
     def apply_widget_theme(self, theme: str):
         """Apply base style and theme colors to the results viewer."""
