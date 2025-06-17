@@ -36,10 +36,16 @@ def _generate_donut(match: int, mismatch: int, size: float = 2.0) -> str:
 
 def main() -> None:
     df = pd.read_csv(RESULTS_CSV)
+    has_issue = "Issue" in df.columns
+    if not has_issue:
+        df["Issue"] = ""
     total_points = len(df)
     total_matches = df["Result"].isin(["Match", "Missing in Excel", "Missing in Database"]).sum()
     total_mismatches = (df["Result"] == "Does Not Match").sum()
     mismatch_df = df[df["Result"] == "Does Not Match"]
+    table_columns = list(mismatch_df.columns)
+    if has_issue and "Issue" not in table_columns:
+        table_columns.append("Issue")
     img_data = _generate_donut(total_matches, total_mismatches, size=2.0)
 
     notes_html = ""
@@ -50,10 +56,10 @@ def main() -> None:
             formatted = notes_text.replace("\n", "<br>")
             notes_html = f"<h2>Testing Notes</h2><p>{formatted}</p>"
 
-    table_headers = "".join(f"<th>{h}</th>" for h in mismatch_df.columns)
+    table_headers = "".join(f"<th>{h}</th>" for h in table_columns)
     table_rows = "".join(
         "<tr>" + "".join(
-            f"<td>{{val}}</td>".format(val=str(row[col])) for col in mismatch_df.columns
+            f"<td>{str(row.get(col, ''))}</td>" for col in table_columns
         ) + "</tr>" for _, row in mismatch_df.iterrows()
     )
 
