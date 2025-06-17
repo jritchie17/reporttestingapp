@@ -21,7 +21,10 @@ BRAND_ORANGE = "#F58025"
 BRAND_GREEN = "#76A240"
 
 # CONFIGURATION
-REPORT_TITLE = "SOO Preclose Financial Report"
+# Allow overriding the report title and testing notes path via environment
+# variables so the calling application can provide additional context.
+REPORT_TITLE = os.getenv("REPORT_TITLE", "SOO Preclose Financial Report")
+TESTING_NOTES_PATH = os.getenv("TESTING_NOTES_PATH")
 # Resolve paths relative to this file so it works regardless of the current
 # working directory.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -147,6 +150,19 @@ def main() -> None:
     )
     elements.append(km_table)
     elements.append(Spacer(1, 12))
+
+    # Insert testing notes if provided
+    notes_text = None
+    if TESTING_NOTES_PATH and os.path.exists(TESTING_NOTES_PATH):
+        with open(TESTING_NOTES_PATH, "r", encoding="utf-8") as f:
+            notes_text = f.read().strip()
+
+    if notes_text:
+        elements.append(Paragraph("Testing Notes", styles["Heading2"]))
+        # Allow line breaks inside notes
+        formatted = notes_text.replace("\n", "<br/>")
+        elements.append(Paragraph(formatted, styles["Normal"]))
+        elements.append(Spacer(1, 12))
 
 
     doc.build(elements)

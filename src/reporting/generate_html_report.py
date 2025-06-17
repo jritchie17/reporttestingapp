@@ -8,7 +8,8 @@ BRAND_BLUE = "#004B8D"
 BRAND_ORANGE = "#F58025"
 BRAND_GREEN = "#76A240"
 
-REPORT_TITLE = "SOO Preclose Financial Report"
+REPORT_TITLE = os.getenv("REPORT_TITLE", "SOO Preclose Financial Report")
+TESTING_NOTES_PATH = os.getenv("TESTING_NOTES_PATH")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RESULTS_CSV = os.path.join(BASE_DIR, "results.csv")
 OUTPUT_HTML = os.path.join(BASE_DIR, "SOO_Preclose_Report.html")
@@ -40,6 +41,14 @@ def main() -> None:
     total_mismatches = (df["Result"] == "Does Not Match").sum()
     mismatch_df = df[df["Result"] == "Does Not Match"]
     img_data = _generate_donut(total_matches, total_mismatches)
+
+    notes_html = ""
+    if TESTING_NOTES_PATH and os.path.exists(TESTING_NOTES_PATH):
+        with open(TESTING_NOTES_PATH, "r", encoding="utf-8") as f:
+            notes_text = f.read().strip()
+        if notes_text:
+            formatted = notes_text.replace("\n", "<br>")
+            notes_html = f"<h2>Testing Notes</h2><p>{formatted}</p>"
 
     table_headers = "".join(f"<th>{h}</th>" for h in mismatch_df.columns)
     table_rows = "".join(
@@ -77,6 +86,7 @@ tr:nth-child(even) {{ background:#f9f9f9; }}
 <div class='card'><div>Total Mismatches</div><div class='card-value'>{total_mismatches}</div></div>
 </div>
 <div class='chart'><img src='data:image/png;base64,{img_data}' alt='Match Chart'></div>
+{notes_html}
 <h2>Mismatches</h2>
 <div class='table-container'>
 <table>

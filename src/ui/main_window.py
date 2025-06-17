@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
     QDialog,
     QListWidget,
     QDialogButtonBox,
+    QInputDialog,
 )
 from PyQt6.QtCore import Qt, QSize, QUrl
 from PyQt6.QtGui import QIcon, QAction, QFont, QDesktopServices
@@ -1798,10 +1799,20 @@ class MainWindow(QMainWindow):
         results_csv = os.path.join(reporting_dir, "results.csv")
         combined_df.to_csv(results_csv, index=False)
 
+        # Collect testing notes and write them to a file
+        notes_path = os.path.join(reporting_dir, "testing_notes.txt")
+        notes_text = self.get_testing_notes()
+        with open(notes_path, "w", encoding="utf-8") as f:
+            f.write(notes_text)
+
         # Run the PDF report generator
         script_path = os.path.join(reporting_dir, "generate_pdf_report.py")
         try:
-            subprocess.run(["python", script_path], check=True)
+            env = os.environ.copy()
+            report_type = self.config.get("excel", "report_type")
+            env["REPORT_TITLE"] = report_type if report_type else ""
+            env["TESTING_NOTES_PATH"] = notes_path
+            subprocess.run(["python", script_path], check=True, env=env)
             pdf_path = os.path.join(reporting_dir, "SOO_Preclose_Report.pdf")
             # Ask user where to save the PDF
             file_path, _ = QFileDialog.getSaveFileName(
@@ -1878,8 +1889,19 @@ class MainWindow(QMainWindow):
         combined_df.to_csv(results_csv, index=False)
 
         script_path = os.path.join(reporting_dir, "generate_html_report.py")
+
+        # Collect testing notes and write them to a file
+        notes_path = os.path.join(reporting_dir, "testing_notes.txt")
+        notes_text = self.get_testing_notes()
+        with open(notes_path, "w", encoding="utf-8") as f:
+            f.write(notes_text)
+
         try:
-            subprocess.run(["python", script_path], check=True)
+            env = os.environ.copy()
+            report_type = self.config.get("excel", "report_type")
+            env["REPORT_TITLE"] = report_type if report_type else ""
+            env["TESTING_NOTES_PATH"] = notes_path
+            subprocess.run(["python", script_path], check=True, env=env)
             html_path = os.path.join(reporting_dir, "SOO_Preclose_Report.html")
             file_path, _ = QFileDialog.getSaveFileName(
                 self,
@@ -1897,6 +1919,15 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(
                 self, "Export Error", f"Failed to generate HTML report: {str(e)}"
             )
+
+    def get_testing_notes(self) -> str:
+        """Prompt the user for optional testing notes."""
+        notes, ok = QInputDialog.getMultiLineText(
+            self,
+            "Testing Notes",
+            "Enter notes for this test run:",
+        )
+        return notes if ok else ""
 
     def update_button_states(self, has_data):
         self.export_pdf_button.setEnabled(has_data)
