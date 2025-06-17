@@ -1810,7 +1810,10 @@ class MainWindow(QMainWindow):
         try:
             env = os.environ.copy()
             report_type = self.config.get("excel", "report_type")
-            env["REPORT_TITLE"] = report_type if report_type else ""
+            if report_type:
+                env["REPORT_TITLE"] = report_type
+            else:
+                env.pop("REPORT_TITLE", None)
             env["TESTING_NOTES_PATH"] = notes_path
             subprocess.run(["python", script_path], check=True, env=env)
             pdf_path = os.path.join(reporting_dir, "SOO_Preclose_Report.pdf")
@@ -1899,7 +1902,10 @@ class MainWindow(QMainWindow):
         try:
             env = os.environ.copy()
             report_type = self.config.get("excel", "report_type")
-            env["REPORT_TITLE"] = report_type if report_type else ""
+            if report_type:
+                env["REPORT_TITLE"] = report_type
+            else:
+                env.pop("REPORT_TITLE", None)
             env["TESTING_NOTES_PATH"] = notes_path
             subprocess.run(["python", script_path], check=True, env=env)
             html_path = os.path.join(reporting_dir, "SOO_Preclose_Report.html")
