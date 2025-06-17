@@ -1,0 +1,181 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+            
+            body {
+                font-family: 'Inter', sans-serif;
+                margin: 0;
+                padding: 2rem;
+                color: #343A40;
+                background: white;
+            }
+            
+            .header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 2rem;
+            }
+            
+            .logo {
+                max-height: 60px;
+                margin-right: 2rem;
+            }
+            
+            .title {
+                color: #004B8D;
+                font-size: 28px;
+                font-weight: 700;
+                margin: 0;
+            }
+            
+            .metrics-container {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.5rem;
+                margin-bottom: 2rem;
+            }
+            
+            .metric-card {
+                background: #F8F9FA;
+                border-radius: 12px;
+                padding: 1.5rem;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                border-top: 4px solid #004B8D;
+            }
+            
+            .metric-title {
+                color: #004B8D;
+                font-size: 14px;
+                font-weight: 600;
+                margin: 0 0 0.5rem 0;
+            }
+            
+            .metric-value {
+                font-size: 24px;
+                font-weight: 700;
+                margin: 0;
+                color: #343A40;
+            }
+            
+            .chart-container {
+                text-align: center;
+                margin: 2rem 0;
+            }
+            
+            .chart {
+                max-width: 300px;
+                margin: 0 auto;
+            }
+            
+            .table-container {
+                margin-top: 2rem;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+            
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 14px;
+            }
+            
+            th {
+                background: #004B8D;
+                color: white;
+                font-weight: 600;
+                text-align: left;
+                padding: 1rem;
+            }
+            
+            td {
+                padding: 1rem;
+                border-bottom: 1px solid #E9ECEF;
+            }
+            
+            tr:nth-child(even) {
+                background: #F8F9FA;
+            }
+            
+            tr:hover {
+                background: #E6EEF5;
+            }
+            
+            .number-cell {
+                text-align: right;
+                font-family: 'Inter', monospace;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            
+            <h1 class="title">SOO Preclose Financial Report</h1>
+        </div>
+        
+        <div class="metrics-container">
+            <div class="metric-card">
+                <h3 class="metric-title">Total Points</h3>
+                <p class="metric-value">2464</p>
+            </div>
+            <div class="metric-card">
+                <h3 class="metric-title">Matches</h3>
+                <p class="metric-value">2461</p>
+            </div>
+            <div class="metric-card">
+                <h3 class="metric-title">Mismatches</h3>
+                <p class="metric-value">3</p>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <img src="C:\Users\JoRitchie\Desktop\Cognos QA\ReportTestingApplication\reporttestingapp\reporttestingapp\src\reporting\match_pie_chart.png" class="chart" alt="Match Distribution">
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>CAReport Name</th>
+                        <th>Variance</th>
+                        <th>Excel Value</th>
+                        <th>Database Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>Apr 2025 Var %</td>
+                        <td>7313-7053 Legal fees -...</td>
+                        <td class="number-cell">$1.00</td>
+                        <td class="number-cell">$1.00</td>
+                        <td class="number-cell">$0.00</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>Apr 2025 YTD...</td>
+                        <td>7313-7053 Legal fees -...</td>
+                        <td class="number-cell">$1.00</td>
+                        <td class="number-cell">$1.00</td>
+                        <td class="number-cell">$0.00</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>QTD Apr 2025...</td>
+                        <td>7313-7053 Legal fees -...</td>
+                        <td class="number-cell">$1.00</td>
+                        <td class="number-cell">$1.00</td>
+                        <td class="number-cell">$0.00</td>
+                    </tr>
+                    
+                </tbody>
+            </table>
+        </div>
+    </body>
+    </html>
+    

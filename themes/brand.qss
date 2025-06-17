@@ -9,7 +9,7 @@ QPushButton {
     color: white;
 }
 QMenuBar {
-    background-color: #3B6E8F;
+    background-color: #004B8D;
     color: white;
 }
 QStatusBar {
@@ -19,6 +19,7 @@ QStatusBar {
 QHeaderView::section {
     background-color: #004B8D;
     color: #ffffff;
+    height: 100px;
 }
 
 /* Group boxes keep a light background with branded border and text */
@@ -32,7 +33,7 @@ QGroupBox::title {
 
 /* Tool bars use a branded background and buttons */
 QToolBar {
-    background: #3B6E8F;
+    background: #004B8D;
 }
 QToolButton {
     background-color: #F58025;

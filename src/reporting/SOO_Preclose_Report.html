@@ -1,100 +1,9 @@
-import os
-from typing import List
-import matplotlib.pyplot as plt
-import pandas as pd
-from jinja2 import Template
 
-# Brand color palette
-BRAND_BLUE = "#004B8D"
-BRAND_BLUE_LIGHT = "#E6EEF5"
-BRAND_BLUE_DARK = "#003366"
-LIGHT_GRAY = "#F8F9FA"
-DARK_GRAY = "#343A40"
-ACCENT_GRAY = "#E9ECEF"
-TEXT_GRAY = "#495057"
-
-# CONFIGURATION
-REPORT_TITLE = "SOO Preclose Financial Report"
-# Resolve paths relative to this file so it works regardless of the current
-# working directory.
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LOGO_PATH = os.path.join(BASE_DIR, "logo.png")  # Place your company logo here
-RESULTS_CSV = os.path.join(BASE_DIR, "results.csv")  # Path to your results data
-OUTPUT_HTML = os.path.join(BASE_DIR, "SOO_Preclose_Report.html")
-
-
-def truncate_text(text: str, max_length: int = 30) -> str:
-    """Truncate text and add ellipsis if it exceeds max_length."""
-    return text if len(str(text)) <= max_length else str(text)[:max_length-3] + "..."
-
-
-def create_modern_pie_chart(match_count: int, mismatch_count: int) -> str:
-    plt.style.use('default')  # Use default style instead of seaborn
-    fig, ax = plt.subplots(figsize=(4, 4))
-    
-    # Create pie chart with modern styling
-    wedges, texts, autotexts = ax.pie(
-        [match_count, mismatch_count],
-        labels=['Matches', 'Mismatches'],
-        colors=[BRAND_BLUE, BRAND_BLUE_LIGHT],
-        autopct='%1.1f%%',
-        startangle=90,
-        wedgeprops={'edgecolor': 'white', 'linewidth': 2}
-    )
-    
-    # Style the text
-    plt.setp(autotexts, size=10, weight="bold", color="white")
-    plt.setp(texts, size=10, weight="bold", color=TEXT_GRAY)
-    
-    # Add a white circle in the middle for a donut effect
-    centre_circle = plt.Circle((0,0), 0.70, fc='white')
-    ax.add_artist(centre_circle)
-    
-    # Remove background
-    ax.set_facecolor('none')
-    fig.patch.set_facecolor('none')
-    
-    plt.axis('equal')
-    chart_path = os.path.join(BASE_DIR, "match_pie_chart.png")
-    plt.savefig(chart_path, bbox_inches='tight', dpi=150, transparent=True)
-    plt.close()
-    return chart_path
-
-
-def main() -> None:
-    # Load and process data
-    df = pd.read_csv(RESULTS_CSV)
-    total_points = len(df)
-    
-    # Count matches and mismatches
-    # Consider 'Missing in Excel' and 'Missing in Database' as matches
-    match_count = len(df[df["Result"].isin(["Match", "Missing in Excel", "Missing in Database"])])
-    mismatch_count = len(df[df["Result"] == "Does Not Match"])
-    
-    # Filter for mismatches only
-    mismatch_df = df[df["Result"] == "Does Not Match"]
-    
-    # Create modern pie chart
-    pie_chart_path = create_modern_pie_chart(match_count, mismatch_count)
-
-    # Prepare table data
-    table_data = []
-    for _, row in mismatch_df.iterrows():
-        table_data.append({
-            'field': truncate_text(row["Field"], 15),
-            'report_name': truncate_text(row["CAReport Name"], 25),
-            'variance': f"${float(row['Variance']):,.2f}",
-            'excel_value': f"${float(row['Excel Value']):,.2f}",
-            'db_value': f"${float(row['DataBase Value']):,.2f}"
-        })
-    
-    # HTML template with modern styling
-    html_template = """
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
-        <title>{{ title }}</title>
+        <title>SOO Preclose Financial Report</title>
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
             
@@ -251,29 +160,27 @@ def main() -> None:
     </head>
     <body>
         <div class="header">
-            {% if logo_exists %}
-            <img src="{{ logo_path }}" class="logo" alt="Logo">
-            {% endif %}
-            <h1 class="title">{{ title }}</h1>
+            
+            <h1 class="title">SOO Preclose Financial Report</h1>
         </div>
         
         <div class="metrics-container">
             <div class="metric-card">
                 <h3 class="metric-title">Total Points</h3>
-                <p class="metric-value">{{ total_points }}</p>
+                <p class="metric-value">2464</p>
             </div>
             <div class="metric-card">
                 <h3 class="metric-title">Matches</h3>
-                <p class="metric-value">{{ match_count }}</p>
+                <p class="metric-value">2461</p>
             </div>
             <div class="metric-card">
                 <h3 class="metric-title">Mismatches</h3>
-                <p class="metric-value">{{ mismatch_count }}</p>
+                <p class="metric-value">3</p>
             </div>
         </div>
         
         <div class="chart-container">
-            <img src="{{ chart_path }}" class="chart" alt="Match Distribution">
+            <img src="C:\Users\JoRitchie\Desktop\Cognos QA\ReportTestingApplication\reporttestingapp\reporttestingapp\src\reporting\match_pie_chart.png" class="chart" alt="Match Distribution">
         </div>
         
         <div class="table-container">
@@ -288,15 +195,31 @@ def main() -> None:
                     </tr>
                 </thead>
                 <tbody>
-                    {% for row in table_data %}
+                    
                     <tr>
-                        <td>{{ row.field }}</td>
-                        <td>{{ row.report_name }}</td>
-                        <td class="number-cell">{{ row.variance }}</td>
-                        <td class="number-cell">{{ row.excel_value }}</td>
-                        <td class="number-cell">{{ row.db_value }}</td>
+                        <td>Apr 2025 Var %</td>
+                        <td>7313-7053 Legal fees -...</td>
+                        <td class="number-cell">$1.00</td>
+                        <td class="number-cell">$1.00</td>
+                        <td class="number-cell">$0.00</td>
                     </tr>
-                    {% endfor %}
+                    
+                    <tr>
+                        <td>Apr 2025 YTD...</td>
+                        <td>7313-7053 Legal fees -...</td>
+                        <td class="number-cell">$1.00</td>
+                        <td class="number-cell">$1.00</td>
+                        <td class="number-cell">$0.00</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>QTD Apr 2025...</td>
+                        <td>7313-7053 Legal fees -...</td>
+                        <td class="number-cell">$1.00</td>
+                        <td class="number-cell">$1.00</td>
+                        <td class="number-cell">$0.00</td>
+                    </tr>
+                    
                 </tbody>
             </table>
         </div>
@@ -306,32 +229,4 @@ def main() -> None:
         </div>
     </body>
     </html>
-    """
     
-    # Render HTML
-    template = Template(html_template)
-    html_content = template.render(
-        title=REPORT_TITLE,
-        logo_exists=os.path.exists(LOGO_PATH),
-        logo_path=LOGO_PATH,
-        total_points=total_points,
-        match_count=match_count,
-        mismatch_count=mismatch_count,
-        chart_path=pie_chart_path,
-        table_data=table_data
-    )
-    
-    # Save HTML file
-    with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
-        f.write(html_content)
-    
-    # Clean up temporary files
-    if os.path.exists(pie_chart_path):
-        os.remove(pie_chart_path)
-    
-    print(f"HTML report generated: {OUTPUT_HTML}")
-    print("Open this file in your browser and use Ctrl+P to save as PDF")
-
-
-if __name__ == "__main__":
-    main()
