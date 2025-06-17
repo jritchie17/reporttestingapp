@@ -79,7 +79,7 @@ tr:nth-child(even) {{ background:#f9f9f9; }}
 </head>
 <body>
 <div class='container'>
-<h1>{REPORT_TITLE}</h1>
+<h1><center>{REPORT_TITLE} - AMSURG QA Validation</center></h1>
 <div class='cards'>
 <div class='card'><div>Total Data Points</div><div class='card-value'>{total_points}</div></div>
 <div class='card'><div>Total Matches</div><div class='card-value'>{total_matches}</div></div>
