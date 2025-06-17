@@ -1,4 +1,4 @@
-Sheet,Center,CAReport Name,Field,Excel Value,DataBase Value,Variance,Result
-SampleSheet,1001-001,Account A,Center,1001-001,1001-001,,Match
-SampleSheet,1001-001,Account A,Amount,100,105,5,Fail
-SampleSheet,1002-002,Account B,Amount,200,200,0,Match
+Sheet,Center,CAReport Name,Field,Excel Value,DataBase Value,Variance,Result,Issue
+SampleSheet,1001-001,Account A,Center,1001-001,1001-001,,Match,
+SampleSheet,1001-001,Account A,Amount,100,105,5,Fail,Fail
+SampleSheet,1002-002,Account B,Amount,200,200,0,Match,
