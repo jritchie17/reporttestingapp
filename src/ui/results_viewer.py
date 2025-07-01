@@ -240,6 +240,11 @@ class ResultsViewer(QWidget):
         clear_action.triggered.connect(self.clear_results)
         toolbar.addAction(clear_action)
 
+        # Apply calculations action
+        calc_action = QAction(qta.icon("fa5s.calculator"), "Apply Calculations", self)
+        calc_action.triggered.connect(self.apply_calculations)
+        toolbar.addAction(calc_action)
+
         # Add filter controls
         toolbar.addSeparator()
 
@@ -329,6 +334,55 @@ class ResultsViewer(QWidget):
         # Update status
         self.status_label.setText(
             f"{len(data)} rows, {len(self.columns)} columns returned"
+        )
+
+    def apply_calculations(self):
+        """Append category totals and formulas to the current results."""
+        if not self.results_data:
+            return
+
+        parent = self.window()
+        try:
+            from src.ui.main_window import MainWindow  # avoid circular import
+        except Exception:
+            MainWindow = None
+
+        if (
+            parent
+            and MainWindow
+            and isinstance(parent, MainWindow)
+            and hasattr(parent, "config")
+        ):
+            report_type = parent.config.get("excel", "report_type")
+            if report_type:
+                categories = parent.config.get_account_categories(report_type)
+                formulas = parent.config.get_account_formulas(report_type)
+                if categories:
+                    group_col = None
+                    if self.results_data and isinstance(self.results_data[0], dict):
+                        if "Center" in self.results_data[0]:
+                            group_col = "Center"
+                    sign_flip = []
+                    if parent and hasattr(parent, "comparison_engine"):
+                        sign_flip = list(
+                            getattr(parent.comparison_engine, "sign_flip_accounts", [])
+                        )
+                    calc = CategoryCalculator(
+                        categories,
+                        formulas,
+                        group_column=group_col,
+                        sign_flip_accounts=sign_flip,
+                    )
+                    self.results_data = calc.compute(list(self.results_data))
+
+        # Refresh the table model with new rows
+        self.model = ResultsTableModel(self.results_data, self.columns)
+        self.table_view.setModel(self.model)
+        self.table_view.resizeColumnsToContents()
+
+        # Update status
+        self.status_label.setText(
+            f"{len(self.results_data)} rows, {len(self.columns)} columns returned"
         )
 
     def apply_filter(self, filter_text):
