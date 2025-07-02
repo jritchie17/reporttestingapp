@@ -70,6 +70,13 @@ class AccountCategoryDialog(QDialog):
 
         self._init_ui()
 
+    def refresh_accounts(self, accounts) -> None:
+        """Refresh available accounts using ``accounts`` and current categories."""
+        category_accounts = {acct for lst in self.categories.values() for acct in lst}
+        self.all_accounts = sorted(set(accounts or []) | category_accounts)
+        current = self._current_accounts()
+        self._populate_account_list(current)
+
     def _refresh_drag_categories(self) -> None:
         """Update the list of categories available for drag-and-drop."""
         if hasattr(self, "category_drag_list"):
