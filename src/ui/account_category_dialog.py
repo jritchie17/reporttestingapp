@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QInputDialog,
     QLabel,
+    QComboBox,
     QTabWidget,
     QWidget,
     QDialogButtonBox,
@@ -52,21 +53,47 @@ class FormulaLineEdit(QLineEdit):
 class AccountCategoryDialog(QDialog):
     """Dialog for managing account categories and formulas."""
 
-    def __init__(self, config: AppConfig, report_type: str, accounts=None, parent=None) -> None:
+    def __init__(
+        self,
+        config: AppConfig,
+        report_type: str,
+        accounts=None,
+        sheet_names=None,
+        parent=None,
+    ) -> None:
         super().__init__(parent)
         self.config = config
         self.report_type = report_type
-        self.categories = {
-            name: list(accounts)
-            for name, accounts in config.get_account_categories(report_type).items()
+
+        existing_cats = config.config.get("account_categories", {}).get(report_type, {})
+        existing_forms = config.config.get("account_formulas", {}).get(report_type, {})
+
+        names = set(sheet_names or []) | set(existing_cats.keys()) | set(existing_forms.keys())
+        if not names:
+            names = {config.DEFAULT_SHEET_NAME}
+        self.sheet_names = sorted(names)
+        self.current_sheet = self.sheet_names[0]
+
+        self.categories_by_sheet = {
+            sheet: {
+                name: list(accts)
+                for name, accts in config.get_account_categories(report_type, sheet).items()
+            }
+            for sheet in self.sheet_names
         }
-        self.formulas = dict(config.get_account_formulas(report_type))
+        self.formulas_by_sheet = {
+            sheet: dict(config.get_account_formulas(report_type, sheet))
+            for sheet in self.sheet_names
+        }
+
+        self.categories = deepcopy(self.categories_by_sheet.get(self.current_sheet, {}))
+        self.formulas = deepcopy(self.formulas_by_sheet.get(self.current_sheet, {}))
 
         category_accounts = {acct for lst in self.categories.values() for acct in lst}
         self.all_accounts = sorted(set(accounts or []) | category_accounts)
 
-        self._original_categories = deepcopy(self.categories)
-        self._original_formulas = deepcopy(self.formulas)
+        self._original_categories = deepcopy(self.categories_by_sheet)
+        self._original_formulas = deepcopy(self.formulas_by_sheet)
 
         self._init_ui()
 
@@ -83,11 +110,64 @@ class AccountCategoryDialog(QDialog):
             self.category_drag_list.clear()
             self.category_drag_list.addItems(sorted(self.categories.keys()))
 
+    def _save_current_sheet(self) -> None:
+        """Store current edits into the per-sheet mappings."""
+        if hasattr(self, "category_list") and self.category_list.currentItem():
+            self.categories[self.category_list.currentItem().text()] = self._current_accounts()
+        if hasattr(self, "formula_list") and self.formula_list.currentItem():
+            self.formulas[self.formula_list.currentItem().text()] = self.formula_edit.text()
+        self.categories_by_sheet[self.current_sheet] = deepcopy(self.categories)
+        self.formulas_by_sheet[self.current_sheet] = deepcopy(self.formulas)
+
+    def _load_sheet(self, sheet: str) -> None:
+        """Load categories and formulas for ``sheet`` into the UI."""
+        self.current_sheet = sheet
+        self.categories = deepcopy(self.categories_by_sheet.get(sheet, {}))
+        self.formulas = deepcopy(self.formulas_by_sheet.get(sheet, {}))
+
+        cat_accounts = {a for lst in self.categories.values() for a in lst}
+        self.all_accounts = sorted(set(self.all_accounts) | cat_accounts)
+
+        if hasattr(self, "category_list"):
+            self.category_list.clear()
+            self.category_list.addItems(sorted(self.categories.keys()))
+            if self.category_list.count() > 0:
+                first = self.category_list.item(0)
+                self.category_list.setCurrentItem(first)
+                self._populate_account_list(self.categories.get(first.text(), []))
+            else:
+                self._populate_account_list([])
+
+        if hasattr(self, "formula_list"):
+            self.formula_list.clear()
+            self.formula_list.addItems(sorted(self.formulas.keys()))
+            if self.formula_list.count() > 0:
+                first_f = self.formula_list.item(0)
+                self.formula_list.setCurrentItem(first_f)
+                self.formula_edit.setText(self.formulas.get(first_f.text(), ""))
+            else:
+                self.formula_edit.clear()
+
+        self._refresh_drag_categories()
+
+    def _on_sheet_changed(self, sheet: str) -> None:
+        self._save_current_sheet()
+        self._load_sheet(sheet)
+
     # UI setup
     def _init_ui(self) -> None:
         self.setWindowTitle("Account Categories")
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel(f"Report type: {self.report_type}"))
+
+        if len(self.sheet_names) > 1 or self.sheet_names != [self.config.DEFAULT_SHEET_NAME]:
+            sheet_layout = QHBoxLayout()
+            sheet_layout.addWidget(QLabel("Sheet:"))
+            self.sheet_selector = QComboBox()
+            self.sheet_selector.addItems(self.sheet_names)
+            self.sheet_selector.currentTextChanged.connect(self._on_sheet_changed)
+            sheet_layout.addWidget(self.sheet_selector)
+            layout.addLayout(sheet_layout)
 
         self.tabs = QTabWidget()
         self._create_categories_tab()
@@ -301,15 +381,16 @@ class AccountCategoryDialog(QDialog):
 
     def save(self):
         # ensure current edits saved
-        if self.category_list.currentItem():
-            self.categories[self.category_list.currentItem().text()] = self._current_accounts()
-        if self.formula_list.currentItem():
-            self.formulas[self.formula_list.currentItem().text()] = self.formula_edit.text()
+        self._save_current_sheet()
 
-        self.config.set_account_categories(self.report_type, self.categories)
-        self.config.set_account_formulas(self.report_type, self.formulas)
-        self._original_categories = deepcopy(self.categories)
-        self._original_formulas = deepcopy(self.formulas)
+        for sheet in set(self.categories_by_sheet.keys()) | set(self.formulas_by_sheet.keys()):
+            cats = self.categories_by_sheet.get(sheet, {})
+            forms = self.formulas_by_sheet.get(sheet, {})
+            self.config.set_account_categories(self.report_type, cats, sheet)
+            self.config.set_account_formulas(self.report_type, forms, sheet)
+
+        self._original_categories = deepcopy(self.categories_by_sheet)
+        self._original_formulas = deepcopy(self.formulas_by_sheet)
         self.accept()
 
     def reject(self):
@@ -356,9 +437,13 @@ class AccountCategoryDialog(QDialog):
             event.accept()
 
     def _is_modified(self) -> bool:
-        if set(self.categories.keys()) != set(self._original_categories.keys()):
+        if set(self.categories_by_sheet.keys()) != set(self._original_categories.keys()):
             return True
-        for key, accounts in self.categories.items():
-            if sorted(accounts) != sorted(self._original_categories.get(key, [])):
+        for sheet, mapping in self.categories_by_sheet.items():
+            orig = self._original_categories.get(sheet, {})
+            if set(mapping.keys()) != set(orig.keys()):
                 return True
-        return self.formulas != self._original_formulas
+            for key, accounts in mapping.items():
+                if sorted(accounts) != sorted(orig.get(key, [])):
+                    return True
+        return self.formulas_by_sheet != self._original_formulas

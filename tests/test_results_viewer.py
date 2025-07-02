@@ -17,17 +17,19 @@ class DummyConfig:
         self.formulas = {}
         self.report_type = ""
 
-    def get_account_categories(self, report_type):
-        return self.categories.get(report_type, {})
+    def get_account_categories(self, report_type, sheet_name=None):
+        return self.categories.get(report_type, {}).get(sheet_name or '__default__', {})
 
-    def get_account_formulas(self, report_type):
-        return self.formulas.get(report_type, {})
+    def get_account_formulas(self, report_type, sheet_name=None):
+        return self.formulas.get(report_type, {}).get(sheet_name or '__default__', {})
 
-    def set_account_categories(self, report_type, cats):
-        self.categories[report_type] = cats
+    def set_account_categories(self, report_type, cats, sheet_name=None):
+        sheet_name = sheet_name or '__default__'
+        self.categories.setdefault(report_type, {})[sheet_name] = cats
 
-    def set_account_formulas(self, report_type, formulas):
-        self.formulas[report_type] = formulas
+    def set_account_formulas(self, report_type, formulas, sheet_name=None):
+        sheet_name = sheet_name or '__default__'
+        self.formulas.setdefault(report_type, {})[sheet_name] = formulas
 
     def get(self, section, key=None):
         if section == "excel" and key == "report_type":
@@ -206,8 +208,9 @@ class SQLAccountExtractionTest(unittest.TestCase):
         captured = {}
 
         class StubDialog:
-            def __init__(self, config, report_type, accounts, parent=None):
+            def __init__(self, config, report_type, accounts, sheet_names=None, parent=None):
                 captured["accounts"] = accounts
+                captured["sheets"] = sheet_names
 
             def refresh_accounts(self, accounts):
                 captured["refresh"] = accounts
@@ -233,6 +236,7 @@ class SQLAccountExtractionTest(unittest.TestCase):
 
         self.assertEqual(captured.get("accounts"), ["1234-5678", "9999-0000"])
         self.assertEqual(captured.get("refresh"), ["1234-5678", "9999-0000"])
+        self.assertEqual(captured.get("sheets"), [])
         self.assertEqual(window.status_bar.message, "Account categories updated")
 
 
