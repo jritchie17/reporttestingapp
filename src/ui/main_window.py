@@ -1377,7 +1377,10 @@ class MainWindow(QMainWindow):
     def open_account_categories(self):
         """Open the account categories dialog for the current report."""
         report_type = self.report_selector.currentText()
-        accounts = self._gather_accounts_from_excel()
+        if self.results_viewer and self.results_viewer.has_results():
+            accounts = self._gather_accounts_from_sql()
+        else:
+            accounts = self._gather_accounts_from_excel()
         dialog = AccountCategoryDialog(self.config, report_type, accounts, self)
         if dialog.exec():
             self.status_bar.showMessage("Account categories updated")
@@ -1479,6 +1482,28 @@ class MainWindow(QMainWindow):
                         accounts.update(re.findall(pat, val))
         except Exception as e:
             self.logger.error(f"Failed to extract accounts: {e}")
+
+        return sorted(accounts)
+
+    def _gather_accounts_from_sql(self):
+        """Extract account numbers from SQL query results."""
+        if not getattr(self, "results_viewer", None) or not self.results_viewer.has_results():
+            return []
+
+        from src.utils.account_patterns import ACCOUNT_PATTERNS
+        patterns = ACCOUNT_PATTERNS
+        accounts = set()
+        try:
+            df = self.results_viewer.get_dataframe()
+            if df.empty:
+                return []
+            for col in df.columns:
+                series = df[col].astype(str)
+                for val in series:
+                    for pat in patterns:
+                        accounts.update(re.findall(pat, val))
+        except Exception as e:
+            self.logger.error(f"Failed to extract accounts from SQL results: {e}")
 
         return sorted(accounts)
 
