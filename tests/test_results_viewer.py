@@ -96,10 +96,10 @@ class ApplyCalculationsTest(unittest.TestCase):
 
         viewer = self.ResultsViewer.__new__(self.ResultsViewer)
         viewer.results_data = [
-            {"Center": 1, "CAReportName": "1234-5678", "Amount": -100},
-            {"Center": 2, "CAReportName": "9999-0000", "Amount": 50},
+            {"Sheet": "Foo", "Center": 1, "CAReportName": "1234-5678", "Amount": -100},
+            {"Sheet": "Foo", "Center": 2, "CAReportName": "9999-0000", "Amount": 50},
         ]
-        viewer.columns = ["Center", "CAReportName", "Amount"]
+        viewer.columns = ["Sheet", "Center", "CAReportName", "Amount"]
         viewer.table_view = DummyTable()
         viewer.status_label = DummyLabel()
         viewer.window = lambda: parent
@@ -109,18 +109,18 @@ class ApplyCalculationsTest(unittest.TestCase):
         calc = CategoryCalculator(
             {"CatA": ["1234-5678"], "CatB": ["9999-0000"]},
             {"Net": "CatA + CatB"},
-            group_column="Sheet_Name",
+            group_column="Sheet",
         )
         expected = calc.compute(
             [
                 {
-                    "Sheet_Name": "Foo",
+                    "Sheet": "Foo",
                     "Center": 1,
                     "CAReportName": "1234-5678",
                     "Amount": -100,
                 },
                 {
-                    "Sheet_Name": "Foo",
+                    "Sheet": "Foo",
                     "Center": 2,
                     "CAReportName": "9999-0000",
                     "Amount": 50,
@@ -134,7 +134,7 @@ class ApplyCalculationsTest(unittest.TestCase):
             viewer.status_label.text,
             f"{len(expected)} rows, {len(viewer.columns)} columns returned",
         )
-        self.assertIn("Sheet_Name", viewer.columns)
+        self.assertIn("Sheet", viewer.columns)
 
     def test_apply_calculations_groups_by_sheet(self):
         parent = self.MainWindow.__new__(self.MainWindow)
@@ -149,17 +149,17 @@ class ApplyCalculationsTest(unittest.TestCase):
         viewer = self.ResultsViewer.__new__(self.ResultsViewer)
         viewer.results_data = [
             {
-                "Sheet_Name": "Foo",
+                "Sheet": "Foo",
                 "CAReportName": "1234-5678",
                 "Amount": -100,
             },
             {
-                "Sheet_Name": "Bar",
+                "Sheet": "Bar",
                 "CAReportName": "9999-0000",
                 "Amount": 50,
             },
         ]
-        viewer.columns = ["Sheet_Name", "CAReportName", "Amount"]
+        viewer.columns = ["Sheet", "CAReportName", "Amount"]
         viewer.table_view = DummyTable()
         viewer.status_label = DummyLabel()
         viewer.window = lambda: parent
@@ -169,19 +169,21 @@ class ApplyCalculationsTest(unittest.TestCase):
         calc = CategoryCalculator(
             {"CatA": ["1234-5678"], "CatB": ["9999-0000"]},
             {"Net": "CatA + CatB"},
-            group_column="Sheet_Name",
+            group_column="Sheet",
         )
         expected = calc.compute(
             [
-                {"Sheet_Name": "Foo", "CAReportName": "1234-5678", "Amount": -100},
-                {"Sheet_Name": "Bar", "CAReportName": "9999-0000", "Amount": 50},
+                {"Sheet": "Foo", "CAReportName": "1234-5678", "Amount": -100},
+                {"Sheet": "Bar", "CAReportName": "9999-0000", "Amount": 50},
             ]
         )
 
         self.assertEqual(viewer.results_data, expected)
-        sheets = {row.get("Sheet_Name") for row in viewer.results_data if row.get("CAReportName") == "Net"}
+        net_rows = [row for row in viewer.results_data if row.get("CAReportName") == "Net"]
+        sheets = {row.get("Sheet") for row in net_rows}
+        self.assertEqual(len(net_rows), 2)
         self.assertEqual(sheets, {"Foo", "Bar"})
-        self.assertIn("Sheet_Name", viewer.columns)
+        self.assertIn("Sheet", viewer.columns)
 
 
 class SQLAccountExtractionTest(unittest.TestCase):

@@ -358,11 +358,16 @@ class ResultsViewer(QWidget):
                 categories = parent.config.get_account_categories(report_type)
                 formulas = parent.config.get_account_formulas(report_type)
                 if categories:
-                    sheet_added = False
+                    sheet_col = None
                     if self.results_data and isinstance(self.results_data[0], dict):
                         first_row = self.results_data[0]
-                        if "Sheet_Name" not in first_row:
-                            sheet_added = True
+                        lower_map = {k.lower(): k for k in first_row}
+                        for cand in ["sheet", "sheet name", "sheet_name"]:
+                            if cand.lower() in lower_map:
+                                sheet_col = lower_map[cand.lower()]
+                                break
+
+                        if sheet_col:
                             sheet_val = ""
                             if parent and hasattr(parent, "sheet_selector"):
                                 try:
@@ -372,22 +377,15 @@ class ResultsViewer(QWidget):
                             if not sheet_val and hasattr(parent, "config"):
                                 sheet_val = parent.config.get("excel", "sheet_name") or ""
                             for row in self.results_data:
-                                row["Sheet_Name"] = sheet_val
-                            if "Sheet_Name" not in self.columns:
-                                self.columns = ["Sheet_Name"] + list(self.columns)
+                                if not row.get(sheet_col):
+                                    row[sheet_col] = sheet_val
 
-                    group_col = None
-                    if self.results_data and isinstance(self.results_data[0], dict):
+                    group_col = sheet_col
+                    if group_col is None and self.results_data and isinstance(self.results_data[0], dict):
                         first_row = self.results_data[0]
-                        lower_map = {k.lower(): k for k in first_row}
-                        for cand in ["sheet", "sheet_name", "sheet name"]:
-                            if cand.lower() in lower_map:
-                                group_col = lower_map[cand.lower()]
-                                break
-                        if group_col is None and "Center" in first_row:
+                        if "Center" in first_row:
                             group_col = "Center"
-                    if sheet_added:
-                        group_col = "Sheet_Name"
+
                     sign_flip = []
                     if parent and hasattr(parent, "comparison_engine"):
                         sign_flip = list(
@@ -399,7 +397,10 @@ class ResultsViewer(QWidget):
                         group_column=group_col,
                         sign_flip_accounts=sign_flip,
                     )
-                    self.results_data = calc.compute(list(self.results_data))
+                    default_group = None
+                    if sheet_col and sheet_col not in self.results_data[0]:
+                        default_group = sheet_val
+                    self.results_data = calc.compute(list(self.results_data), default_group=default_group)
 
         # Refresh the table model with new rows
         self.model = ResultsTableModel(self.results_data, self.columns)
