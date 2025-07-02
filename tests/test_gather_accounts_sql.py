@@ -31,6 +31,24 @@ class TestGatherAccountsSQL(unittest.TestCase):
         accounts = window._gather_accounts_from_sql()
         self.assertEqual(accounts, ['1234-5678', '9999-0000'])
 
+    def test_careportname_no_digits(self):
+        df = pd.DataFrame({
+            'CAReportName': ['Alpha', 'Beta'],
+            'Amount': [1, 2],
+        })
+        rv = types.SimpleNamespace(
+            results_data=df.to_dict(orient='records'),
+            get_dataframe=lambda: df,
+            has_results=lambda: True,
+        )
+
+        window = self.MainWindow.__new__(self.MainWindow)
+        window.results_viewer = rv
+        window.logger = MagicMock()
+
+        accounts = window._gather_accounts_from_sql()
+        self.assertEqual(accounts, ['Alpha', 'Beta'])
+
 
 if __name__ == '__main__':
     unittest.main()

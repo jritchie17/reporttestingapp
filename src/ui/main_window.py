@@ -1512,20 +1512,29 @@ class MainWindow(QMainWindow):
 
         from src.utils.account_patterns import ACCOUNT_PATTERNS
         patterns = ACCOUNT_PATTERNS
-        accounts = set()
+
         try:
             df = self.results_viewer.get_dataframe()
             if df.empty:
                 return []
+
+            # Prefer a CAReportName column if present
+            for col in df.columns:
+                if str(col).lower() == "careportname".lower():
+                    series = df[col].dropna().astype(str)
+                    return sorted(series.unique().tolist())
+
+            # Fallback to regex scanning across all columns
+            accounts = set()
             for col in df.columns:
                 series = df[col].astype(str)
                 for val in series:
                     for pat in patterns:
                         accounts.update(re.findall(pat, val))
+            return sorted(accounts)
         except Exception as e:
             self.logger.error(f"Failed to extract accounts from SQL results: {e}")
-
-        return sorted(accounts)
+            return []
 
     def show_about(self):
         """Show about dialog"""
