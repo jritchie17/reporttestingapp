@@ -185,6 +185,34 @@ class ApplyCalculationsTest(unittest.TestCase):
         self.assertEqual(sheets, {"Foo", "Bar"})
         self.assertIn("Sheet", viewer.columns)
 
+    def test_apply_calculations_adds_sheet_column(self):
+        parent = self.MainWindow.__new__(self.MainWindow)
+        parent.config = DummyConfig()
+        parent.config.set_account_categories(
+            "Test", {"CatA": ["1234-5678"], "CatB": ["9999-0000"]}
+        )
+        parent.config.set_account_formulas("Test", {"Net": "CatA + CatB"})
+        parent.config.report_type = "Test"
+        parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
+        parent.sheet_selector = DummySelector("Foo")
+
+        viewer = self.ResultsViewer.__new__(self.ResultsViewer)
+        viewer.results_data = [
+            {"CAReportName": "1234-5678", "Amount": -100},
+            {"CAReportName": "9999-0000", "Amount": 50},
+        ]
+        viewer.columns = ["CAReportName", "Amount"]
+        viewer.table_view = DummyTable()
+        viewer.status_label = DummyLabel()
+        viewer.window = lambda: parent
+
+        viewer.apply_calculations()
+
+        net_rows = [row for row in viewer.results_data if row.get("CAReportName") == "Net"]
+        self.assertEqual(len(net_rows), 1)
+        self.assertEqual(net_rows[0].get("Sheet"), "Foo")
+        self.assertIn("Sheet", viewer.columns)
+
 
 class SQLAccountExtractionTest(unittest.TestCase):
     def setUp(self):
