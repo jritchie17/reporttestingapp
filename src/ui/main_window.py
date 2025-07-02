@@ -1551,12 +1551,16 @@ class MainWindow(QMainWindow):
             return []
         try:
             df = self.results_viewer.get_dataframe()
-            for cand in ["Sheet_Name", "Sheet", "SheetName"]:
-                if cand in df.columns:
-                    series = df[cand].dropna().astype(str)
+            lower_map = {str(col).lower(): col for col in df.columns}
+            for cand in ["sheet_name", "sheet", "sheetname"]:
+                if cand in lower_map:
+                    col = lower_map[cand]
+                    series = df[col].dropna().astype(str)
                     return sorted(series.unique().tolist())
         except Exception as e:
-            self.logger.error(f"Failed to extract sheet names from SQL results: {e}")
+            self.logger.error(
+                f"Failed to extract sheet names from SQL results: {e}"
+            )
         return []
 
     def show_about(self):
