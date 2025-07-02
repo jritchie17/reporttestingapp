@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 
 from .logging_config import configure_logging, get_logger
 
+
+DEFAULT_SHEET_NAME = "__default__"
+
 class AppConfig:
     def __init__(self):
         """Initialize application configuration"""
@@ -107,25 +110,56 @@ class AppConfig:
             if config.get("report_configs") != merged_reports:
                 updated = True
             config["report_configs"] = merged_reports
-            
+
+            # Migrate account categories/formulas to new sheet-aware structure
+            if self._migrate_account_data(config):
+                updated = True
+
             if updated:
                 self.save_config(config)
-                
+
             return config
             
         except Exception as e:
             self.logger.error(f"Failed to load configuration: {str(e)}")
             self.logger.info("Using default configuration")
             return default_config
+
+    def _migrate_account_data(self, cfg: dict) -> bool:
+        """Migrate account categories/formulas to sheet-aware structure."""
+        updated = False
+
+        for key in ["account_categories", "account_formulas"]:
+            section = cfg.get(key, {})
+            for rpt, mapping in list(section.items()):
+                if mapping and all(not isinstance(v, dict) for v in mapping.values()):
+                    # Old style: mapping[category] -> values
+                    section[rpt] = {DEFAULT_SHEET_NAME: mapping}
+                    updated = True
+            cfg[key] = section
+
+        return updated
+
+    def _serialize(self, obj):
+        """Return JSON serializable representation of ``obj``."""
+        if isinstance(obj, Path):
+            return str(obj)
+        if isinstance(obj, set):
+            return sorted(obj)
+        if isinstance(obj, dict):
+            return {k: self._serialize(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [self._serialize(v) for v in obj]
+        return obj
     
     def save_config(self, config=None):
         """Save configuration to file"""
         if config is None:
             config = self.config
-            
+
         try:
             with open(self.config_file, 'w') as f:
-                json.dump(config, f, indent=4)
+                json.dump(self._serialize(config), f, indent=4)
             self.logger.info(f"Saved configuration to {self.config_file}")
             return True
             
@@ -214,28 +248,59 @@ class AppConfig:
         self.save_config()
         return True
 
-    def get_account_categories(self, report_type):
-        """Return account categories mapping for a given report type"""
-        return self.config.get("account_categories", {}).get(report_type, {})
+    def get_account_categories(self, report_type, sheet_name=None):
+        """Return account categories for ``report_type`` and optional ``sheet_name``."""
+        cats_by_type = self.config.get("account_categories", {}).get(report_type, {})
 
-    def set_account_categories(self, report_type, categories):
+        if sheet_name is None:
+            if DEFAULT_SHEET_NAME in cats_by_type and len(cats_by_type) == 1:
+                return cats_by_type.get(DEFAULT_SHEET_NAME, {})
+            combined = {}
+            for _sheet, cats in cats_by_type.items():
+                if isinstance(cats, dict):
+                    for name, accounts in cats.items():
+                        combined.setdefault(name, [])
+                        for acc in accounts:
+                            if acc not in combined[name]:
+                                combined[name].append(acc)
+            return combined
+
+        return cats_by_type.get(sheet_name) or cats_by_type.get(DEFAULT_SHEET_NAME, {})
+
+    def set_account_categories(self, report_type, categories, sheet_name=None):
         """Set account categories for a report type and persist the config"""
         if "account_categories" not in self.config:
             self.config["account_categories"] = {}
+        if sheet_name is None:
+            sheet_name = DEFAULT_SHEET_NAME
 
-        self.config["account_categories"][report_type] = categories
+        self.config["account_categories"].setdefault(report_type, {})[sheet_name] = categories
         self.save_config()
 
-    def get_account_formulas(self, report_type):
-        """Return account formulas mapping for a given report type"""
-        return self.config.get("account_formulas", {}).get(report_type, {})
+    def get_account_formulas(self, report_type, sheet_name=None):
+        """Return account formulas for ``report_type`` and optional ``sheet_name``."""
+        formulas_by_type = self.config.get("account_formulas", {}).get(report_type, {})
 
-    def set_account_formulas(self, report_type, formulas):
+        if sheet_name is None:
+            if DEFAULT_SHEET_NAME in formulas_by_type and len(formulas_by_type) == 1:
+                return formulas_by_type.get(DEFAULT_SHEET_NAME, {})
+            combined = {}
+            for _sheet, forms in formulas_by_type.items():
+                if isinstance(forms, dict):
+                    combined.update(forms)
+            return combined
+
+        return formulas_by_type.get(sheet_name) or formulas_by_type.get(DEFAULT_SHEET_NAME, {})
+
+    def set_account_formulas(self, report_type, formulas, sheet_name=None):
         """Set account formulas for a report type and persist the config"""
         if "account_formulas" not in self.config:
             self.config["account_formulas"] = {}
 
-        self.config["account_formulas"][report_type] = formulas
+        if sheet_name is None:
+            sheet_name = DEFAULT_SHEET_NAME
+
+        self.config["account_formulas"].setdefault(report_type, {})[sheet_name] = formulas
         self.save_config()
 
     # Report configuration helpers -------------------------------------------------
