@@ -301,6 +301,24 @@ class TestCategoryCalculator(unittest.TestCase):
         profit = next(r for r in result if r["CAReportName"] == "Net Profit")
         self.assertEqual(profit["Amount"], -50)
 
+    def test_non_numeric_account_names(self):
+        rows = [
+            {"CAReportName": "Salaries", "Amount": 100},
+            {"CAReportName": "benefits", "Amount": 50},
+            {"CAReportName": "Other", "Amount": 10},
+        ]
+        categories = {"Labor": ["Salaries", "Benefits"]}
+        formulas = {"Total": "Labor"}
+
+        calc = CategoryCalculator(categories, formulas)
+        result = calc.compute(rows)
+
+        labor = next(r for r in result if r["CAReportName"] == "Labor")
+        self.assertEqual(labor["Amount"], 150)
+
+        total = next(r for r in result if r["CAReportName"] == "Total")
+        self.assertEqual(total["Amount"], 150)
+
 
 class TestAccountCategoryDialog(unittest.TestCase):
     def setUp(self):
