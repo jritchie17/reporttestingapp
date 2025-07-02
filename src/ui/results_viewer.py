@@ -359,6 +359,15 @@ class ResultsViewer(QWidget):
                 formulas = parent.config.get_account_formulas(report_type)
                 if categories:
                     sheet_col = None
+                    sheet_val = ""
+                    if parent and hasattr(parent, "sheet_selector"):
+                        try:
+                            sheet_val = parent.sheet_selector.currentText()
+                        except Exception:
+                            sheet_val = ""
+                    if not sheet_val and hasattr(parent, "config"):
+                        sheet_val = parent.config.get("excel", "sheet_name") or ""
+
                     if self.results_data and isinstance(self.results_data[0], dict):
                         first_row = self.results_data[0]
                         lower_map = {k.lower(): k for k in first_row}
@@ -368,17 +377,14 @@ class ResultsViewer(QWidget):
                                 break
 
                         if sheet_col:
-                            sheet_val = ""
-                            if parent and hasattr(parent, "sheet_selector"):
-                                try:
-                                    sheet_val = parent.sheet_selector.currentText()
-                                except Exception:
-                                    sheet_val = ""
-                            if not sheet_val and hasattr(parent, "config"):
-                                sheet_val = parent.config.get("excel", "sheet_name") or ""
                             for row in self.results_data:
                                 if not row.get(sheet_col):
                                     row[sheet_col] = sheet_val
+
+                    if sheet_col is None:
+                        sheet_col = "Sheet"
+                        if sheet_col not in self.columns:
+                            self.columns.append(sheet_col)
 
                     group_col = sheet_col
                     if group_col is None and self.results_data and isinstance(self.results_data[0], dict):
