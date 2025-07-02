@@ -49,6 +49,24 @@ class TestGatherAccountsSQL(unittest.TestCase):
         accounts = window._gather_accounts_from_sql()
         self.assertEqual(accounts, ['Alpha', 'Beta'])
 
+    def test_fallback_scans_all_columns(self):
+        df = pd.DataFrame({
+            'Acct': ['1234-5678', '9999-0000'],
+            'Amount': [1, 2],
+        })
+        rv = types.SimpleNamespace(
+            results_data=df.to_dict(orient='records'),
+            get_dataframe=lambda: df,
+            has_results=lambda: True,
+        )
+
+        window = self.MainWindow.__new__(self.MainWindow)
+        window.results_viewer = rv
+        window.logger = MagicMock()
+
+        accounts = window._gather_accounts_from_sql()
+        self.assertEqual(accounts, ['1234-5678', '9999-0000'])
+
 
 if __name__ == '__main__':
     unittest.main()

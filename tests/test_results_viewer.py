@@ -206,6 +206,23 @@ class SQLAccountExtractionTest(unittest.TestCase):
 
         self.assertEqual(accounts, ["1234-5678", "9999-0000"])
 
+    def test_gather_accounts_sql_fallback(self):
+        df = pd.DataFrame({
+            "Acct": ["1234-5678", "9999-0000"],
+            "Amount": [1, 2],
+        })
+        window = self.MainWindow.__new__(self.MainWindow)
+        window.results_viewer = types.SimpleNamespace(
+            results_data=df.to_dict(orient="records"),
+            get_dataframe=lambda: df,
+            has_results=lambda: True,
+        )
+        window.logger = types.SimpleNamespace(error=lambda *a, **k: None)
+
+        accounts = window._gather_accounts_from_sql()
+
+        self.assertEqual(accounts, ["1234-5678", "9999-0000"])
+
     def test_open_account_categories_after_sql(self):
         captured = {}
 

@@ -1519,20 +1519,6 @@ class MainWindow(QMainWindow):
         if not getattr(self, "results_viewer", None) or not self.results_viewer.has_results():
             return []
 
-    def _gather_sheet_names_from_sql(self):
-        """Return sheet names present in the SQL results if available."""
-        if not getattr(self, "results_viewer", None) or not self.results_viewer.has_results():
-            return []
-        try:
-            df = self.results_viewer.get_dataframe()
-            for cand in ["Sheet_Name", "Sheet", "SheetName"]:
-                if cand in df.columns:
-                    series = df[cand].dropna().astype(str)
-                    return sorted(series.unique().tolist())
-        except Exception as e:
-            self.logger.error(f"Failed to extract sheet names from SQL results: {e}")
-        return []
-
         from src.utils.account_patterns import ACCOUNT_PATTERNS
         patterns = ACCOUNT_PATTERNS
 
@@ -1541,7 +1527,7 @@ class MainWindow(QMainWindow):
             if df.empty:
                 return []
 
-            # Prefer a CAReportName column if present
+            # Prefer a CAReportName column if present (case-insensitive)
             for col in df.columns:
                 if str(col).lower() == "careportname".lower():
                     series = df[col].dropna().astype(str)
@@ -1558,6 +1544,20 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.logger.error(f"Failed to extract accounts from SQL results: {e}")
             return []
+
+    def _gather_sheet_names_from_sql(self):
+        """Return sheet names present in the SQL results if available."""
+        if not getattr(self, "results_viewer", None) or not self.results_viewer.has_results():
+            return []
+        try:
+            df = self.results_viewer.get_dataframe()
+            for cand in ["Sheet_Name", "Sheet", "SheetName"]:
+                if cand in df.columns:
+                    series = df[cand].dropna().astype(str)
+                    return sorted(series.unique().tolist())
+        except Exception as e:
+            self.logger.error(f"Failed to extract sheet names from SQL results: {e}")
+        return []
 
     def show_about(self):
         """Show about dialog"""
