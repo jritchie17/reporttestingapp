@@ -192,6 +192,22 @@ class CategoryCalculator:
                                 else:
                                     totals[group_val][name][col] += Decimal(str(val))
                         break
+                    elif not acct_code and not cat_code:
+                        if acct_raw.strip().lower() == str(acc).strip().lower():
+                            for col in numeric_cols:
+                                val = row.get(col)
+                                if isinstance(
+                                    val, (int, float, Decimal)
+                                ) and not isinstance(val, bool):
+                                    if sign_flip.should_flip(
+                                        acct_raw, self.sign_flip_accounts
+                                    ):
+                                        val = -val
+                                    if isinstance(val, Decimal):
+                                        totals[group_val][name][col] += val
+                                    else:
+                                        totals[group_val][name][col] += Decimal(str(val))
+                            break
 
             for acc in account_refs:
                 acc_code = self._extract_account_code(acc)
