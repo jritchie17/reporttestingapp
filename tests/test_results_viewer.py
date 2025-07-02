@@ -119,6 +119,52 @@ class ApplyCalculationsTest(unittest.TestCase):
             f"{len(expected)} rows, {len(viewer.columns)} columns returned",
         )
 
+    def test_apply_calculations_groups_by_sheet(self):
+        parent = self.MainWindow.__new__(self.MainWindow)
+        parent.config = DummyConfig()
+        parent.config.set_account_categories(
+            "Test", {"CatA": ["1234-5678"], "CatB": ["9999-0000"]}
+        )
+        parent.config.set_account_formulas("Test", {"Net": "CatA + CatB"})
+        parent.config.report_type = "Test"
+        parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
+
+        viewer = self.ResultsViewer.__new__(self.ResultsViewer)
+        viewer.results_data = [
+            {
+                "Sheet_Name": "Foo",
+                "CAReportName": "1234-5678",
+                "Amount": -100,
+            },
+            {
+                "Sheet_Name": "Bar",
+                "CAReportName": "9999-0000",
+                "Amount": 50,
+            },
+        ]
+        viewer.columns = ["Sheet_Name", "CAReportName", "Amount"]
+        viewer.table_view = DummyTable()
+        viewer.status_label = DummyLabel()
+        viewer.window = lambda: parent
+
+        viewer.apply_calculations()
+
+        calc = CategoryCalculator(
+            {"CatA": ["1234-5678"], "CatB": ["9999-0000"]},
+            {"Net": "CatA + CatB"},
+            group_column="Sheet_Name",
+        )
+        expected = calc.compute(
+            [
+                {"Sheet_Name": "Foo", "CAReportName": "1234-5678", "Amount": -100},
+                {"Sheet_Name": "Bar", "CAReportName": "9999-0000", "Amount": 50},
+            ]
+        )
+
+        self.assertEqual(viewer.results_data, expected)
+        sheets = {row.get("Sheet_Name") for row in viewer.results_data if row.get("CAReportName") == "Net"}
+        self.assertEqual(sheets, {"Foo", "Bar"})
+
 
 class SQLAccountExtractionTest(unittest.TestCase):
     def setUp(self):

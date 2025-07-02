@@ -360,7 +360,13 @@ class ResultsViewer(QWidget):
                 if categories:
                     group_col = None
                     if self.results_data and isinstance(self.results_data[0], dict):
-                        if "Center" in self.results_data[0]:
+                        first_row = self.results_data[0]
+                        lower_map = {k.lower(): k for k in first_row}
+                        for cand in ["sheet", "sheet_name", "sheet name"]:
+                            if cand.lower() in lower_map:
+                                group_col = lower_map[cand.lower()]
+                                break
+                        if group_col is None and "Center" in first_row:
                             group_col = "Center"
                     sign_flip = []
                     if parent and hasattr(parent, "comparison_engine"):

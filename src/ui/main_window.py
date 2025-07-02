@@ -1735,9 +1735,14 @@ class MainWindow(QMainWindow):
                 categories = self.config.get_account_categories(report_type)
                 formulas = self.config.get_account_formulas(report_type)
                 if categories:
-                    group_col = (
-                        "Center" if "Center" in filtered_sql_df.columns else None
-                    )
+                    group_col = None
+                    cols_lower = {c.lower(): c for c in filtered_sql_df.columns}
+                    for cand in ["sheet", "sheet_name", "sheet name"]:
+                        if cand.lower() in cols_lower:
+                            group_col = cols_lower[cand.lower()]
+                            break
+                    if group_col is None and "Center" in filtered_sql_df.columns:
+                        group_col = "Center"
                     sign_flip = list(
                         getattr(self.comparison_engine, "sign_flip_accounts", [])
                     )
@@ -1826,9 +1831,14 @@ class MainWindow(QMainWindow):
                 categories = self.config.get_account_categories(report_type)
                 formulas = self.config.get_account_formulas(report_type)
                 if categories:
-                    group_col = (
-                        "Center" if "Center" in filtered_sql_df.columns else None
-                    )
+                    group_col = None
+                    cols_lower = {c.lower(): c for c in filtered_sql_df.columns}
+                    for cand in ["sheet", "sheet_name", "sheet name"]:
+                        if cand.lower() in cols_lower:
+                            group_col = cols_lower[cand.lower()]
+                            break
+                    if group_col is None and "Center" in filtered_sql_df.columns:
+                        group_col = "Center"
                     sign_flip = list(
                         getattr(self.comparison_engine, "sign_flip_accounts", [])
                     )
@@ -1922,7 +1932,14 @@ class MainWindow(QMainWindow):
                 categories = self.config.get_account_categories(report_type)
                 formulas = self.config.get_account_formulas(report_type)
                 if categories:
-                    group_col = "Center" if "Center" in filtered_sql_df.columns else None
+                    group_col = None
+                    cols_lower = {c.lower(): c for c in filtered_sql_df.columns}
+                    for cand in ["sheet", "sheet_name", "sheet name"]:
+                        if cand.lower() in cols_lower:
+                            group_col = cols_lower[cand.lower()]
+                            break
+                    if group_col is None and "Center" in filtered_sql_df.columns:
+                        group_col = "Center"
                     sign_flip = list(getattr(self.comparison_engine, "sign_flip_accounts", []))
                     calc = CategoryCalculator(
                         categories,
