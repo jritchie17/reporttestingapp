@@ -217,11 +217,11 @@ class MainWindow(QMainWindow):
 
         tools_menu.addSeparator()
 
-        manage_cats_action = QAction(
+        self.manage_cats_menu_action = QAction(
             qta.icon("fa5s.layer-group"), "Manage Account Categories...", self
         )
-        manage_cats_action.triggered.connect(self.open_account_categories)
-        tools_menu.addAction(manage_cats_action)
+        self.manage_cats_menu_action.triggered.connect(self.open_account_categories)
+        tools_menu.addAction(self.manage_cats_menu_action)
 
         manage_reports_action = QAction(
             qta.icon("fa5s.table"), "Manage Report Types...", self
@@ -281,12 +281,17 @@ class MainWindow(QMainWindow):
         toolbar.addAction(reset_action)
         self._apply_hover_animation(toolbar.widgetForAction(reset_action))
 
-        manage_cats_action = QAction(
+        self.manage_cats_toolbar_action = QAction(
             qta.icon("fa5s.layer-group"), "Manage Account Categories...", self
         )
-        manage_cats_action.triggered.connect(self.open_account_categories)
-        toolbar.addAction(manage_cats_action)
-        self._apply_hover_animation(toolbar.widgetForAction(manage_cats_action))
+        self.manage_cats_toolbar_action.setEnabled(False)
+        self.manage_cats_toolbar_action.triggered.connect(
+            self.open_account_categories
+        )
+        toolbar.addAction(self.manage_cats_toolbar_action)
+        self._apply_hover_animation(
+            toolbar.widgetForAction(self.manage_cats_toolbar_action)
+        )
 
         # Settings
         settings_action = QAction(qta.icon("fa5s.cog"), "Settings", self)
@@ -748,6 +753,20 @@ class MainWindow(QMainWindow):
                 self.results_viewer.load_results(
                     result["data"], result.get("columns", [])
                 )
+                if hasattr(self, "manage_cats_toolbar_action"):
+                    self.manage_cats_toolbar_action.setEnabled(True)
+                accounts = self._gather_accounts_from_sql()
+                if accounts:
+                    resp = QMessageBox.question(
+                        self,
+                        "Manage Categories",
+                        "Manage account categories with detected accounts?",
+                        QMessageBox.StandardButton.Yes
+                        | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No,
+                    )
+                    if resp == QMessageBox.StandardButton.Yes:
+                        self.open_account_categories()
                 self.status_bar.showMessage(
                     f"Query executed successfully. {len(result['data'])} rows returned."
                 )
@@ -1382,6 +1401,7 @@ class MainWindow(QMainWindow):
         else:
             accounts = self._gather_accounts_from_excel()
         dialog = AccountCategoryDialog(self.config, report_type, accounts, self)
+        dialog.refresh_accounts(accounts)
         if dialog.exec():
             self.status_bar.showMessage("Account categories updated")
 
@@ -1641,6 +1661,9 @@ class MainWindow(QMainWindow):
 
             # Reset results viewer
             self.results_viewer.clear_results()
+
+            if hasattr(self, "manage_cats_toolbar_action"):
+                self.manage_cats_toolbar_action.setEnabled(False)
 
             # Reset comparison view
             self.comparison_view.clear_report()
