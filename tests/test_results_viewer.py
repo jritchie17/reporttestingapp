@@ -89,6 +89,8 @@ class ApplyCalculationsTest(unittest.TestCase):
         parent.config.set_account_formulas("Test", {"Net": "CatA + CatB"})
         parent.config.report_type = "Test"
         parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
+        parent.sheet_selector = DummySelector("Foo")
+        parent.sheet_selector = DummySelector("Foo")
 
         viewer = self.ResultsViewer.__new__(self.ResultsViewer)
         viewer.results_data = [
@@ -105,12 +107,24 @@ class ApplyCalculationsTest(unittest.TestCase):
         calc = CategoryCalculator(
             {"CatA": ["1234-5678"], "CatB": ["9999-0000"]},
             {"Net": "CatA + CatB"},
-            group_column="Center",
+            group_column="Sheet_Name",
         )
-        expected = calc.compute([
-            {"Center": 1, "CAReportName": "1234-5678", "Amount": -100},
-            {"Center": 2, "CAReportName": "9999-0000", "Amount": 50},
-        ])
+        expected = calc.compute(
+            [
+                {
+                    "Sheet_Name": "Foo",
+                    "Center": 1,
+                    "CAReportName": "1234-5678",
+                    "Amount": -100,
+                },
+                {
+                    "Sheet_Name": "Foo",
+                    "Center": 2,
+                    "CAReportName": "9999-0000",
+                    "Amount": 50,
+                },
+            ]
+        )
 
         self.assertEqual(viewer.results_data, expected)
         self.assertIsInstance(viewer.model, self.ResultsTableModel)
@@ -118,6 +132,7 @@ class ApplyCalculationsTest(unittest.TestCase):
             viewer.status_label.text,
             f"{len(expected)} rows, {len(viewer.columns)} columns returned",
         )
+        self.assertIn("Sheet_Name", viewer.columns)
 
     def test_apply_calculations_groups_by_sheet(self):
         parent = self.MainWindow.__new__(self.MainWindow)
@@ -164,6 +179,7 @@ class ApplyCalculationsTest(unittest.TestCase):
         self.assertEqual(viewer.results_data, expected)
         sheets = {row.get("Sheet_Name") for row in viewer.results_data if row.get("CAReportName") == "Net"}
         self.assertEqual(sheets, {"Foo", "Bar"})
+        self.assertIn("Sheet_Name", viewer.columns)
 
 
 class SQLAccountExtractionTest(unittest.TestCase):
