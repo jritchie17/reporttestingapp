@@ -1,9 +1,14 @@
 import unittest
 import importlib
 import sys
+import os
+import types
+import pandas as pd
 
 from tests.qt_stubs import patch_qt_modules
 from src.utils.account_categories import CategoryCalculator
+
+FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
 
 
 class DummyConfig:
@@ -47,6 +52,22 @@ class DummyLabel:
 
     def setText(self, text):
         self.text = text
+
+
+class DummySelector:
+    def __init__(self, text):
+        self._text = text
+
+    def currentText(self):
+        return self._text
+
+
+class DummyStatusBar:
+    def __init__(self):
+        self.message = ""
+
+    def showMessage(self, msg):
+        self.message = msg
 
 
 class ApplyCalculationsTest(unittest.TestCase):
@@ -97,6 +118,60 @@ class ApplyCalculationsTest(unittest.TestCase):
             viewer.status_label.text,
             f"{len(expected)} rows, {len(viewer.columns)} columns returned",
         )
+
+
+class SQLAccountExtractionTest(unittest.TestCase):
+    def setUp(self):
+        patch_qt_modules()
+        sys.modules.pop("src.ui.main_window", None)
+        self.MainWindow = importlib.import_module("src.ui.main_window").MainWindow
+        self.df = pd.read_csv(os.path.join(FIXTURES, "sql_data.csv"))
+
+    def test_gather_accounts_from_sql(self):
+        window = self.MainWindow.__new__(self.MainWindow)
+        window.results_viewer = types.SimpleNamespace(
+            results_data=self.df.to_dict(orient="records"),
+            get_dataframe=lambda: self.df,
+            has_results=lambda: True,
+        )
+        window.logger = types.SimpleNamespace(error=lambda *a, **k: None)
+
+        accounts = window._gather_accounts_from_sql()
+
+        self.assertEqual(accounts, ["1234-5678", "9999-0000"])
+
+    def test_open_account_categories_after_sql(self):
+        captured = {}
+
+        class StubDialog:
+            def __init__(self, config, report_type, accounts, parent=None):
+                captured["accounts"] = accounts
+
+            def refresh_accounts(self, accounts):
+                captured["refresh"] = accounts
+
+            def exec(self):
+                return True
+
+        mod = importlib.import_module("src.ui.main_window")
+        mod.AccountCategoryDialog = StubDialog
+
+        window = self.MainWindow.__new__(self.MainWindow)
+        window.config = DummyConfig()
+        window.report_selector = DummySelector("Test")
+        window.status_bar = DummyStatusBar()
+        window.logger = types.SimpleNamespace()
+        window.results_viewer = types.SimpleNamespace(
+            results_data=self.df.to_dict(orient="records"),
+            get_dataframe=lambda: self.df,
+            has_results=lambda: True,
+        )
+
+        window.open_account_categories()
+
+        self.assertEqual(captured.get("accounts"), ["1234-5678", "9999-0000"])
+        self.assertEqual(captured.get("refresh"), ["1234-5678", "9999-0000"])
+        self.assertEqual(window.status_bar.message, "Account categories updated")
 
 
 if __name__ == "__main__":
