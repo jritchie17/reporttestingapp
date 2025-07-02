@@ -62,6 +62,16 @@ The Theme drop-down defaults to *Brand* (applying the company's colors) but also
 
 To manage account mappings, open **Tools -> Manage Account Categories...**. When this dialog opens the application scans all currently loaded Excel sheets and pre-fills the account list automatically. Columns named `Account` or `CAReportName` are recognized without manual setup.
 
+### Account Formulas
+Formulas entered in this dialog can reference **any** of the category names you create and also any numeric column that exists in the sheet. This makes it easy to compute new values without additional mappings. For example you can define:
+
+```
+Gross Margin = Revenue - CostOfSales
+Net = Gross - Discounts
+```
+
+The above shows both category references (`Revenue`, `CostOfSales`) and direct column references (`Gross`, `Discounts`).
+
 ### Report Configurations
 Open **Tools → Report Configurations** to define how each report type should be parsed. For every report you can set:
 - `header_rows` – the rows that contain column headers
