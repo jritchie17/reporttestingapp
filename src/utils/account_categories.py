@@ -111,17 +111,30 @@ class CategoryCalculator:
 
         return ""
 
-    def compute(self, rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def compute(
+        self, rows: List[Dict[str, Any]], default_group: Any | None = None
+    ) -> List[Dict[str, Any]]:
         """Return rows extended with category totals and formula rows.
 
         If ``group_column`` was supplied and is present in the data, totals are
         calculated separately for each value of that column and the resulting
-        rows include the grouping value.
+        rows include the grouping value.  When ``group_column`` is specified but
+        missing from ``rows``, the value of ``default_group`` will be used for
+        all generated rows and inserted into the original rows so that the
+        output always includes the grouping column.
         """
         if not rows:
             return []
 
         account_col = self._resolve_account_column(rows)
+
+        # If grouping is requested but the column is missing, insert it using
+        # the provided default value so downstream logic can rely on its
+        # existence.
+        group_exists = bool(self.group_column and self.group_column in rows[0])
+        if self.group_column and not group_exists:
+            rows = [{**row, self.group_column: default_group} for row in rows]
+            group_exists = True
 
         result = list(rows)
         numeric_cols = self._numeric_columns(rows)
@@ -148,7 +161,6 @@ class CategoryCalculator:
                     safe = new_safe
                 safe_names[acct] = safe
 
-        group_exists = bool(self.group_column and self.group_column in rows[0])
         if group_exists:
             groups = sorted({row[self.group_column] for row in rows})
         else:
@@ -164,8 +176,7 @@ class CategoryCalculator:
 
         account_totals: Dict[Any, Dict[str, Dict[str, Decimal]]] = {
             g: {
-                acc: {col: Decimal("0") for col in numeric_cols}
-                for acc in account_refs
+                acc: {col: Decimal("0") for col in numeric_cols} for acc in account_refs
             }
             for g in groups
         }
@@ -206,7 +217,9 @@ class CategoryCalculator:
                                     if isinstance(val, Decimal):
                                         totals[group_val][name][col] += val
                                     else:
-                                        totals[group_val][name][col] += Decimal(str(val))
+                                        totals[group_val][name][col] += Decimal(
+                                            str(val)
+                                        )
                             break
 
             for acc in account_refs:
@@ -214,7 +227,9 @@ class CategoryCalculator:
                 if acct_code and acc_code and acct_code == acc_code:
                     for col in numeric_cols:
                         val = row.get(col)
-                        if isinstance(val, (int, float, Decimal)) and not isinstance(val, bool):
+                        if isinstance(val, (int, float, Decimal)) and not isinstance(
+                            val, bool
+                        ):
                             if sign_flip.should_flip(acct_raw, self.sign_flip_accounts):
                                 val = -val
                             if isinstance(val, Decimal):
@@ -245,7 +260,9 @@ class CategoryCalculator:
                         for k in self.categories
                     }
                     for acc in account_refs:
-                        local[safe_names[acc]] = account_totals[g].get(acc, {}).get(col, Decimal("0"))
+                        local[safe_names[acc]] = (
+                            account_totals[g].get(acc, {}).get(col, Decimal("0"))
+                        )
                     try:
                         values[col] = eval(safe_expr, {}, local)
                     except Exception:

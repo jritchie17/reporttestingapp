@@ -12,7 +12,6 @@ from src.utils.account_categories import CategoryCalculator
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 
 
-
 class DummyConfig:
     def __init__(self):
         self.categories = {}
@@ -327,6 +326,36 @@ class TestCategoryCalculator(unittest.TestCase):
         total = next(r for r in result if r["CAReportName"] == "Total")
         self.assertEqual(total["Amount"], 150)
 
+    def test_sheet_column_added_when_missing(self):
+        rows = [
+            {"CAReportName": "1234-5678", "Amount": -100},
+            {"CAReportName": "9999-0000", "Amount": 50},
+        ]
+
+        calc = CategoryCalculator(self.categories, self.formulas, group_column="Sheet")
+        result = calc.compute(list(rows), default_group="Foo")
+
+        cat_row = next(r for r in result if r["CAReportName"] == "CatA")
+        self.assertEqual(cat_row["Sheet"], "Foo")
+
+        net_row = next(r for r in result if r["CAReportName"] == "Net")
+        self.assertEqual(net_row["Sheet"], "Foo")
+
+    def test_sheet_column_preserved_when_present(self):
+        rows = [
+            {"Sheet": "Bar", "CAReportName": "1234-5678", "Amount": -100},
+            {"Sheet": "Bar", "CAReportName": "9999-0000", "Amount": 50},
+        ]
+
+        calc = CategoryCalculator(self.categories, self.formulas, group_column="Sheet")
+        result = calc.compute(list(rows))
+
+        total_row = next(r for r in result if r["CAReportName"] == "CatB")
+        self.assertEqual(total_row["Sheet"], "Bar")
+
+        net_row = next(r for r in result if r["CAReportName"] == "Net")
+        self.assertEqual(net_row["Sheet"], "Bar")
+
 
 class TestAccountCategoryDialog(unittest.TestCase):
     def setUp(self):
@@ -402,6 +431,7 @@ class TestAccountCategoryDialog(unittest.TestCase):
         dialog._delete_formula()
 
         from PyQt6.QtWidgets import QMessageBox
+
         QMessageBox.next_result = QMessageBox.StandardButton.Discard
         dialog.reject()
 
