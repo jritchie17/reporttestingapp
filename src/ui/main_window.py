@@ -1398,9 +1398,18 @@ class MainWindow(QMainWindow):
         report_type = self.report_selector.currentText()
         if self.results_viewer and self.results_viewer.has_results():
             accounts = self._gather_accounts_from_sql()
+            sheets = self._gather_sheet_names_from_sql()
         else:
             accounts = self._gather_accounts_from_excel()
-        dialog = AccountCategoryDialog(self.config, report_type, accounts, self)
+            sheets = self.excel_analyzer.sheet_names if self.excel_analyzer else []
+
+        dialog = AccountCategoryDialog(
+            self.config,
+            report_type,
+            accounts,
+            sheet_names=sheets,
+            parent=self,
+        )
         dialog.refresh_accounts(accounts)
         if dialog.exec():
             self.status_bar.showMessage("Account categories updated")
@@ -1509,6 +1518,20 @@ class MainWindow(QMainWindow):
         """Extract account numbers from SQL query results."""
         if not getattr(self, "results_viewer", None) or not self.results_viewer.has_results():
             return []
+
+    def _gather_sheet_names_from_sql(self):
+        """Return sheet names present in the SQL results if available."""
+        if not getattr(self, "results_viewer", None) or not self.results_viewer.has_results():
+            return []
+        try:
+            df = self.results_viewer.get_dataframe()
+            for cand in ["Sheet_Name", "Sheet", "SheetName"]:
+                if cand in df.columns:
+                    series = df[cand].dropna().astype(str)
+                    return sorted(series.unique().tolist())
+        except Exception as e:
+            self.logger.error(f"Failed to extract sheet names from SQL results: {e}")
+        return []
 
         from src.utils.account_patterns import ACCOUNT_PATTERNS
         patterns = ACCOUNT_PATTERNS

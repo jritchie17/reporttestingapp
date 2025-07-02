@@ -10,10 +10,10 @@ FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
 
 
 class DummyConfig:
-    def get_account_categories(self, report_type):
+    def get_account_categories(self, report_type, sheet_name=None):
         return {}
 
-    def get_account_formulas(self, report_type):
+    def get_account_formulas(self, report_type, sheet_name=None):
         return {}
 
 
@@ -50,8 +50,9 @@ class TestOpenAccountCategoriesSQL(unittest.TestCase):
         captured = {}
 
         class StubDialog:
-            def __init__(self, config, report_type, accounts, parent=None):
+            def __init__(self, config, report_type, accounts, sheet_names=None, parent=None):
                 captured['accounts'] = accounts
+                captured['sheets'] = sheet_names
             def exec(self):
                 return True
 
@@ -71,6 +72,7 @@ class TestOpenAccountCategoriesSQL(unittest.TestCase):
         window.open_account_categories()
 
         self.assertEqual(captured.get('accounts'), ['1234-5678', '9999-0000'])
+        self.assertEqual(captured.get('sheets'), [])
         self.assertEqual(window.status_bar.message, 'Account categories updated')
 
 

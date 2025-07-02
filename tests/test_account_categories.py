@@ -18,17 +18,25 @@ class DummyConfig:
         self.categories = {}
         self.formulas = {}
 
-    def get_account_categories(self, report_type):
-        return self.categories.get(report_type, {})
+    def get_account_categories(self, report_type, sheet_name=None):
+        mapping = self.categories.get(report_type, {})
+        if sheet_name is None:
+            return mapping.get("__default__", {})
+        return mapping.get(sheet_name, {})
 
-    def get_account_formulas(self, report_type):
-        return self.formulas.get(report_type, {})
+    def get_account_formulas(self, report_type, sheet_name=None):
+        mapping = self.formulas.get(report_type, {})
+        if sheet_name is None:
+            return mapping.get("__default__", {})
+        return mapping.get(sheet_name, {})
 
-    def set_account_categories(self, report_type, cats):
-        self.categories[report_type] = cats
+    def set_account_categories(self, report_type, cats, sheet_name=None):
+        sheet_name = sheet_name or "__default__"
+        self.categories.setdefault(report_type, {})[sheet_name] = cats
 
-    def set_account_formulas(self, report_type, formulas):
-        self.formulas[report_type] = formulas
+    def set_account_formulas(self, report_type, formulas, sheet_name=None):
+        sheet_name = sheet_name or "__default__"
+        self.formulas.setdefault(report_type, {})[sheet_name] = formulas
 
 
 class TestCategoryCalculator(unittest.TestCase):
@@ -330,7 +338,7 @@ class TestAccountCategoryDialog(unittest.TestCase):
     def test_account_list_populated(self):
         accounts = ["1111", "2222", "3333"]
         config = DummyConfig()
-        dialog = self.Dialog(config, "Test", accounts)
+        dialog = self.Dialog(config, "Test", accounts, sheet_names=["Sheet1"])
         from PyQt6.QtCore import Qt
 
         self.assertEqual(dialog.account_list.count(), len(accounts))
@@ -347,7 +355,7 @@ class TestAccountCategoryDialog(unittest.TestCase):
     def test_accounts_sorted_after_add(self):
         accounts = ["2222", "3333"]
         config = DummyConfig()
-        dialog = self.Dialog(config, "Test", accounts)
+        dialog = self.Dialog(config, "Test", accounts, sheet_names=["Sheet1"])
         from PyQt6.QtWidgets import QInputDialog
 
         def fake_get_text(*args, **kwargs):
@@ -364,7 +372,7 @@ class TestAccountCategoryDialog(unittest.TestCase):
 
     def test_add_delete_and_save(self):
         config = DummyConfig()
-        dialog = self.Dialog(config, "Test", [])
+        dialog = self.Dialog(config, "Test", [], sheet_names=["Sheet1"])
 
         from PyQt6.QtWidgets import QInputDialog
 
@@ -386,7 +394,7 @@ class TestAccountCategoryDialog(unittest.TestCase):
         config.set_account_categories("Test", {"Orig": ["1"]})
         config.set_account_formulas("Test", {"F": "Orig"})
 
-        dialog = self.Dialog(config, "Test", [])
+        dialog = self.Dialog(config, "Test", [], sheet_names=["Sheet1"])
 
         dialog.category_list.setCurrentRow(0)
         dialog._delete_category()
