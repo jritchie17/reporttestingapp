@@ -378,7 +378,11 @@ class ResultsViewer(QWidget):
                     if sheet_col and sheet_col not in self.results_data[0]:
                         default_group = sheet_val
                     base_data = self.original_data or self.results_data
-                    self.results_data = calc.compute(list(base_data), default_group=default_group)
+                    self.results_data = calc.compute(
+                        list(base_data),
+                        default_group=default_group,
+                        include_categories=False,
+                    )
 
         # Refresh the table model with new rows
         self.model = ResultsTableModel(self.results_data, self.columns)

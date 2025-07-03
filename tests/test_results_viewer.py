@@ -125,7 +125,8 @@ class ApplyCalculationsTest(unittest.TestCase):
                     "CAReportName": "9999-0000",
                     "Amount": 50,
                 },
-            ]
+            ],
+            include_categories=False,
         )
 
         self.assertEqual(viewer.results_data, expected)
@@ -175,7 +176,8 @@ class ApplyCalculationsTest(unittest.TestCase):
             [
                 {"Sheet": "Foo", "CAReportName": "1234-5678", "Amount": -100},
                 {"Sheet": "Bar", "CAReportName": "9999-0000", "Amount": 50},
-            ]
+            ],
+            include_categories=False,
         )
 
         self.assertEqual(viewer.results_data, expected)
