@@ -112,7 +112,10 @@ class CategoryCalculator:
         return ""
 
     def compute(
-        self, rows: List[Dict[str, Any]], default_group: Any | None = None
+        self,
+        rows: List[Dict[str, Any]],
+        default_group: Any | None = None,
+        include_categories: bool = True,
     ) -> List[Dict[str, Any]]:
         """Return rows extended with category totals and formula rows.
 
@@ -122,6 +125,12 @@ class CategoryCalculator:
         missing from ``rows``, the value of ``default_group`` will be used for
         all generated rows and inserted into the original rows so that the
         output always includes the grouping column.
+
+        Parameters
+        ----------
+        include_categories:
+            When ``True`` (default), append totals for each configured
+            category.  When ``False``, only rows for formulas are returned.
         """
         if not rows:
             return []
@@ -239,11 +248,12 @@ class CategoryCalculator:
                     break
 
         for g in groups:
-            for name in self.categories:
-                row_vals = {account_col: name, **totals[g][name]}
-                if group_exists:
-                    row_vals[self.group_column] = g
-                result.append(row_vals)
+            if include_categories:
+                for name in self.categories:
+                    row_vals = {account_col: name, **totals[g][name]}
+                    if group_exists:
+                        row_vals[self.group_column] = g
+                    result.append(row_vals)
 
             for form_name, expr in self.formulas.items():
                 # Replace category names and account refs with safe identifiers
