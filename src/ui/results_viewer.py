@@ -187,6 +187,7 @@ class ResultsViewer(QWidget):
     def __init__(self):
         super().__init__()
         self.results_data = []
+        self.original_data = []
         self.columns = []
         self.init_ui()
 
@@ -261,42 +262,9 @@ class ResultsViewer(QWidget):
             self.status_label.setText("No results to display")
             return
 
-        self.results_data = data
-
-        # Append category totals and formulas if configured for this report type
-        parent = self.window()
-        try:
-            from src.ui.main_window import MainWindow  # avoid circular import
-        except Exception:
-            MainWindow = None
-
-        if (
-            parent
-            and MainWindow
-            and isinstance(parent, MainWindow)
-            and hasattr(parent, "config")
-        ):
-            report_type = parent.config.get("excel", "report_type")
-            if report_type:
-                categories = parent.config.get_account_categories(report_type)
-                formulas = parent.config.get_account_formulas(report_type)
-                if categories:
-                    group_col = None
-                    if self.results_data and isinstance(self.results_data[0], dict):
-                        if "Center" in self.results_data[0]:
-                            group_col = "Center"
-                    sign_flip = []
-                    if parent and hasattr(parent, "comparison_engine"):
-                        sign_flip = list(
-                            getattr(parent.comparison_engine, "sign_flip_accounts", [])
-                        )
-                    calc = CategoryCalculator(
-                        categories,
-                        formulas,
-                        group_column=group_col,
-                        sign_flip_accounts=sign_flip,
-                    )
-                    self.results_data = calc.compute(list(self.results_data))
+        # Store the raw results so calculations can be applied later
+        self.results_data = list(data)
+        self.original_data = list(data)
 
         # If columns not provided, try to get them from the first row
         if not columns and data:
@@ -340,6 +308,9 @@ class ResultsViewer(QWidget):
         """Append category totals and formulas to the current results."""
         if not self.results_data:
             return
+
+        if not self.original_data:
+            self.original_data = list(self.results_data)
 
         parent = self.window()
         try:
@@ -406,7 +377,8 @@ class ResultsViewer(QWidget):
                     default_group = None
                     if sheet_col and sheet_col not in self.results_data[0]:
                         default_group = sheet_val
-                    self.results_data = calc.compute(list(self.results_data), default_group=default_group)
+                    base_data = self.original_data or self.results_data
+                    self.results_data = calc.compute(list(base_data), default_group=default_group)
 
         # Refresh the table model with new rows
         self.model = ResultsTableModel(self.results_data, self.columns)
@@ -518,6 +490,7 @@ class ResultsViewer(QWidget):
     def clear_results(self):
         """Clear all results data"""
         self.results_data = []
+        self.original_data = []
         self.columns = []
 
         # Create empty model
