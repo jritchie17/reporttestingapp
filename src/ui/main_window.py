@@ -1527,9 +1527,10 @@ class MainWindow(QMainWindow):
             if df.empty:
                 return []
 
-            # Prefer a CAReportName column if present (case-insensitive)
+            # Prefer a CAReportName column if present (case-insensitive, ignore spaces)
             for col in df.columns:
-                if str(col).lower() == "careportname".lower():
+                normalized = str(col).lower().replace(" ", "")
+                if normalized == "careportname":
                     series = df[col].dropna().astype(str)
                     return sorted(series.unique().tolist())
 
