@@ -215,6 +215,35 @@ class ApplyCalculationsTest(unittest.TestCase):
         self.assertEqual(net_rows[0].get("Sheet"), "Foo")
         self.assertIn("Sheet", viewer.columns)
 
+    def test_apply_calculations_prefixes_formula_rows(self):
+        parent = self.MainWindow.__new__(self.MainWindow)
+        parent.config = DummyConfig()
+        parent.config.set_account_categories(
+            "AR Center",
+            {"Bad debt": ["Bad debt"]},
+        )
+        parent.config.set_account_formulas("AR Center", {"Bad debt percentage": "Bad debt"})
+        parent.config.report_type = "AR Center"
+        parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
+        parent.sheet_selector = DummySelector("facility")
+
+        viewer = self.ResultsViewer.__new__(self.ResultsViewer)
+        viewer.results_data = [
+            {"CAReportName": "Facility: Bad debt", "Amount": 100},
+        ]
+        viewer.columns = ["CAReportName", "Amount"]
+        viewer.table_view = DummyTable()
+        viewer.status_label = DummyLabel()
+        viewer.window = lambda: parent
+
+        viewer.apply_calculations()
+
+        has_prefixed_formula = any(
+            row.get("CAReportName") == "Facility: Bad debt percentage"
+            for row in viewer.results_data
+        )
+        self.assertTrue(has_prefixed_formula)
+
 
 class SQLAccountExtractionTest(unittest.TestCase):
     def setUp(self):
@@ -332,6 +361,13 @@ class ARCenterResultsLoadTest(unittest.TestCase):
             [row["Acct"] for row in viewer.results_data],
             ["Facility: 0 - 30 days", "Facility: 31 - 60 days"],
         )
+
+    def test_load_results_avoids_double_prefix(self):
+        data = [
+            {"CAReportName": "Facility: Bad debt", "Val": 1},
+        ]
+        viewer = self._load(data, ["CAReportName", "Val"], sheet="facility")
+        self.assertEqual(viewer.results_data[0]["CAReportName"], "Facility: Bad debt")
 
 
 if __name__ == "__main__":
