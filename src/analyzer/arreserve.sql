@@ -1191,7 +1191,7 @@ WHERE
     AND Element2 <> 'Facility allowance'
     AND CenterNumber NOT IN ('M313-001', 'M232-001')
     AND Element3_CaReportName NOT LIKE '%anesthesia%'
-    AND Element2_CaReportName ='Gross Charges', 'Total implant revenue', 'Total billable drug revenue')
+    AND Element2_CaReportName IN ('Gross Charges', 'Total implant revenue', 'Total billable drug revenue')
     AND AccountNumber NOT LIKE '%1202%'
 GROUP BY Element3_CaReportName
 
@@ -1231,7 +1231,7 @@ WHERE
     AND Element2 <> 'Facility allowance'
     AND CenterNumber NOT IN ('M313-001', 'M232-001')
     AND Element3_CaReportName NOT LIKE '%anesthesia%'
-    AND Element2_CaReportName ='Total implant revenue', 'Total billable drug revenue')
+    AND Element2_CaReportName IN ('Total implant revenue', 'Total billable drug revenue')
     AND AccountNumber NOT LIKE '%1202%'
 GROUP BY Element3_CaReportName
 
