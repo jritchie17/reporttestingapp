@@ -553,7 +553,7 @@ SELECT DISTINCT
     SUM(CASE WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - anesthesia', 'Bad debt expense - anesthesia') THEN -1 * [Jun]
              WHEN Year = '2024' THEN [Jun] ELSE 0 END) AS [Jun 2024],
     SUM(CASE WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - anesthesia', 'Bad debt expense - anesthesia') THEN -1 * [Jul]
-             WHEN Year = '2024' THEN [Jul] ELSE 0 END) AS [Jun 2024],
+            WHEN Year = '2024' THEN [Jul] ELSE 0 END) AS [Jul 2024],
     SUM(CASE WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - anesthesia', 'Bad debt expense - anesthesia') THEN -1 * [Aug]
              WHEN Year = '2024' THEN [Aug] ELSE 0 END) AS [Aug 2024],
     SUM(CASE WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - anesthesia', 'Bad debt expense - anesthesia') THEN -1 * [Sep]
