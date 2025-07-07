@@ -157,7 +157,10 @@ UNION ALL
                  SUM(CASE WHEN Year = '2025' THEN beginningbalance + Jan + Feb + Mar + Apr END)) / 3.0
             ) / 
             NULLIF(SUM(CASE WHEN Year = '2025' THEN beginningbalance + Jan + Feb + Mar + Apr + May END), 0)END) AS [May 2025 Var%],
-		NULL AS YTDMay2025Actual
+                NULL AS YTDMay2025Actual,
+                NULL AS YTDMay2025PY,
+                NULL AS YTDMay2025Var,
+                NULL AS YTDMay2025VarPct
   FROM [CognosTesting].[dbo].[RawTestSet] r
 INNER JOIN [CognosTesting].[dbo].[ReportingAccountHierarchy] rah
     ON r.accountnumber = rah.joincolumn
@@ -208,7 +211,10 @@ INNER JOIN [CognosTesting].[dbo].[ReportingAccountHierarchy] rah
                  SUM(CASE WHEN Year = '2025' THEN beginningbalance + Jan + Feb + Mar + Apr END)) / 3.0
             ) / 
             NULLIF(SUM(CASE WHEN Year = '2025' THEN beginningbalance + Jan + Feb + Mar + Apr + May END), 0)END) AS [May 2025 Var%], 
-			NULL AS YTDMay2025Actual
+                        NULL AS YTDMay2025Actual,
+                        NULL AS YTDMay2025PY,
+                        NULL AS YTDMay2025Var,
+                        NULL AS YTDMay2025VarPct
 	  
   FROM [CognosTesting].[dbo].[RawTestSet] r
 INNER JOIN [CognosTesting].[dbo].[ReportingAccountHierarchy] rah
@@ -411,6 +417,103 @@ SUM(
         ELSE NULL
     END
 ) AS YTDMay2025Actual
+        ,SUM(
+            CASE
+                WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days', 'Total accounts receivable aging') THEN NULL
+                WHEN Year = '2024' AND Element2_CaReportName = 'Visits' AND Element3 = 'S128-6022' THEN -1 * (Jan + Feb + Mar + Apr + May)
+                WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                ELSE NULL
+            END
+        ) AS YTDMay2025PY,
+        CASE
+            WHEN
+                SUM(CASE
+                        WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days', 'Total accounts receivable aging') THEN NULL
+                        WHEN Year = '2025' AND Element2_CaReportName = 'Visits' AND Element3 = 'S128-6022' THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2025' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May
+                        ELSE NULL
+                    END) IS NULL
+             OR
+                SUM(CASE
+                        WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days', 'Total accounts receivable aging') THEN NULL
+                        WHEN Year = '2024' AND Element2_CaReportName = 'Visits' AND Element3 = 'S128-6022' THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                        ELSE NULL
+                    END) IS NULL
+            THEN NULL
+            ELSE
+                SUM(CASE
+                        WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days', 'Total accounts receivable aging') THEN NULL
+                        WHEN Year = '2024' AND Element2_CaReportName = 'Visits' AND Element3 = 'S128-6022' THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                        ELSE NULL
+                    END)
+                -
+                SUM(CASE
+                        WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days', 'Total accounts receivable aging') THEN NULL
+                        WHEN Year = '2025' AND Element2_CaReportName = 'Visits' AND Element3 = 'S128-6022' THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2025' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May
+                        ELSE NULL
+                    END)
+        END AS YTDMay2025Var,
+        CASE
+            WHEN
+                SUM(CASE
+                        WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days', 'Total accounts receivable aging') THEN NULL
+                        WHEN Year = '2025' AND Element2_CaReportName = 'Visits' AND Element3 = 'S128-6022' THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2025' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May
+                        ELSE NULL
+                    END) IS NULL
+             OR
+                SUM(CASE
+                        WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days', 'Total accounts receivable aging') THEN NULL
+                        WHEN Year = '2024' AND Element2_CaReportName = 'Visits' AND Element3 = 'S128-6022' THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                        ELSE NULL
+                    END) IS NULL
+             OR
+                ABS(SUM(CASE
+                        WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days', 'Total accounts receivable aging') THEN NULL
+                        WHEN Year = '2024' AND Element2_CaReportName = 'Visits' AND Element3 = 'S128-6022' THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                        ELSE NULL
+                    END)) = 0
+            THEN NULL
+            ELSE
+                (
+                    SUM(CASE
+                            WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days', 'Total accounts receivable aging') THEN NULL
+                            WHEN Year = '2025' AND Element2_CaReportName = 'Visits' AND Element3 = 'S128-6022' THEN -1 * (Jan + Feb + Mar + Apr + May)
+                            WHEN Year = '2025' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                            WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May
+                            ELSE NULL
+                        END)
+                    -
+                    SUM(CASE
+                            WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days', 'Total accounts receivable aging') THEN NULL
+                            WHEN Year = '2024' AND Element2_CaReportName = 'Visits' AND Element3 = 'S128-6022' THEN -1 * (Jan + Feb + Mar + Apr + May)
+                            WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                            WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                            ELSE NULL
+                        END)
+                )
+                /
+                ABS(SUM(CASE
+                        WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days', 'Total accounts receivable aging') THEN NULL
+                        WHEN Year = '2024' AND Element2_CaReportName = 'Visits' AND Element3 = 'S128-6022' THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                        WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                        ELSE NULL
+                    END))
+        END AS YTDMay2025VarPct
 
 
 FROM [CognosTesting].[dbo].[RawTestSet] r
@@ -582,8 +685,59 @@ SELECT DISTINCT
     END
 ) AS [May 2025 Var%],
 SUM(CASE WHEN Year = '2025' AND Element3_CAReportNAME IN('0 - 30 days','120+ days','31 - 60 days','61 - 90 days','91 - 120 days', 'Credit Balances') THEN NULL
-			 WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May 
-			 ELSE NULL END) AS YTDMay2025Actual
+                         WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May
+                         ELSE NULL END) AS YTDMay2025Actual,
+        SUM(CASE WHEN Year = '2024' AND Element3_CAReportNAME IN('0 - 30 days','120+ days','31 - 60 days','61 - 90 days','91 - 120 days', 'Credit Balances') THEN NULL
+                         WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                         ELSE NULL END) AS YTDMay2025PY,
+        CASE
+    WHEN
+        SUM(CASE WHEN Year = '2025' AND Element3_CAReportNAME IN('0 - 30 days','120+ days','31 - 60 days','61 - 90 days','91 - 120 days', 'Credit Balances') THEN NULL
+                 WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May
+                 ELSE NULL END) IS NULL
+     OR
+        SUM(CASE WHEN Year = '2024' AND Element3_CAReportNAME IN('0 - 30 days','120+ days','31 - 60 days','61 - 90 days','91 - 120 days', 'Credit Balances') THEN NULL
+                 WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                 ELSE NULL END) IS NULL
+    THEN NULL
+    ELSE
+        SUM(CASE WHEN Year = '2024' AND Element3_CAReportNAME IN('0 - 30 days','120+ days','31 - 60 days','61 - 90 days','91 - 120 days', 'Credit Balances') THEN NULL
+                 WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                 ELSE NULL END)
+        -
+        SUM(CASE WHEN Year = '2025' AND Element3_CAReportNAME IN('0 - 30 days','120+ days','31 - 60 days','61 - 90 days','91 - 120 days', 'Credit Balances') THEN NULL
+                 WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May
+                 ELSE NULL END)
+END AS YTDMay2025Var,
+CASE
+    WHEN
+        SUM(CASE WHEN Year = '2025' AND Element3_CAReportNAME IN('0 - 30 days','120+ days','31 - 60 days','61 - 90 days','91 - 120 days', 'Credit Balances') THEN NULL
+                 WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May
+                 ELSE NULL END) IS NULL
+     OR
+        SUM(CASE WHEN Year = '2024' AND Element3_CAReportNAME IN('0 - 30 days','120+ days','31 - 60 days','61 - 90 days','91 - 120 days', 'Credit Balances') THEN NULL
+                 WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                 ELSE NULL END) IS NULL
+     OR
+        ABS(SUM(CASE WHEN Year = '2024' AND Element3_CAReportNAME IN('0 - 30 days','120+ days','31 - 60 days','61 - 90 days','91 - 120 days', 'Credit Balances') THEN NULL
+                     WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                     ELSE NULL END)) = 0
+    THEN NULL
+    ELSE
+        (
+            SUM(CASE WHEN Year = '2025' AND Element3_CAReportNAME IN('0 - 30 days','120+ days','31 - 60 days','61 - 90 days','91 - 120 days', 'Credit Balances') THEN NULL
+                     WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May
+                     ELSE NULL END)
+            -
+            SUM(CASE WHEN Year = '2024' AND Element3_CAReportNAME IN('0 - 30 days','120+ days','31 - 60 days','61 - 90 days','91 - 120 days', 'Credit Balances') THEN NULL
+                     WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                     ELSE NULL END)
+        )
+        /
+        ABS(SUM(CASE WHEN Year = '2024' AND Element3_CAReportNAME IN('0 - 30 days','120+ days','31 - 60 days','61 - 90 days','91 - 120 days', 'Credit Balances') THEN NULL
+                     WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                     ELSE NULL END))
+END AS YTDMay2025VarPct
 
 
 FROM [CognosTesting].[dbo].[RawTestSet] r
@@ -764,6 +918,72 @@ SUM(
         ELSE NULL
     END
 ) AS [YTDMay2025Actual]
+        ,SUM(
+            CASE
+                WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days') THEN NULL
+                WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                ELSE NULL
+            END
+        ) AS YTDMay2025PY,
+        CASE
+    WHEN
+        SUM(CASE WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days') THEN NULL
+                 WHEN Year = '2025' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                 WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May
+                 ELSE NULL END) IS NULL
+     OR
+        SUM(CASE WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days') THEN NULL
+                 WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                 WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                 ELSE NULL END) IS NULL
+    THEN NULL
+    ELSE
+        SUM(CASE WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days') THEN NULL
+                 WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                 WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                 ELSE NULL END)
+        -
+        SUM(CASE WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days') THEN NULL
+                 WHEN Year = '2025' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                 WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May
+                 ELSE NULL END)
+END AS YTDMay2025Var,
+CASE
+    WHEN
+        SUM(CASE WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days') THEN NULL
+                 WHEN Year = '2025' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                 WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May
+                 ELSE NULL END) IS NULL
+     OR
+        SUM(CASE WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days') THEN NULL
+                 WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                 WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                 ELSE NULL END) IS NULL
+     OR
+        ABS(SUM(CASE WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days') THEN NULL
+                     WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                     WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                     ELSE NULL END)) = 0
+    THEN NULL
+    ELSE
+        (
+            SUM(CASE WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days') THEN NULL
+                     WHEN Year = '2025' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                     WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May
+                     ELSE NULL END)
+            -
+            SUM(CASE WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days') THEN NULL
+                     WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                     WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                     ELSE NULL END)
+        )
+        /
+        ABS(SUM(CASE WHEN Element2_CaReportName IN ('A211-0000 Gross days in AR', 'Accounts receivable greater than 90 days') THEN NULL
+                     WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * (Jan + Feb + Mar + Apr + May)
+                     WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May
+                     ELSE NULL END))
+END AS YTDMay2025VarPct
 
 FROM [CognosTesting].[dbo].[RawTestSet] r
 INNER JOIN [CognosTesting].[dbo].[ReportingAccountHierarchy] rah
@@ -811,7 +1031,24 @@ SELECT DISTINCT
 	SUM(CASE WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) END ) AS [May 2025 Var],
 	SUM(CASE WHEN Year = '2025' AND May = 0 THEN 0
 			 WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) / NULLIF(May, 0) END ) AS [May 2025 Var%],
-	SUM(Jan + Feb + Mar + Apr + May) AS YTDMay2025Actual
+        SUM(Jan + Feb + Mar + Apr + May) AS YTDMay2025Actual,
+        SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) AS YTDMay2025PY,
+        CASE
+            WHEN SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+            THEN NULL
+            ELSE SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) -
+                 SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END)
+        END AS YTDMay2025Var,
+        CASE
+            WHEN SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR ABS(SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END)) = 0
+            THEN NULL
+            ELSE (SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) -
+                  SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END)) /
+                 ABS(SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END))
+        END AS YTDMay2025VarPct
 
 FROM [CognosTesting].[dbo].[RawTestSet] r
 INNER JOIN [CognosTesting].[dbo].[ReportingAccountHierarchy] rah
@@ -849,9 +1086,99 @@ SELECT DISTINCT
     SUM(CASE WHEN Year = '2025' THEN [Apr] END) AS [Apr 2025],
     SUM(CASE WHEN Year = '2025' THEN [May] END) AS [May 2025],
 	SUM(CASE WHEN Year = '2025' THEN (Apr + Mar + Feb) / 3.0 END ) AS [May 2025 T3],
-	SUM(CASE WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) END ) AS [May 2025 Var],
-	SUM(CASE WHEN Year = '2025' AND May = 0 THEN 0
-			 WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) / NULLIF(May, 0) END ) AS [May 2025 Var%]
+        SUM(CASE WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) END ) AS [May 2025 Var],
+        SUM(CASE WHEN Year = '2025' AND May = 0 THEN 0
+                         WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) / NULLIF(May, 0) END ) AS [May 2025 Var%]
+        ,SUM(Jan + Feb + Mar + Apr + May) AS YTDMay2025Actual,
+        SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) AS YTDMay2025PY,
+        CASE
+            WHEN SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+            THEN NULL
+            ELSE SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) -
+                 SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END)
+        END AS YTDMay2025Var,
+        CASE
+            WHEN SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR ABS(SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END)) = 0
+            THEN NULL
+            ELSE (SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) -
+                  SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END)) /
+                 ABS(SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END))
+        END AS YTDMay2025VarPct
+        ,SUM(Jan + Feb + Mar + Apr + May) AS YTDMay2025Actual,
+        SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) AS YTDMay2025PY,
+        CASE
+            WHEN SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+            THEN NULL
+            ELSE SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) -
+                 SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END)
+        END AS YTDMay2025Var,
+        CASE
+            WHEN SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR ABS(SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END)) = 0
+            THEN NULL
+            ELSE (SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) -
+                  SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END)) /
+                 ABS(SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END))
+        END AS YTDMay2025VarPct
+        ,SUM(Jan + Feb + Mar + Apr + May) AS YTDMay2025Actual,
+        SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) AS YTDMay2025PY,
+        CASE
+            WHEN SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+            THEN NULL
+            ELSE SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) -
+                 SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END)
+        END AS YTDMay2025Var,
+        CASE
+            WHEN SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR ABS(SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END)) = 0
+            THEN NULL
+            ELSE (SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) -
+                  SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END)) /
+                 ABS(SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END))
+        END AS YTDMay2025VarPct
+        ,SUM(Jan + Feb + Mar + Apr + May) AS YTDMay2025Actual,
+        SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) AS YTDMay2025PY,
+        CASE
+            WHEN SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+            THEN NULL
+            ELSE SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) -
+                 SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END)
+        END AS YTDMay2025Var,
+        CASE
+            WHEN SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR ABS(SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END)) = 0
+            THEN NULL
+            ELSE (SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) -
+                  SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END)) /
+                 ABS(SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END))
+        END AS YTDMay2025VarPct
+        ,SUM(Jan + Feb + Mar + Apr + May) AS YTDMay2025Actual,
+        SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) AS YTDMay2025PY,
+        CASE
+            WHEN SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+            THEN NULL
+            ELSE SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) -
+                 SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END)
+        END AS YTDMay2025Var,
+        CASE
+            WHEN SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) IS NULL
+                 OR ABS(SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END)) = 0
+            THEN NULL
+            ELSE (SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END) -
+                  SUM(CASE WHEN Year = '2025' THEN Jan + Feb + Mar + Apr + May END)) /
+                 ABS(SUM(CASE WHEN Year = '2024' THEN Jan + Feb + Mar + Apr + May END))
+        END AS YTDMay2025VarPct
 
 FROM [CognosTesting].[dbo].[RawTestSet] r
 INNER JOIN [CognosTesting].[dbo].[ReportingAccountHierarchy] rah
