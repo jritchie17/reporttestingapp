@@ -290,21 +290,32 @@ class ResultsViewer(QWidget):
             if not sheet_name:
                 sheet_name = parent.config.get("excel", "sheet_name") or ""
 
-        if report_type == "AR Center" and sheet_name and self.results_data:
-            prefix = f"{sheet_name.strip().title()}: "
+        if report_type == "AR Center" and self.results_data:
             first_row = self.results_data[0]
             if isinstance(first_row, dict):
                 ca_col = None
+                sheet_col = None
                 for col in first_row:
                     normalized = str(col).strip().replace(" ", "").lower()
                     if normalized == "careportname":
                         ca_col = col
-                        break
+                    elif normalized in ("sheet", "sheetname", "sheet_name"):
+                        sheet_col = col
                 if ca_col is None:
                     ca_col = next(iter(first_row), None)
 
                 if ca_col:
+                    default_prefix = f"{sheet_name.strip().title()}: " if sheet_name else ""
+
+                    def _row_prefix(row):
+                        if sheet_col and row.get(sheet_col):
+                            return f"{str(row[sheet_col]).strip().title()}: "
+                        return default_prefix
+
                     for row in self.results_data:
+                        prefix = _row_prefix(row)
+                        if not prefix:
+                            continue
                         val = row.get(ca_col)
                         if pd.isna(val) or str(val).strip() == "":
                             row[ca_col] = prefix.strip()
