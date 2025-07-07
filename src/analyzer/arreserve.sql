@@ -1,7 +1,7 @@
 SELECT DISTINCT
     'Facility: ' +
 	Case WHEN Element3 IN ('Bad debt expense - facility','Contractual adjustments - facility') THEN Element3
-    ELSE Element3_CaReportName END AS 'CAReportName',
+    ELSE Element3_CaReportName END AS CAReportName,
     SUM(CASE WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * [Mar]
              WHEN Year = '2024' THEN [Mar] ELSE 0 END) AS [Mar 2024],
     SUM(CASE WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * [Apr]
@@ -235,7 +235,7 @@ INNER JOIN [CognosTesting].[dbo].[ReportingAccountHierarchy] rah
 
 SELECT DISTINCT
     'Facility: ' +
-    Element2_CaReportName AS 'CAReportName',
+    Element2_CaReportName AS CAReportName,
     SUM(CASE WHEN Year = '2024' AND Element2_CaReportName = 'Visits' AND Element3 = 'S128-6022' THEN -1 * [Mar]
              WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - facility', 'Bad debt expense - facility') THEN -1 * [Mar]
              WHEN Year = '2024' THEN [Mar] ELSE 0 END) AS [Mar 2024],
@@ -543,7 +543,7 @@ UNION ALL
 SELECT DISTINCT
     'Anesthesia: ' +
 	Case WHEN Element3 IN ('Bad debt expense - anesthesia','Contractual adjustments - anesthesia') THEN Element3
-    ELSE Element3_CaReportName END AS 'CAReportName',
+    ELSE Element3_CaReportName END AS CAReportName,
     SUM(CASE WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - anesthesia', 'Bad debt expense - anesthesia') THEN -1 * [Mar]
              WHEN Year = '2024' THEN [Mar] ELSE 0 END) AS [Mar 2024],
     SUM(CASE WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - anesthesia', 'Bad debt expense - anesthesia') THEN -1 * [Apr]
@@ -766,7 +766,7 @@ UNION ALL
 
 SELECT DISTINCT
     'Anesthesia: ' +
-    Element2_CaReportName AS 'CAReportName',
+    Element2_CaReportName AS CAReportName,
     SUM(CASE WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - anesthesia', 'Bad debt expense - anesthesia') THEN -1 * [Mar]
              WHEN Year = '2024' THEN [Mar] ELSE 0 END) AS [Mar 2024],
     SUM(CASE WHEN Year = '2024' AND Element3 IN ('Contractual adjustments - anesthesia', 'Bad debt expense - anesthesia') THEN -1 * [Apr]
@@ -1011,7 +1011,7 @@ UNION ALL
 
 SELECT DISTINCT
     'Calculations: ' +
-	Element3_CaReportName AS 'CAReportName',
+        Element3_CaReportName AS CAReportName,
     SUM(CASE WHEN Year = '2024' THEN [Mar] END) AS [Mar 2024],
     SUM(CASE WHEN Year = '2024' THEN [Apr] END) AS [Apr 2024],
     SUM(CASE WHEN Year = '2024' THEN [May] END) AS [May 2024],
@@ -1069,7 +1069,7 @@ UNION ALL
 
 SELECT DISTINCT
     'Calculations: ' +
-	Element3_CaReportName AS 'CAReportName',
+        Element3_CaReportName AS CAReportName,
     SUM(CASE WHEN Year = '2024' THEN [Mar] END) AS [Mar 2024],
     SUM(CASE WHEN Year = '2024' THEN [Apr] END) AS [Apr 2024],
     SUM(CASE WHEN Year = '2024' THEN [May] END) AS [May 2024],
@@ -1113,7 +1113,7 @@ UNION ALL
 
 SELECT DISTINCT
     'Calculations: ' +
-	Element3_CaReportName AS 'CAReportName',
+        Element3_CaReportName AS CAReportName,
     SUM(CASE WHEN Year = '2024' THEN [Mar] END) AS [Mar 2024],
     SUM(CASE WHEN Year = '2024' THEN [Apr] END) AS [Apr 2024],
     SUM(CASE WHEN Year = '2024' THEN [May] END) AS [May 2024],
@@ -1157,7 +1157,7 @@ UNION ALL
 
 SELECT DISTINCT
     'Calculations: ' +
-	Element3_CaReportName AS 'CAReportName',
+        Element3_CaReportName AS CAReportName,
     SUM(CASE WHEN Year = '2024' THEN [Mar] END) AS [Mar 2024],
     SUM(CASE WHEN Year = '2024' THEN [Apr] END) AS [Apr 2024],
     SUM(CASE WHEN Year = '2024' THEN [May] END) AS [May 2024],
