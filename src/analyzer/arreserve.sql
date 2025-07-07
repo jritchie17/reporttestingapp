@@ -1,3 +1,6 @@
+-- TODO: Consolidate repeated 'Facility' and 'Anesthesia' UNION blocks using
+-- CASE expressions to reduce duplication. See the review discussion in
+-- GitHub issue #3 for background.
 SELECT DISTINCT
     'Facility: ' +
 	Case WHEN Element3 IN ('Bad debt expense - facility','Contractual adjustments - facility') THEN Element3
