@@ -306,10 +306,14 @@ class ResultsViewer(QWidget):
                 if ca_col:
                     for row in self.results_data:
                         val = row.get(ca_col)
-                        if pd.isna(val):
+                        if pd.isna(val) or str(val).strip() == "":
                             row[ca_col] = prefix.strip()
                         else:
-                            row[ca_col] = f"{prefix}{str(val).strip()}"
+                            val_str = str(val).strip()
+                            if not val_str.lower().startswith(prefix.strip().lower()):
+                                row[ca_col] = f"{prefix}{val_str}"
+                            else:
+                                row[ca_col] = val_str
 
         # If columns not provided, try to get them from the first row
         if not columns and data:
@@ -428,6 +432,35 @@ class ResultsViewer(QWidget):
                         default_group=default_group,
                         include_categories=False,
                     )
+
+                    if (
+                        report_type == "AR Center"
+                        and sheet_val
+                        and self.results_data
+                    ):
+                        prefix = f"{sheet_val.strip().title()}: "
+                        first = self.results_data[0]
+                        if isinstance(first, dict):
+                            ca_col = None
+                            for col in first:
+                                normalized = str(col).strip().replace(" ", "").lower()
+                                if normalized == "careportname":
+                                    ca_col = col
+                                    break
+                            if ca_col is None:
+                                ca_col = next(iter(first), None)
+
+                            if ca_col:
+                                for row in self.results_data:
+                                    val = row.get(ca_col)
+                                    if pd.isna(val) or str(val).strip() == "":
+                                        row[ca_col] = prefix.strip()
+                                    else:
+                                        val_str = str(val).strip()
+                                        if not val_str.lower().startswith(prefix.strip().lower()):
+                                            row[ca_col] = f"{prefix}{val_str}"
+                                        else:
+                                            row[ca_col] = val_str
 
         # Refresh the table model with new rows
         self.model = ResultsTableModel(self.results_data, self.columns)
