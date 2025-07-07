@@ -1138,10 +1138,10 @@ class ExcelViewer(QWidget):
                     clean_df.iloc[:, idx], errors="coerce"
                 ).round(2)
 
-            # Add a new column with the sheet name at the beginning
-            # Skip this for SOO MFR and Corp SOO where including the sheet name would
-            # interfere with comparisons.
-            if self.report_type not in ("SOO MFR", "Corp SOO"):
+            # Add a new column with the sheet name at the beginning.
+            # Skip this for SOO MFR, Corp SOO and AR Center where including the
+            # sheet name would interfere with comparisons.
+            if self.report_type not in ("SOO MFR", "Corp SOO", "AR Center"):
                 clean_df.insert(0, "Sheet_Name", sheet_name)
 
             return clean_df
@@ -1884,19 +1884,26 @@ class ExcelViewer(QWidget):
 
             return clean_df
 
-        # Prefix account names with the sheet for AR Center reports
+        # Prefix account names with the sheet name for AR Center reports. If the
+        # CAReportName column cannot be found, fall back to the first column
+        # after cleaning.
         if self.report_type == "AR Center":
             ca_col = None
             for col in clean_df.columns:
                 if str(col).strip().replace(" ", "").lower() == "careportname":
                     ca_col = col
                     break
+            if ca_col is None and len(clean_df.columns) > 0:
+                ca_col = clean_df.columns[0]
+
             if ca_col:
                 prefix = f"{sheet_name.strip().title()}: "
+
                 def _add_prefix(val):
                     if pd.isna(val):
                         return prefix.strip()
                     return f"{prefix}{str(val).strip()}"
+
                 clean_df[ca_col] = clean_df[ca_col].apply(_add_prefix)
 
         return clean_df
