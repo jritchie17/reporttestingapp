@@ -1884,6 +1884,21 @@ class ExcelViewer(QWidget):
 
             return clean_df
 
+        # Prefix account names with the sheet for AR Center reports
+        if self.report_type == "AR Center":
+            ca_col = None
+            for col in clean_df.columns:
+                if str(col).strip().replace(" ", "").lower() == "careportname":
+                    ca_col = col
+                    break
+            if ca_col:
+                prefix = f"{sheet_name.strip().title()}: "
+                def _add_prefix(val):
+                    if pd.isna(val):
+                        return prefix.strip()
+                    return f"{prefix}{str(val).strip()}"
+                clean_df[ca_col] = clean_df[ca_col].apply(_add_prefix)
+
         return clean_df
 
     def clean_sheet(self):
