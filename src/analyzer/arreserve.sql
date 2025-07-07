@@ -1088,7 +1088,11 @@ SELECT DISTINCT
 	SUM(CASE WHEN Year = '2025' THEN (Apr + Mar + Feb) / 3.0 END ) AS [May 2025 T3],
         SUM(CASE WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) END ) AS [May 2025 Var],
         SUM(CASE WHEN Year = '2025' AND May = 0 THEN 0
-                         WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) / NULLIF(May, 0) END ) AS [May 2025 Var%]
+                         WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) / NULLIF(May, 0) END ) AS [May 2025 Var%],
+        NULL AS YTDMay2025Actual,
+        NULL AS YTDMay2025PY,
+        NULL AS YTDMay2025Var,
+        NULL AS YTDMay2025VarPct
 
 FROM [CognosTesting].[dbo].[RawTestSet] r
 INNER JOIN [CognosTesting].[dbo].[ReportingAccountHierarchy] rah
@@ -1127,8 +1131,12 @@ SELECT DISTINCT
     SUM(CASE WHEN Year = '2025' THEN [May] END) AS [May 2025],
 	SUM(CASE WHEN Year = '2025' THEN (Apr + Mar + Feb) / 3.0 END ) AS [May 2025 T3],
 	SUM(CASE WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) END ) AS [May 2025 Var],
-	SUM(CASE WHEN Year = '2025' AND May = 0 THEN 0
-			 WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) / NULLIF(May, 0) END ) AS [May 2025 Var%]
+        SUM(CASE WHEN Year = '2025' AND May = 0 THEN 0
+                         WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) / NULLIF(May, 0) END ) AS [May 2025 Var%],
+        NULL AS YTDMay2025Actual,
+        NULL AS YTDMay2025PY,
+        NULL AS YTDMay2025Var,
+        NULL AS YTDMay2025VarPct
 
 FROM [CognosTesting].[dbo].[RawTestSet] r
 INNER JOIN [CognosTesting].[dbo].[ReportingAccountHierarchy] rah
@@ -1167,8 +1175,12 @@ SELECT DISTINCT
     SUM(CASE WHEN Year = '2025' THEN [May] END) AS [May 2025],
 	SUM(CASE WHEN Year = '2025' THEN (Apr + Mar + Feb) / 3.0 END ) AS [May 2025 T3],
 	SUM(CASE WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) END ) AS [May 2025 Var],
-	SUM(CASE WHEN Year = '2025' AND May = 0 THEN 0
-			 WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) / NULLIF(May, 0) END ) AS [May 2025 Var%]
+        SUM(CASE WHEN Year = '2025' AND May = 0 THEN 0
+                         WHEN Year = '2025' THEN (May - ((Apr + Mar + Feb) / 3.0)) / NULLIF(May, 0) END ) AS [May 2025 Var%],
+        NULL AS YTDMay2025Actual,
+        NULL AS YTDMay2025PY,
+        NULL AS YTDMay2025Var,
+        NULL AS YTDMay2025VarPct
 
 FROM [CognosTesting].[dbo].[RawTestSet] r
 INNER JOIN [CognosTesting].[dbo].[ReportingAccountHierarchy] rah
