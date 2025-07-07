@@ -886,6 +886,30 @@ class MainWindow(QMainWindow):
                             ]
                     # If no key columns, fallback to all rows (legacy behavior)
 
+                    # When comparing AR Center reports, the Excel side prefixes
+                    # account names with the sheet name during cleaning. Apply
+                    # the same prefix to the SQL dataframe so the values align.
+                    report_type = self.report_selector.currentText()
+                    if report_type == "AR Center" and not filtered_sql_df.empty:
+                        ca_col = None
+                        for col in filtered_sql_df.columns:
+                            normalized = str(col).strip().replace(" ", "").lower()
+                            if normalized == "careportname":
+                                ca_col = col
+                                break
+                        if ca_col is None:
+                            ca_col = filtered_sql_df.columns[0]
+                        prefix = f"{sheet_name.title()}: "
+
+                        def _add_prefix(val):
+                            if pd.isna(val):
+                                return prefix.strip()
+                            return f"{prefix}{str(val).strip()}"
+
+                        filtered_sql_df[ca_col] = filtered_sql_df[ca_col].apply(
+                            _add_prefix
+                        )
+
                     # Perform comparison
                     sheet_result = self.comparison_engine.compare_dataframes(
                         excel_df, filtered_sql_df
