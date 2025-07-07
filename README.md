@@ -60,7 +60,7 @@ If you're using the executable version, simply double-click the `SOO_PreClose_Te
 You can customize the appearance under **Tools -> Settings -> User Interface**.
 The Theme drop-down defaults to *Brand* (applying the company's colors) but also allows Light, Dark, or System themes.
 
-To manage account mappings, open **Tools -> Manage Account Categories...**. When this dialog opens the application scans all currently loaded Excel sheets and pre-fills the account list automatically. Columns named `Account` or `CAReportName` are recognized without manual setup.
+To manage account mappings, open **Tools -> Manage Account Categories...**. When this dialog opens the application scans all currently loaded Excel sheets and pre-fills the account list automatically. Columns named `Account` or `CAReportName` are recognized without manual setup. Use the **Add**, **Delete**, and **Rename** buttons to organize both categories and formulas. Renaming a category will also update any formulas that reference it.
 
 ### Account Formulas
 Formulas entered in this dialog can reference **any** of the category names you create and also any numeric column that exists in the sheet. This makes it easy to compute new values without additional mappings. For example you can define:

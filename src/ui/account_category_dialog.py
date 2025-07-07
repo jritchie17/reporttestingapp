@@ -202,8 +202,11 @@ class AccountCategoryDialog(QDialog):
         add_btn.clicked.connect(self._add_category)
         del_btn = QPushButton("Delete")
         del_btn.clicked.connect(self._delete_category)
+        rename_btn = QPushButton("Rename")
+        rename_btn.clicked.connect(self._rename_category)
         btns.addWidget(add_btn)
         btns.addWidget(del_btn)
+        btns.addWidget(rename_btn)
         btns.addWidget(add_account_btn)
         right.addLayout(btns)
 
@@ -262,8 +265,11 @@ class AccountCategoryDialog(QDialog):
         add_btn.clicked.connect(self._add_formula)
         del_btn = QPushButton("Delete")
         del_btn.clicked.connect(self._delete_formula)
+        rename_btn = QPushButton("Rename")
+        rename_btn.clicked.connect(self._rename_formula)
         btns.addWidget(add_btn)
         btns.addWidget(del_btn)
+        btns.addWidget(rename_btn)
         right.addLayout(btns)
 
         layout.addLayout(right)
@@ -338,6 +344,30 @@ class AccountCategoryDialog(QDialog):
         self.account_list.clear()
         self._refresh_drag_categories()
 
+    def _rename_category(self):
+        item = self.category_list.currentItem()
+        if not item:
+            return
+        old_name = item.text()
+        new_name, ok = QInputDialog.getText(
+            self, "Rename Category", "New category name:", text=old_name
+        )
+        if ok and new_name and new_name not in self.categories:
+            accounts = self.categories.pop(old_name, [])
+            self.categories[new_name] = accounts
+            item.setText(new_name)
+            self.category_list.setCurrentItem(item)
+            self._refresh_drag_categories()
+            # update formulas referencing the old name
+            for fname, expr in list(self.formulas.items()):
+                if old_name in expr:
+                    self.formulas[fname] = expr.replace(old_name, new_name)
+                    if (
+                        self.formula_list.currentItem()
+                        and self.formula_list.currentItem().text() == fname
+                    ):
+                        self.formula_edit.setText(self.formulas[fname])
+
     # Formula handlers
     def _on_formula_selected(self, current, previous):
         if previous and previous.text() in self.formulas:
@@ -378,6 +408,20 @@ class AccountCategoryDialog(QDialog):
         row = self.formula_list.row(item)
         self.formula_list.takeItem(row)
         self.formula_edit.clear()
+
+    def _rename_formula(self):
+        item = self.formula_list.currentItem()
+        if not item:
+            return
+        old_name = item.text()
+        new_name, ok = QInputDialog.getText(
+            self, "Rename Formula", "New formula name:", text=old_name
+        )
+        if ok and new_name and new_name not in self.formulas:
+            expr = self.formulas.pop(old_name, "")
+            self.formulas[new_name] = expr
+            item.setText(new_name)
+            self.formula_list.setCurrentItem(item)
 
     def save(self):
         # ensure current edits saved

@@ -438,6 +438,38 @@ class TestAccountCategoryDialog(unittest.TestCase):
         self.assertEqual(config.get_account_categories("Test"), {"Orig": ["1"]})
         self.assertEqual(config.get_account_formulas("Test"), {"F": "Orig"})
 
+    def test_rename_category_updates_formula(self):
+        config = DummyConfig()
+        config.set_account_categories("Test", {"Orig": ["1"]})
+        config.set_account_formulas("Test", {"F": "Orig"})
+
+        dialog = self.Dialog(config, "Test", [], sheet_names=["Sheet1"])
+        dialog.category_list.setCurrentRow(0)
+
+        from PyQt6.QtWidgets import QInputDialog
+
+        QInputDialog.getText = staticmethod(lambda *a, **k: ("New", True))
+        dialog._rename_category()
+        dialog.save()
+
+        self.assertEqual(config.get_account_categories("Test"), {"New": ["1"]})
+        self.assertEqual(config.get_account_formulas("Test"), {"F": "New"})
+
+    def test_rename_formula(self):
+        config = DummyConfig()
+        config.set_account_formulas("Test", {"Old": "1"})
+
+        dialog = self.Dialog(config, "Test", [], sheet_names=["Sheet1"])
+        dialog.formula_list.setCurrentRow(0)
+
+        from PyQt6.QtWidgets import QInputDialog
+
+        QInputDialog.getText = staticmethod(lambda *a, **k: ("New", True))
+        dialog._rename_formula()
+        dialog.save()
+
+        self.assertEqual(config.get_account_formulas("Test"), {"New": "1"})
+
 
 if __name__ == "__main__":
     unittest.main()
