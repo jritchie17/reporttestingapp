@@ -25,9 +25,9 @@ class TestARCenterCleaning(unittest.TestCase):
 
         cleaned = ExcelViewer._clean_dataframe(viewer, df, 'facility')
         self.assertIsNotNone(cleaned)
-        self.assertEqual(list(cleaned.columns), ['Sheet_Name', 'CAReportName', 'Val1'])
-        self.assertEqual(cleaned.iloc[0].tolist(), ['Facility', 'Facility: 0 - 30 days', 1.0])
-        self.assertEqual(cleaned.iloc[1].tolist(), ['Facility', 'Facility: 31 - 60 days', 2.0])
+        self.assertEqual(list(cleaned.columns), ['CAReportName', 'Val1'])
+        self.assertEqual(cleaned.iloc[0].tolist(), ['Facility: 0 - 30 days', 1.0])
+        self.assertEqual(cleaned.iloc[1].tolist(), ['Facility: 31 - 60 days', 2.0])
 
 if __name__ == '__main__':
     unittest.main()
