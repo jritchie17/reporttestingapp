@@ -289,5 +289,50 @@ class SQLAccountExtractionTest(unittest.TestCase):
         self.assertEqual(window.status_bar.message, "Account categories updated")
 
 
+class ARCenterResultsLoadTest(unittest.TestCase):
+    def setUp(self):
+        patch_qt_modules()
+        sys.modules.pop("src.ui.results_viewer", None)
+        sys.modules.pop("src.ui.main_window", None)
+        self.ResultsViewer = importlib.import_module("src.ui.results_viewer").ResultsViewer
+        self.MainWindow = importlib.import_module("src.ui.main_window").MainWindow
+
+    def _load(self, data, columns=None, sheet="facility"):
+        parent = self.MainWindow.__new__(self.MainWindow)
+        parent.config = DummyConfig()
+        parent.config.report_type = "AR Center"
+        parent.sheet_selector = DummySelector(sheet)
+
+        viewer = self.ResultsViewer.__new__(self.ResultsViewer)
+        viewer.table_view = DummyTable()
+        viewer.status_label = DummyLabel()
+        viewer.window = lambda: parent
+
+        viewer.load_results(list(data), columns)
+        return viewer
+
+    def test_load_results_prefixes_careportname(self):
+        data = [
+            {"CAReportName": "0 - 30 days", "Val": 1},
+            {"CAReportName": "31 - 60 days", "Val": 2},
+        ]
+        viewer = self._load(data, ["CAReportName", "Val"], sheet="facility")
+        self.assertEqual(
+            [row["CAReportName"] for row in viewer.results_data],
+            ["Facility: 0 - 30 days", "Facility: 31 - 60 days"],
+        )
+
+    def test_load_results_prefixes_first_column(self):
+        data = [
+            {"Acct": "0 - 30 days", "Val": 1},
+            {"Acct": "31 - 60 days", "Val": 2},
+        ]
+        viewer = self._load(data, ["Acct", "Val"], sheet="facility")
+        self.assertEqual(
+            [row["Acct"] for row in viewer.results_data],
+            ["Facility: 0 - 30 days", "Facility: 31 - 60 days"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

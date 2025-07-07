@@ -266,6 +266,51 @@ class ResultsViewer(QWidget):
         self.results_data = list(data)
         self.original_data = list(data)
 
+        # Determine if we need to prefix account names with the sheet name
+        parent = self.window()
+        sheet_name = ""
+        report_type = ""
+        try:
+            from src.ui.main_window import MainWindow  # avoid circular import
+        except Exception:
+            MainWindow = None
+
+        if (
+            parent
+            and MainWindow
+            and isinstance(parent, MainWindow)
+            and hasattr(parent, "config")
+        ):
+            report_type = parent.config.get("excel", "report_type")
+            if hasattr(parent, "sheet_selector"):
+                try:
+                    sheet_name = parent.sheet_selector.currentText()
+                except Exception:
+                    sheet_name = ""
+            if not sheet_name:
+                sheet_name = parent.config.get("excel", "sheet_name") or ""
+
+        if report_type == "AR Center" and sheet_name and self.results_data:
+            prefix = f"{sheet_name.strip().title()}: "
+            first_row = self.results_data[0]
+            if isinstance(first_row, dict):
+                ca_col = None
+                for col in first_row:
+                    normalized = str(col).strip().replace(" ", "").lower()
+                    if normalized == "careportname":
+                        ca_col = col
+                        break
+                if ca_col is None:
+                    ca_col = next(iter(first_row), None)
+
+                if ca_col:
+                    for row in self.results_data:
+                        val = row.get(ca_col)
+                        if pd.isna(val):
+                            row[ca_col] = prefix.strip()
+                        else:
+                            row[ca_col] = f"{prefix}{str(val).strip()}"
+
         # If columns not provided, try to get them from the first row
         if not columns and data:
             # Try to get keys from the first row dictionary
