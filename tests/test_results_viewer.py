@@ -369,6 +369,17 @@ class ARCenterResultsLoadTest(unittest.TestCase):
         viewer = self._load(data, ["CAReportName", "Val"], sheet="facility")
         self.assertEqual(viewer.results_data[0]["CAReportName"], "Facility: Bad debt")
 
+    def test_load_results_uses_sheet_column(self):
+        data = [
+            {"Sheet": "facility", "CAReportName": "0 - 30 days"},
+            {"Sheet": "anesthesia", "CAReportName": "Bad debt"},
+        ]
+        viewer = self._load(data, ["Sheet", "CAReportName"], sheet="facility")
+        self.assertEqual(
+            [row["CAReportName"] for row in viewer.results_data],
+            ["Facility: 0 - 30 days", "Anesthesia: Bad debt"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
