@@ -904,7 +904,12 @@ class MainWindow(QMainWindow):
                         def _add_prefix(val):
                             if pd.isna(val):
                                 return prefix.strip()
-                            return f"{prefix}{str(val).strip()}"
+                            val_str = str(val).strip()
+                            return (
+                                val_str
+                                if val_str.lower().startswith(prefix.strip().lower())
+                                else f"{prefix}{val_str}"
+                            )
 
                         filtered_sql_df[ca_col] = filtered_sql_df[ca_col].apply(
                             _add_prefix
