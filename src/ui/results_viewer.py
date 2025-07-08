@@ -446,10 +446,8 @@ class ResultsViewer(QWidget):
 
                     if (
                         report_type == "AR Center"
-                        and sheet_val
                         and self.results_data
                     ):
-                        prefix = f"{sheet_val.strip().title()}: "
                         first = self.results_data[0]
                         if isinstance(first, dict):
                             ca_col = None
@@ -462,7 +460,20 @@ class ResultsViewer(QWidget):
                                 ca_col = next(iter(first), None)
 
                             if ca_col:
+                                def _row_prefix(row):
+                                    name = None
+                                    if sheet_col and row.get(sheet_col):
+                                        name = row.get(sheet_col)
+                                    else:
+                                        name = sheet_val
+                                    if not name:
+                                        return ""
+                                    return f"{str(name).strip().title()}: "
+
                                 for row in self.results_data:
+                                    prefix = _row_prefix(row)
+                                    if not prefix:
+                                        continue
                                     val = row.get(ca_col)
                                     if pd.isna(val) or str(val).strip() == "":
                                         row[ca_col] = prefix.strip()
