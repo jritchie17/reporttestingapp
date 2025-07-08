@@ -880,9 +880,20 @@ class MainWindow(QMainWindow):
                     if key_cols:
                         # Only keep SQL rows that match the unique values for this sheet's key columns
                         for col in key_cols:
-                            excel_vals = excel_df[col].dropna().unique()
+                            excel_vals = (
+                                excel_df[col]
+                                .dropna()
+                                .astype(str)
+                                .str.strip()
+                                .str.lower()
+                                .unique()
+                            )
                             filtered_sql_df = filtered_sql_df[
-                                filtered_sql_df[col].isin(excel_vals)
+                                filtered_sql_df[col]
+                                .astype(str)
+                                .str.strip()
+                                .str.lower()
+                                .isin(excel_vals)
                             ]
                     # If no key columns, fallback to all rows (legacy behavior)
 
