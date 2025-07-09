@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
 )
 from copy import deepcopy
-from src.utils.config import AppConfig
+from src.utils.config import AppConfig, DEFAULT_SHEET_NAME
 
 
 class FormulaLineEdit(QLineEdit):
@@ -70,10 +70,10 @@ class AccountCategoryDialog(QDialog):
 
         names = set(sheet_names or []) | set(existing_cats.keys()) | set(existing_forms.keys())
         names = {n for n in names if n}
-        if config.DEFAULT_SHEET_NAME in names and len(names) > 1:
-            names.remove(config.DEFAULT_SHEET_NAME)
+        if DEFAULT_SHEET_NAME in names and len(names) > 1:
+            names.remove(DEFAULT_SHEET_NAME)
         if not names:
-            names = {config.DEFAULT_SHEET_NAME}
+            names = {DEFAULT_SHEET_NAME}
         self.sheet_names = sorted(names)
         self.current_sheet = self.sheet_names[0]
 
@@ -163,7 +163,7 @@ class AccountCategoryDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel(f"Report type: {self.report_type}"))
 
-        if len(self.sheet_names) > 1 or self.sheet_names != [self.config.DEFAULT_SHEET_NAME]:
+        if len(self.sheet_names) > 1 or self.sheet_names != [DEFAULT_SHEET_NAME]:
             sheet_layout = QHBoxLayout()
             sheet_layout.addWidget(QLabel("Sheet:"))
             self.sheet_selector = QComboBox()
