@@ -30,6 +30,18 @@ class TestGatherSheetNamesSQL(unittest.TestCase):
             sheets = self._gather(df)
             self.assertEqual(sheets, ["Bar", "Foo"])
 
+    def test_from_careportname_prefix(self):
+        df = pd.DataFrame({
+            "CAReportName": [
+                "Facility: 0 - 30 days",
+                "Corporate: 31 - 60",
+                "Facility: 90+",
+            ],
+            "Amount": [1, 2, 3],
+        })
+        sheets = self._gather(df)
+        self.assertEqual(sheets, ["Corporate", "Facility"])
+
 
 if __name__ == '__main__':
     unittest.main()

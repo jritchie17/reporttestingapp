@@ -1598,6 +1598,23 @@ class MainWindow(QMainWindow):
                     col = lower_map[cand]
                     series = df[col].dropna().astype(str)
                     return sorted(series.unique().tolist())
+
+            # Fall back to parsing ``CAReportName`` for prefixes in the form
+            # ``Sheet: Account`` when no sheet column exists.
+            ca_col = None
+            for col in df.columns:
+                if str(col).replace(" ", "").lower() == "careportname":
+                    ca_col = col
+                    break
+
+            if ca_col:
+                prefixes = []
+                for val in df[ca_col].dropna().astype(str):
+                    if ":" in val:
+                        prefixes.append(val.split(":", 1)[0].strip().title())
+
+                if prefixes:
+                    return sorted(set(prefixes))
         except Exception as e:
             self.logger.error(
                 f"Failed to extract sheet names from SQL results: {e}"

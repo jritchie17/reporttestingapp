@@ -383,7 +383,7 @@ class ARCenterResultsLoadTest(unittest.TestCase):
         viewer = self._load(data, ["CAReportName", "Val"], sheet="facility")
         self.assertEqual(
             [row["CAReportName"] for row in viewer.results_data],
-            ["Facility: 0 - 30 days", "Facility: 31 - 60 days"],
+            ["0 - 30 days", "31 - 60 days"],
         )
 
     def test_load_results_prefixes_first_column(self):
@@ -394,7 +394,7 @@ class ARCenterResultsLoadTest(unittest.TestCase):
         viewer = self._load(data, ["Acct", "Val"], sheet="facility")
         self.assertEqual(
             [row["Acct"] for row in viewer.results_data],
-            ["Facility: 0 - 30 days", "Facility: 31 - 60 days"],
+            ["0 - 30 days", "31 - 60 days"],
         )
 
     def test_load_results_avoids_double_prefix(self):
