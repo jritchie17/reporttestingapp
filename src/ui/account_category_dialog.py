@@ -69,6 +69,9 @@ class AccountCategoryDialog(QDialog):
         existing_forms = config.config.get("account_formulas", {}).get(report_type, {})
 
         names = set(sheet_names or []) | set(existing_cats.keys()) | set(existing_forms.keys())
+        names = {n for n in names if n}
+        if config.DEFAULT_SHEET_NAME in names and len(names) > 1:
+            names.remove(config.DEFAULT_SHEET_NAME)
         if not names:
             names = {config.DEFAULT_SHEET_NAME}
         self.sheet_names = sorted(names)
