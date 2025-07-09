@@ -305,12 +305,15 @@ class ResultsViewer(QWidget):
                     ca_col = next(iter(first_row), None)
 
                 if ca_col:
-                    default_prefix = f"{sheet_name.strip().title()}: " if sheet_name else ""
+                    # Use sheet prefix from a dedicated column when available.
+                    # If no such column exists we no longer prepend the Excel
+                    # sheet name because SQL results already contain the full
+                    # prefix in ``CAReportName``.
 
                     def _row_prefix(row):
                         if sheet_col and row.get(sheet_col):
                             return f"{str(row[sheet_col]).strip().title()}: "
-                        return default_prefix
+                        return ""
 
                     for row in self.results_data:
                         prefix = _row_prefix(row)
