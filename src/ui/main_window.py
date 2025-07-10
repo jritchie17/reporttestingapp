@@ -1847,13 +1847,38 @@ class MainWindow(QMainWindow):
                 excel_df,
                 filtered_sql_df,
                 report_type=report_type,
-                pivot_results=True,
             )
             all_dfs.append(df)
         if not all_dfs:
             QMessageBox.warning(self, "No Data", "No detailed results to export.")
             return
         combined_df = pd.concat(all_dfs, ignore_index=True)
+        # Rename and reorder columns for the exported file only
+        rename_map = {
+            "DataBase Value": "DB Value",
+            "CAReport Name": "CAReportName",
+        }
+        combined_df = combined_df.rename(
+            columns={k: v for k, v in rename_map.items() if k in combined_df.columns}
+        )
+        combined_df = combined_df.drop(
+            columns=[c for c in ["Field", "Issue"] if c in combined_df.columns]
+        )
+        ordered_cols = [
+            c
+            for c in [
+                "Sheet",
+                "Center",
+                "CAReportName",
+                "Excel Value",
+                "DB Value",
+                "Variance",
+                "Result",
+            ]
+            if c in combined_df.columns
+        ]
+        if ordered_cols:
+            combined_df = combined_df[ordered_cols]
         # Default filename
         excel_path = self.config.get("paths", "last_excel_file")
         if excel_path:
