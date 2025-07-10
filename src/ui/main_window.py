@@ -1843,7 +1843,11 @@ class MainWindow(QMainWindow):
             # Generate detailed DataFrame
             report_type = self.config.get("excel", "report_type")
             df = self.comparison_engine.generate_detailed_comparison_dataframe(
-                sheet_name, excel_df, filtered_sql_df, report_type=report_type
+                sheet_name,
+                excel_df,
+                filtered_sql_df,
+                report_type=report_type,
+                pivot_results=True,
             )
             all_dfs.append(df)
         if not all_dfs:

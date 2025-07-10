@@ -85,3 +85,24 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         df = engine.generate_detailed_comparison_dataframe('Sheet1', excel_df, sql_df)
         self.assertIn('CAReport Name', df.columns)
         self.assertEqual(df['CAReport Name'].iloc[0], 'Acct A')
+
+    def test_pivot_results_single_row_per_record(self):
+        excel_df = pd.DataFrame({
+            'Center': [1, 2],
+            'CAReportName': ['Acct A', 'Acct B'],
+            'Amount': [100, 200],
+            'Quantity': [5, 10]
+        })
+        sql_df = pd.DataFrame({
+            'Center': [1, 2],
+            'CAReportName': ['Acct A', 'Acct B'],
+            'Amount': [100, 200],
+            'Quantity': [5, 10]
+        })
+        engine = ComparisonEngine()
+        df = engine.generate_detailed_comparison_dataframe(
+            'Sheet1', excel_df, sql_df, pivot_results=True
+        )
+        self.assertEqual(len(df), 2)
+        self.assertIn('Amount Excel', df.columns)
+        self.assertIn('Quantity Database', df.columns)

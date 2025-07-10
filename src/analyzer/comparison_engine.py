@@ -497,7 +497,13 @@ class ComparisonEngine:
         )
 
     def generate_detailed_comparison_dataframe(
-        self, sheet_name, excel_df, sql_df, column_mappings=None, report_type=None
+        self,
+        sheet_name,
+        excel_df,
+        sql_df,
+        column_mappings=None,
+        report_type=None,
+        pivot_results=False,
     ):
         """Generate a DataFrame with all matches, mismatches, and missing records
         for export.
@@ -622,4 +628,17 @@ class ComparisonEngine:
                     row_data['Center'] = center
                 row_data['CAReport Name'] = careport
                 output_rows.append(row_data)
-        return pd.DataFrame(output_rows) 
+
+        df = pd.DataFrame(output_rows)
+        if pivot_results and not df.empty:
+            id_cols = [c for c in ['Sheet', 'Center', 'CAReport Name'] if c in df.columns]
+            value_cols = ['Excel Value', 'DataBase Value', 'Variance', 'Result']
+            pivot_df = df.pivot_table(index=id_cols, columns='Field', values=value_cols, aggfunc='first')
+            pivot_df.columns = [
+                f"{field} {val_type.replace('Excel Value', 'Excel').replace('DataBase Value', 'Database')}"
+                for val_type, field in pivot_df.columns
+            ]
+            pivot_df = pivot_df.reset_index()
+            return pivot_df
+
+        return df
