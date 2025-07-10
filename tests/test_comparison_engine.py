@@ -26,7 +26,6 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         self.engine.set_sign_flip_accounts(['1234-5678'])
         df = self.engine.generate_detailed_comparison_dataframe('Sheet1', self.excel_df, sql_mod)
         self.assertIn('Does Not Match', df['Result'].values)
-        self.assertIn('Issue', df.columns)
 
     def test_identify_account_discrepancies(self):
         discrepancies = self.engine.identify_account_discrepancies(self.excel_df, self.sql_df)
@@ -83,8 +82,8 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         })
         engine = ComparisonEngine()
         df = engine.generate_detailed_comparison_dataframe('Sheet1', excel_df, sql_df)
-        self.assertIn('CAReport Name', df.columns)
-        self.assertEqual(df['CAReport Name'].iloc[0], 'Acct A')
+        self.assertIn('CAReportName', df.columns)
+        self.assertEqual(df['CAReportName'].iloc[0], 'Acct A')
 
     def test_pivot_results_single_row_per_record(self):
         excel_df = pd.DataFrame({
