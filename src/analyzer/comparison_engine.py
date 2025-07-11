@@ -345,20 +345,55 @@ class ComparisonEngine:
             "account number",
             "acct",
         }
+        center_keywords = [
+            "center",
+            "facility",
+            "department",
+            "dept",
+        ]
+        acct_keywords = [
+            "account",
+            "careport",
+            "acct",
+        ]
+
+        center_found = False
+        acct_found = False
 
         for mapping in column_mappings.values():
             if _norm(mapping["excel_column"]) in center_synonyms:
                 key_columns["excel"].append(mapping["excel_column"])
                 key_columns["sql"].append(mapping["sql_column"])
+                center_found = True
                 break
 
         for mapping in column_mappings.values():
             if _norm(mapping["excel_column"]) in acct_synonyms:
                 key_columns["excel"].append(mapping["excel_column"])
                 key_columns["sql"].append(mapping["sql_column"])
+                acct_found = True
                 break
 
-        if key_columns["excel"]:
+        # Fallback: check for keywords contained in the normalized names
+        if not center_found:
+            for mapping in column_mappings.values():
+                norm = _norm(mapping["excel_column"])
+                if any(kw in norm for kw in center_keywords):
+                    key_columns["excel"].append(mapping["excel_column"])
+                    key_columns["sql"].append(mapping["sql_column"])
+                    center_found = True
+                    break
+
+        if not acct_found:
+            for mapping in column_mappings.values():
+                norm = _norm(mapping["excel_column"])
+                if any(kw in norm for kw in acct_keywords):
+                    key_columns["excel"].append(mapping["excel_column"])
+                    key_columns["sql"].append(mapping["sql_column"])
+                    acct_found = True
+                    break
+
+        if center_found or acct_found:
             return key_columns
         
 

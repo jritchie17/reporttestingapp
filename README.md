@@ -198,6 +198,18 @@ If you're experiencing issues with temp tables, try:
 - Adding semicolons between statements
 - Using the specialized scripts in the `src/analyzer/` directory
 
+### Key Column Detection
+
+The comparison engine looks for common keywords when trying to identify the
+"Center" and "Account" columns. After normalizing column names, any name
+containing the following keywords will be treated as a potential match:
+
+- **Center keywords:** `center`, `facility`, `department`, `dept`
+- **Account keywords:** `account`, `careport`, `acct`
+
+If your export uses different wording, ensure that one of these keywords is
+present so the automatic matching succeeds.
+
 ## License
 
 This project is licensed under the MIT License.
