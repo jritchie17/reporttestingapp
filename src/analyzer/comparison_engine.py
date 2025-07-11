@@ -325,27 +325,40 @@ class ComparisonEngine:
     def _identify_key_columns(self, excel_df, sql_df, column_mappings):
         """Identify key columns for joining Excel and SQL data"""
         # First try to find Center and CAReportName columns
-        key_columns = {
-            'excel': [],
-            'sql': []
+        key_columns = {"excel": [], "sql": []}
+
+        def _norm(name: str) -> str:
+            return re.sub(r"[\s_]+", "", str(name)).lower()
+
+        center_synonyms = {
+            "center",
+            "centernumber",
+            "center number",
+            "facility",
+            "facilitynumber",
+            "facility number",
         }
-        
-        # Look for Center column
+        acct_synonyms = {
+            "careportname",
+            "account",
+            "accountnumber",
+            "account number",
+            "acct",
+        }
+
         for mapping in column_mappings.values():
-            if mapping['excel_column'].lower() == 'center':
-                key_columns['excel'].append(mapping['excel_column'])
-                key_columns['sql'].append(mapping['sql_column'])
+            if _norm(mapping["excel_column"]) in center_synonyms:
+                key_columns["excel"].append(mapping["excel_column"])
+                key_columns["sql"].append(mapping["sql_column"])
                 break
-        
-        # Look for CAReportName column
+
         for mapping in column_mappings.values():
-            if mapping['excel_column'].lower() == 'careportname':
-                key_columns['excel'].append(mapping['excel_column'])
-                key_columns['sql'].append(mapping['sql_column'])
+            if _norm(mapping["excel_column"]) in acct_synonyms:
+                key_columns["excel"].append(mapping["excel_column"])
+                key_columns["sql"].append(mapping["sql_column"])
                 break
-        
-        # If we found both key columns, return them
-        if len(key_columns['excel']) == 2:
+
+        if key_columns["excel"]:
             return key_columns
         
 

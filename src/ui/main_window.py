@@ -1842,12 +1842,16 @@ class MainWindow(QMainWindow):
 
             # Generate detailed DataFrame
             report_type = self.config.get("excel", "report_type")
-            df = self.comparison_engine.generate_detailed_comparison_dataframe(
-                sheet_name,
-                excel_df,
-                filtered_sql_df,
-                report_type=report_type,
-            )
+            try:
+                df = self.comparison_engine.generate_detailed_comparison_dataframe(
+                    sheet_name,
+                    excel_df,
+                    filtered_sql_df,
+                    report_type=report_type,
+                )
+            except ValueError as e:
+                QMessageBox.critical(self, "Export Error", str(e))
+                return
             all_dfs.append(df)
         if not all_dfs:
             QMessageBox.warning(self, "No Data", "No detailed results to export.")
@@ -1966,9 +1970,13 @@ class MainWindow(QMainWindow):
                     filtered_sql_df = pd.DataFrame(calc.compute(sql_rows))
 
             report_type = self.config.get("excel", "report_type")
-            df = self.comparison_engine.generate_detailed_comparison_dataframe(
-                sheet_name, excel_df, filtered_sql_df, report_type=report_type
-            )
+            try:
+                df = self.comparison_engine.generate_detailed_comparison_dataframe(
+                    sheet_name, excel_df, filtered_sql_df, report_type=report_type
+                )
+            except ValueError as e:
+                QMessageBox.critical(self, "Export Error", str(e))
+                return
             all_dfs.append(df)
         if not all_dfs:
             QMessageBox.warning(self, "No Data", "No detailed results to export.")
@@ -2065,9 +2073,13 @@ class MainWindow(QMainWindow):
                     filtered_sql_df = pd.DataFrame(calc.compute(sql_rows))
 
             report_type = self.config.get("excel", "report_type")
-            df = self.comparison_engine.generate_detailed_comparison_dataframe(
-                sheet_name, excel_df, filtered_sql_df, report_type=report_type
-            )
+            try:
+                df = self.comparison_engine.generate_detailed_comparison_dataframe(
+                    sheet_name, excel_df, filtered_sql_df, report_type=report_type
+                )
+            except ValueError as e:
+                QMessageBox.critical(self, "Export Error", str(e))
+                return
             all_dfs.append(df)
         if not all_dfs:
             QMessageBox.warning(self, "No Data", "No detailed results to export.")

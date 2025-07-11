@@ -105,3 +105,18 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         self.assertEqual(len(df), 2)
         self.assertIn('Amount Excel', df.columns)
         self.assertIn('Quantity Database', df.columns)
+
+    def test_key_column_synonyms(self):
+        excel_df = pd.DataFrame({
+            'Facility': [1],
+            'Account': ['1234-5678'],
+            'Amount': [100]
+        })
+        sql_df = pd.DataFrame({
+            'Facility Number': [1],
+            'Account Number': ['1234-5678'],
+            'Amount': [100]
+        })
+        engine = ComparisonEngine()
+        df = engine.generate_detailed_comparison_dataframe('Sheet1', excel_df, sql_df)
+        self.assertTrue((df['Result'] == 'Match').all())
