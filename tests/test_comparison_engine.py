@@ -120,3 +120,18 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         engine = ComparisonEngine()
         df = engine.generate_detailed_comparison_dataframe('Sheet1', excel_df, sql_df)
         self.assertTrue((df['Result'] == 'Match').all())
+
+    def test_key_column_keyword_detection(self):
+        excel_df = pd.DataFrame({
+            'My Facility ID': [1],
+            'Acct - Desc': ['1234-5678'],
+            'Amount': [100]
+        })
+        sql_df = pd.DataFrame({
+            'Center_ID': [1],
+            'Account Number': ['1234-5678'],
+            'Amount': [100]
+        })
+        engine = ComparisonEngine()
+        df = engine.generate_detailed_comparison_dataframe('Sheet1', excel_df, sql_df)
+        self.assertTrue((df['Result'] == 'Match').all())
