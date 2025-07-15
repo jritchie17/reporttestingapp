@@ -11,13 +11,14 @@ class TestGatherSheetNamesSQL(unittest.TestCase):
     def setUp(self):
         patch_qt_modules()
         from importlib import import_module
-        sys.modules.pop('src.ui.main_window', None)
-        self.MainWindow = import_module('src.ui.main_window').MainWindow
+
+        sys.modules.pop("src.ui.main_window", None)
+        self.MainWindow = import_module("src.ui.main_window").MainWindow
 
     def _gather(self, df):
         window = self.MainWindow.__new__(self.MainWindow)
         window.results_viewer = types.SimpleNamespace(
-            results_data=df.to_dict(orient='records'),
+            results_data=df.to_dict(orient="records"),
             get_dataframe=lambda: df,
             has_results=lambda: True,
         )
@@ -30,18 +31,25 @@ class TestGatherSheetNamesSQL(unittest.TestCase):
             sheets = self._gather(df)
             self.assertEqual(sheets, ["Bar", "Foo"])
 
+    def test_space_in_column_name(self):
+        df = pd.DataFrame({"Sheet Name": ["One", "Two", "One"], "Val": [1, 2, 3]})
+        sheets = self._gather(df)
+        self.assertEqual(sheets, ["One", "Two"])
+
     def test_from_careportname_prefix(self):
-        df = pd.DataFrame({
-            "CAReportName": [
-                "Facility: 0 - 30 days",
-                "Corporate: 31 - 60",
-                "Facility: 90+",
-            ],
-            "Amount": [1, 2, 3],
-        })
+        df = pd.DataFrame(
+            {
+                "CAReportName": [
+                    "Facility: 0 - 30 days",
+                    "Corporate: 31 - 60",
+                    "Facility: 90+",
+                ],
+                "Amount": [1, 2, 3],
+            }
+        )
         sheets = self._gather(df)
         self.assertEqual(sheets, ["Corporate", "Facility"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
