@@ -1842,11 +1842,20 @@ class MainWindow(QMainWindow):
 
             # Generate detailed DataFrame
             report_type = self.config.get("excel", "report_type")
+            column_mappings = None
+            if (
+                hasattr(self, "comparison_results_by_sheet")
+                and sheet_name in self.comparison_results_by_sheet
+            ):
+                column_mappings = self.comparison_results_by_sheet[sheet_name].get(
+                    "column_mappings"
+                )
             try:
                 df = self.comparison_engine.generate_detailed_comparison_dataframe(
                     sheet_name,
                     excel_df,
                     filtered_sql_df,
+                    column_mappings=column_mappings,
                     report_type=report_type,
                 )
             except ValueError as e:
