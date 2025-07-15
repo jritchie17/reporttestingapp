@@ -25,16 +25,11 @@ class TestGatherSheetNamesSQL(unittest.TestCase):
         window.logger = types.SimpleNamespace(error=lambda *a, **k: None)
         return window._gather_sheet_names_from_sql()
 
-    def test_lowercase_column_names(self):
-        for cand in ["sheet_name", "sheet", "sheetname"]:
+    def test_various_column_names(self):
+        for cand in ["sheet_name", "sheet", "sheetname", "SheetName", "Sheet Name"]:
             df = pd.DataFrame({cand: ["Foo", "Bar", "Foo"], "Amount": [1, 2, 3]})
             sheets = self._gather(df)
             self.assertEqual(sheets, ["Bar", "Foo"])
-
-    def test_space_in_column_name(self):
-        df = pd.DataFrame({"Sheet Name": ["One", "Two", "One"], "Val": [1, 2, 3]})
-        sheets = self._gather(df)
-        self.assertEqual(sheets, ["One", "Two"])
 
     def test_from_careportname_prefix(self):
         df = pd.DataFrame(
