@@ -617,7 +617,9 @@ class ComparisonEngine:
         account_col_excel, account_col_sql = self._find_account_columns(merged_df.columns)
         
         include_center = report_type not in ("SOO MFR", "Corp SOO")
-        include_sheet = report_type not in ("SOO MFR", "Corp SOO")
+        # Always include the sheet name so exports contain a reference to
+        # which tab the result came from.
+        include_sheet = True
 
         output_rows = []
         for excel_idx, mapping in column_mappings.items():
@@ -636,7 +638,9 @@ class ComparisonEngine:
                     or (row.get(account_col_sql) if account_col_sql else None)
                     or ''
                 )
-                field = excel_col
+                # Report the SQL column name in the output so mismatches show
+                # which field in the database caused the difference.
+                field = sql_col
                 excel_val = row.get(excel_merged_col, None)
                 sql_val = row.get(sql_merged_col, None)
                 # Get account value for sign flip
