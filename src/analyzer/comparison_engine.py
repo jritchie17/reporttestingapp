@@ -571,7 +571,7 @@ class ComparisonEngine:
         # Validate input DataFrames before building join keys
         if excel_df.empty or sql_df.empty:
             self.logger.warning("One or both dataframes are empty")
-            raise ValueError("One or both dataframes are empty")
+            return pd.DataFrame()
 
         missing_excel = [col for col in key_columns['excel'] if col not in excel_df.columns]
         missing_sql = [col for col in key_columns['sql'] if col not in sql_df.columns]
