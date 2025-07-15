@@ -866,17 +866,22 @@ class MainWindow(QMainWindow):
 
                     # --- FILTER SQL DATAFRAME FOR THIS SHEET ---
                     # Try to find key columns (Center, CAReportName, etc.)
-                    key_cols = []
-                    for col in ["Center", "CAReportName", "Account", "Sheet_Name"]:
+                    key_pairs = []
+                    for col in ["Center", "CAReportName", "Account"]:
                         if col in excel_df.columns and col in sql_df.columns:
-                            key_cols.append(col)
+                            key_pairs.append((col, col))
+
+                    excel_sheet_col = self._detect_sheet_column(excel_df)
+                    sql_sheet_col = self._detect_sheet_column(sql_df)
+                    if excel_sheet_col and sql_sheet_col:
+                        key_pairs.append((excel_sheet_col, sql_sheet_col))
 
                     filtered_sql_df = sql_df.copy()
-                    if key_cols:
+                    if key_pairs:
                         # Only keep SQL rows that match the unique values for this sheet's key columns
-                        for col in key_cols:
+                        for excel_col, sql_col in key_pairs:
                             excel_vals = (
-                                excel_df[col]
+                                excel_df[excel_col]
                                 .dropna()
                                 .astype(str)
                                 .str.strip()
@@ -884,7 +889,7 @@ class MainWindow(QMainWindow):
                                 .unique()
                             )
                             filtered_sql_df = filtered_sql_df[
-                                filtered_sql_df[col]
+                                filtered_sql_df[sql_col]
                                 .astype(str)
                                 .str.strip()
                                 .str.lower()
@@ -1585,6 +1590,16 @@ class MainWindow(QMainWindow):
             self.logger.error(f"Failed to extract accounts from SQL results: {e}")
             return []
 
+    def _detect_sheet_column(self, df):
+        """Return the column in *df* that appears to contain sheet names."""
+        norm_map = {
+            re.sub(r"[\s_]+", "", str(col)).lower(): col for col in df.columns
+        }
+        for cand in ["sheetname", "sheet"]:
+            if cand in norm_map:
+                return norm_map[cand]
+        return None
+
     def _gather_sheet_names_from_sql(self):
         """Return sheet names present in the SQL results if available."""
         if (
@@ -1594,15 +1609,10 @@ class MainWindow(QMainWindow):
             return []
         try:
             df = self.results_viewer.get_dataframe()
-            # Normalize column names by removing spaces/underscores for matching
-            norm_map = {
-                re.sub(r"[\s_]+", "", str(col)).lower(): col for col in df.columns
-            }
-            for cand in ["sheetname", "sheet"]:
-                if cand in norm_map:
-                    col = norm_map[cand]
-                    series = df[col].dropna().astype(str).str.strip()
-                    return sorted(series.unique().tolist())
+            col = self._detect_sheet_column(df)
+            if col:
+                series = df[col].dropna().astype(str).str.strip()
+                return sorted(series.unique().tolist())
 
             # Fall back to parsing ``CAReportName`` for prefixes in the form
             # ``Sheet: Account`` when no sheet column exists.
@@ -1804,16 +1814,20 @@ class MainWindow(QMainWindow):
             excel_df = self.excel_analyzer.sheet_data[sheet_name]["dataframe"]
             # For SQL, filter as in compare_results
             sql_df = self.results_viewer.get_dataframe()
-            key_cols = []
-            for col in ["Center", "CAReportName", "Account", "Sheet_Name"]:
+            key_pairs = []
+            for col in ["Center", "CAReportName", "Account"]:
                 if col in excel_df.columns and col in sql_df.columns:
-                    key_cols.append(col)
+                    key_pairs.append((col, col))
+            excel_sheet_col = self._detect_sheet_column(excel_df)
+            sql_sheet_col = self._detect_sheet_column(sql_df)
+            if excel_sheet_col and sql_sheet_col:
+                key_pairs.append((excel_sheet_col, sql_sheet_col))
             filtered_sql_df = sql_df.copy()
-            if key_cols:
-                for col in key_cols:
-                    excel_vals = excel_df[col].dropna().unique()
+            if key_pairs:
+                for ex_col, sql_col in key_pairs:
+                    excel_vals = excel_df[ex_col].dropna().unique()
                     filtered_sql_df = filtered_sql_df[
-                        filtered_sql_df[col].isin(excel_vals)
+                        filtered_sql_df[sql_col].isin(excel_vals)
                     ]
 
             # Apply account categories and formulas to SQL rows before comparison
@@ -1948,16 +1962,20 @@ class MainWindow(QMainWindow):
         for sheet_name, result in self.comparison_results_by_sheet.items():
             excel_df = self.excel_analyzer.sheet_data[sheet_name]["dataframe"]
             sql_df = self.results_viewer.get_dataframe()
-            key_cols = []
-            for col in ["Center", "CAReportName", "Account", "Sheet_Name"]:
+            key_pairs = []
+            for col in ["Center", "CAReportName", "Account"]:
                 if col in excel_df.columns and col in sql_df.columns:
-                    key_cols.append(col)
+                    key_pairs.append((col, col))
+            excel_sheet_col = self._detect_sheet_column(excel_df)
+            sql_sheet_col = self._detect_sheet_column(sql_df)
+            if excel_sheet_col and sql_sheet_col:
+                key_pairs.append((excel_sheet_col, sql_sheet_col))
             filtered_sql_df = sql_df.copy()
-            if key_cols:
-                for col in key_cols:
-                    excel_vals = excel_df[col].dropna().unique()
+            if key_pairs:
+                for ex_col, sql_col in key_pairs:
+                    excel_vals = excel_df[ex_col].dropna().unique()
                     filtered_sql_df = filtered_sql_df[
-                        filtered_sql_df[col].isin(excel_vals)
+                        filtered_sql_df[sql_col].isin(excel_vals)
                     ]
 
             # Apply account categories and formulas to SQL rows before comparison
@@ -2069,16 +2087,20 @@ class MainWindow(QMainWindow):
         for sheet_name, result in self.comparison_results_by_sheet.items():
             excel_df = self.excel_analyzer.sheet_data[sheet_name]["dataframe"]
             sql_df = self.results_viewer.get_dataframe()
-            key_cols = []
-            for col in ["Center", "CAReportName", "Account", "Sheet_Name"]:
+            key_pairs = []
+            for col in ["Center", "CAReportName", "Account"]:
                 if col in excel_df.columns and col in sql_df.columns:
-                    key_cols.append(col)
+                    key_pairs.append((col, col))
+            excel_sheet_col = self._detect_sheet_column(excel_df)
+            sql_sheet_col = self._detect_sheet_column(sql_df)
+            if excel_sheet_col and sql_sheet_col:
+                key_pairs.append((excel_sheet_col, sql_sheet_col))
             filtered_sql_df = sql_df.copy()
-            if key_cols:
-                for col in key_cols:
-                    excel_vals = excel_df[col].dropna().unique()
+            if key_pairs:
+                for ex_col, sql_col in key_pairs:
+                    excel_vals = excel_df[ex_col].dropna().unique()
                     filtered_sql_df = filtered_sql_df[
-                        filtered_sql_df[col].isin(excel_vals)
+                        filtered_sql_df[sql_col].isin(excel_vals)
                     ]
 
             report_type = self.config.get("excel", "report_type")
