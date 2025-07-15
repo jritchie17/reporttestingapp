@@ -135,3 +135,23 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         engine = ComparisonEngine()
         df = engine.generate_detailed_comparison_dataframe('Sheet1', excel_df, sql_df)
         self.assertTrue((df['Result'] == 'Match').all())
+
+    def test_empty_sql_dataframe_raises(self):
+        empty_sql = pd.DataFrame(columns=self.sql_df.columns)
+        with self.assertRaises(ValueError):
+            self.engine.generate_detailed_comparison_dataframe(
+                'Sheet1', self.excel_df, empty_sql
+            )
+
+    def test_missing_key_columns_raise(self):
+        excel_df = pd.DataFrame({'Amount': [100]})
+        sql_df = pd.DataFrame({'Amount': [100]})
+        column_mappings = {
+            0: {'excel_column': 'Center', 'sql_column': 'Center', 'match_score': 1.0},
+            1: {'excel_column': 'CAReportName', 'sql_column': 'CAReportName', 'match_score': 1.0},
+            2: {'excel_column': 'Amount', 'sql_column': 'Amount', 'match_score': 1.0},
+        }
+        with self.assertRaises(ValueError):
+            self.engine.generate_detailed_comparison_dataframe(
+                'Sheet1', excel_df, sql_df, column_mappings=column_mappings
+            )
