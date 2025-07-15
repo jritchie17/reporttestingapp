@@ -1875,14 +1875,16 @@ class MainWindow(QMainWindow):
         combined_df = combined_df.rename(
             columns={k: v for k, v in rename_map.items() if k in combined_df.columns}
         )
+        # Keep the field information so users can identify which database column
+        # was compared. Drop the Center column instead.
         combined_df = combined_df.drop(
-            columns=[c for c in ["Field", "Issue"] if c in combined_df.columns]
+            columns=[c for c in ["Center", "Issue"] if c in combined_df.columns]
         )
         ordered_cols = [
             c
             for c in [
                 "Sheet",
-                "Center",
+                "Field",
                 "CAReportName",
                 "Excel Value",
                 "DB Value",
