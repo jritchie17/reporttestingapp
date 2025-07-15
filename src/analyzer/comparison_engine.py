@@ -567,6 +567,21 @@ class ComparisonEngine:
         key_columns = self._identify_key_columns(excel_df, sql_df, column_mappings)
         if not key_columns:
             raise ValueError("Could not identify key columns for joining")
+
+        # Validate input DataFrames before building join keys
+        if excel_df.empty or sql_df.empty:
+            self.logger.warning("One or both dataframes are empty")
+            raise ValueError("One or both dataframes are empty")
+
+        missing_excel = [col for col in key_columns['excel'] if col not in excel_df.columns]
+        missing_sql = [col for col in key_columns['sql'] if col not in sql_df.columns]
+        if missing_excel or missing_sql:
+            self.logger.warning(
+                "Key columns missing from dataframes. Excel missing: %s; SQL missing: %s",
+                missing_excel,
+                missing_sql,
+            )
+            raise ValueError("Key columns missing from dataframes")
         
         # Prepare sign flip accounts as a set of stripped strings
         sign_flip_accounts_str = set(str(acct).strip() for acct in getattr(self, 'sign_flip_accounts', set()))

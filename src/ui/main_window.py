@@ -1860,7 +1860,7 @@ class MainWindow(QMainWindow):
                     report_type=report_type,
                 )
             except ValueError as e:
-                QMessageBox.critical(self, "Export Error", str(e))
+                QMessageBox.critical(self, "Export Error", f"Failed to generate detailed results: {str(e)}")
                 return
             all_dfs.append(df)
         if not all_dfs:
@@ -1989,7 +1989,7 @@ class MainWindow(QMainWindow):
                     report_type=report_type,
                 )
             except ValueError as e:
-                QMessageBox.critical(self, "Export Error", str(e))
+                QMessageBox.critical(self, "Export Error", f"Failed to generate detailed results: {str(e)}")
                 return
             all_dfs.append(df)
         if not all_dfs:
@@ -2096,7 +2096,7 @@ class MainWindow(QMainWindow):
                     report_type=report_type,
                 )
             except ValueError as e:
-                QMessageBox.critical(self, "Export Error", str(e))
+                QMessageBox.critical(self, "Export Error", f"Failed to generate detailed results: {str(e)}")
                 return
             all_dfs.append(df)
         if not all_dfs:
