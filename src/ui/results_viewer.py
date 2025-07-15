@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import re
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -156,6 +157,7 @@ class ResultsTableModel(QAbstractTableModel):
         self._data[index.row()][column_name] = value
         self.dataChanged.emit(index, index, [Qt.ItemDataRole.DisplayRole])
         return True
+
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
@@ -404,10 +406,12 @@ class ResultsViewer(QWidget):
 
                     if self.results_data and isinstance(self.results_data[0], dict):
                         first_row = self.results_data[0]
-                        lower_map = {k.lower(): k for k in first_row}
-                        for cand in ["sheet", "sheet name", "sheet_name"]:
-                            if cand.lower() in lower_map:
-                                sheet_col = lower_map[cand.lower()]
+                        lower_map = {
+                            re.sub(r"[\s_]+", "", k).lower(): k for k in first_row
+                        }
+                        for cand in ["sheetname", "sheet"]:
+                            if cand in lower_map:
+                                sheet_col = lower_map[cand]
                                 break
 
                         if sheet_col:
@@ -421,7 +425,11 @@ class ResultsViewer(QWidget):
                             self.columns.append(sheet_col)
 
                     group_col = sheet_col
-                    if group_col is None and self.results_data and isinstance(self.results_data[0], dict):
+                    if (
+                        group_col is None
+                        and self.results_data
+                        and isinstance(self.results_data[0], dict)
+                    ):
                         first_row = self.results_data[0]
                         if "Center" in first_row:
                             group_col = "Center"
@@ -447,10 +455,7 @@ class ResultsViewer(QWidget):
                         include_categories=False,
                     )
 
-                    if (
-                        report_type == "AR Center"
-                        and self.results_data
-                    ):
+                    if report_type == "AR Center" and self.results_data:
                         first = self.results_data[0]
                         if isinstance(first, dict):
                             ca_col = None
@@ -463,6 +468,7 @@ class ResultsViewer(QWidget):
                                 ca_col = next(iter(first), None)
 
                             if ca_col:
+
                                 def _row_prefix(row):
                                     name = None
                                     if sheet_col and row.get(sheet_col):
@@ -482,7 +488,9 @@ class ResultsViewer(QWidget):
                                         row[ca_col] = prefix.strip()
                                     else:
                                         val_str = str(val).strip()
-                                        if not val_str.lower().startswith(prefix.strip().lower()):
+                                        if not val_str.lower().startswith(
+                                            prefix.strip().lower()
+                                        ):
                                             row[ca_col] = f"{prefix}{val_str}"
                                         else:
                                             row[ca_col] = val_str

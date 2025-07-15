@@ -208,7 +208,6 @@ class MainWindow(QMainWindow):
         workflow_action.triggered.connect(self.start_workflow)
         tools_menu.addAction(workflow_action)
 
-
         # Reset Application
         reset_action = QAction(qta.icon("fa5s.sync"), "Reset Application", self)
         reset_action.setShortcut("Ctrl+R")
@@ -273,7 +272,6 @@ class MainWindow(QMainWindow):
         toolbar.addAction(workflow_action)
         self._apply_hover_animation(toolbar.widgetForAction(workflow_action))
 
-
         # Reset application
         reset_action = QAction(qta.icon("fa5s.sync"), "Reset", self)
         reset_action.setToolTip("Reset application to start a new test")
@@ -285,9 +283,7 @@ class MainWindow(QMainWindow):
             qta.icon("fa5s.layer-group"), "Manage Account Categories...", self
         )
         self.manage_cats_toolbar_action.setEnabled(False)
-        self.manage_cats_toolbar_action.triggered.connect(
-            self.open_account_categories
-        )
+        self.manage_cats_toolbar_action.triggered.connect(self.open_account_categories)
         toolbar.addAction(self.manage_cats_toolbar_action)
         self._apply_hover_animation(
             toolbar.widgetForAction(self.manage_cats_toolbar_action)
@@ -761,8 +757,7 @@ class MainWindow(QMainWindow):
                         self,
                         "Manage Categories",
                         "Manage account categories with detected accounts?",
-                        QMessageBox.StandardButton.Yes
-                        | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                         QMessageBox.StandardButton.No,
                     )
                     if resp == QMessageBox.StandardButton.Yes:
@@ -1480,6 +1475,7 @@ class MainWindow(QMainWindow):
             return []
 
         from src.utils.account_patterns import ACCOUNT_PATTERNS
+
         patterns = ACCOUNT_PATTERNS
         accounts = set()
         try:
@@ -1531,7 +1527,6 @@ class MainWindow(QMainWindow):
                             account_col = col
                             break
 
-
                 # If headers haven't been imported yet, fall back to the
                 # position used by the Extract SQL feature (second column).
                 # Previously the code shifted to the third column when a
@@ -1556,10 +1551,14 @@ class MainWindow(QMainWindow):
 
     def _gather_accounts_from_sql(self):
         """Extract account numbers from SQL query results."""
-        if not getattr(self, "results_viewer", None) or not self.results_viewer.has_results():
+        if (
+            not getattr(self, "results_viewer", None)
+            or not self.results_viewer.has_results()
+        ):
             return []
 
         from src.utils.account_patterns import ACCOUNT_PATTERNS
+
         patterns = ACCOUNT_PATTERNS
 
         try:
@@ -1588,15 +1587,21 @@ class MainWindow(QMainWindow):
 
     def _gather_sheet_names_from_sql(self):
         """Return sheet names present in the SQL results if available."""
-        if not getattr(self, "results_viewer", None) or not self.results_viewer.has_results():
+        if (
+            not getattr(self, "results_viewer", None)
+            or not self.results_viewer.has_results()
+        ):
             return []
         try:
             df = self.results_viewer.get_dataframe()
-            lower_map = {str(col).lower(): col for col in df.columns}
-            for cand in ["sheet_name", "sheet", "sheetname"]:
-                if cand in lower_map:
-                    col = lower_map[cand]
-                    series = df[col].dropna().astype(str)
+            # Normalize column names by removing spaces/underscores for matching
+            norm_map = {
+                re.sub(r"[\s_]+", "", str(col)).lower(): col for col in df.columns
+            }
+            for cand in ["sheetname", "sheet"]:
+                if cand in norm_map:
+                    col = norm_map[cand]
+                    series = df[col].dropna().astype(str).str.strip()
                     return sorted(series.unique().tolist())
 
             # Fall back to parsing ``CAReportName`` for prefixes in the form
@@ -1616,9 +1621,7 @@ class MainWindow(QMainWindow):
                 if prefixes:
                     return sorted(set(prefixes))
         except Exception as e:
-            self.logger.error(
-                f"Failed to extract sheet names from SQL results: {e}"
-            )
+            self.logger.error(f"Failed to extract sheet names from SQL results: {e}")
         return []
 
     def show_about(self):
@@ -1689,7 +1692,6 @@ class MainWindow(QMainWindow):
 
         # Update any components that need to know about the report type
         self.update_components_for_report_type(report_type)
-
 
     def update_components_for_report_type(self, report_type):
         """Update application components based on the selected report type"""
@@ -1856,11 +1858,14 @@ class MainWindow(QMainWindow):
                     excel_df,
                     filtered_sql_df,
                     column_mappings=result.get("column_mappings"),
-
                     report_type=report_type,
                 )
             except ValueError as e:
-                QMessageBox.critical(self, "Export Error", f"Failed to generate detailed results: {str(e)}")
+                QMessageBox.critical(
+                    self,
+                    "Export Error",
+                    f"Failed to generate detailed results: {str(e)}",
+                )
                 return
             all_dfs.append(df)
         if not all_dfs:
@@ -1991,7 +1996,11 @@ class MainWindow(QMainWindow):
                     report_type=report_type,
                 )
             except ValueError as e:
-                QMessageBox.critical(self, "Export Error", f"Failed to generate detailed results: {str(e)}")
+                QMessageBox.critical(
+                    self,
+                    "Export Error",
+                    f"Failed to generate detailed results: {str(e)}",
+                )
                 return
             all_dfs.append(df)
         if not all_dfs:
@@ -2044,10 +2053,15 @@ class MainWindow(QMainWindow):
         import os
         import shutil
 
-        if not hasattr(self, "comparison_engine") or not hasattr(self, "excel_analyzer"):
+        if not hasattr(self, "comparison_engine") or not hasattr(
+            self, "excel_analyzer"
+        ):
             QMessageBox.warning(self, "No Results", "Please run a comparison first.")
             return
-        if not hasattr(self, "comparison_results_by_sheet") or not self.comparison_results_by_sheet:
+        if (
+            not hasattr(self, "comparison_results_by_sheet")
+            or not self.comparison_results_by_sheet
+        ):
             QMessageBox.warning(self, "No Results", "Please run a comparison first.")
             return
 
@@ -2063,7 +2077,9 @@ class MainWindow(QMainWindow):
             if key_cols:
                 for col in key_cols:
                     excel_vals = excel_df[col].dropna().unique()
-                    filtered_sql_df = filtered_sql_df[filtered_sql_df[col].isin(excel_vals)]
+                    filtered_sql_df = filtered_sql_df[
+                        filtered_sql_df[col].isin(excel_vals)
+                    ]
 
             report_type = self.config.get("excel", "report_type")
             if report_type:
@@ -2078,7 +2094,9 @@ class MainWindow(QMainWindow):
                             break
                     if group_col is None and "Center" in filtered_sql_df.columns:
                         group_col = "Center"
-                    sign_flip = list(getattr(self.comparison_engine, "sign_flip_accounts", []))
+                    sign_flip = list(
+                        getattr(self.comparison_engine, "sign_flip_accounts", [])
+                    )
                     calc = CategoryCalculator(
                         categories,
                         formulas,
@@ -2098,7 +2116,11 @@ class MainWindow(QMainWindow):
                     report_type=report_type,
                 )
             except ValueError as e:
-                QMessageBox.critical(self, "Export Error", f"Failed to generate detailed results: {str(e)}")
+                QMessageBox.critical(
+                    self,
+                    "Export Error",
+                    f"Failed to generate detailed results: {str(e)}",
+                )
                 return
             all_dfs.append(df)
         if not all_dfs:

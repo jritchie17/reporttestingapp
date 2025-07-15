@@ -8,7 +8,7 @@ import pandas as pd
 from tests.qt_stubs import patch_qt_modules
 from src.utils.account_categories import CategoryCalculator
 
-FIXTURES = os.path.join(os.path.dirname(__file__), 'fixtures')
+FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 
 
 class DummyConfig:
@@ -18,17 +18,17 @@ class DummyConfig:
         self.report_type = ""
 
     def get_account_categories(self, report_type, sheet_name=None):
-        return self.categories.get(report_type, {}).get(sheet_name or '__default__', {})
+        return self.categories.get(report_type, {}).get(sheet_name or "__default__", {})
 
     def get_account_formulas(self, report_type, sheet_name=None):
-        return self.formulas.get(report_type, {}).get(sheet_name or '__default__', {})
+        return self.formulas.get(report_type, {}).get(sheet_name or "__default__", {})
 
     def set_account_categories(self, report_type, cats, sheet_name=None):
-        sheet_name = sheet_name or '__default__'
+        sheet_name = sheet_name or "__default__"
         self.categories.setdefault(report_type, {})[sheet_name] = cats
 
     def set_account_formulas(self, report_type, formulas, sheet_name=None):
-        sheet_name = sheet_name or '__default__'
+        sheet_name = sheet_name or "__default__"
         self.formulas.setdefault(report_type, {})[sheet_name] = formulas
 
     def get(self, section, key=None):
@@ -181,7 +181,9 @@ class ApplyCalculationsTest(unittest.TestCase):
         )
 
         self.assertEqual(viewer.results_data, expected)
-        net_rows = [row for row in viewer.results_data if row.get("CAReportName") == "Net"]
+        net_rows = [
+            row for row in viewer.results_data if row.get("CAReportName") == "Net"
+        ]
         sheets = {row.get("Sheet") for row in net_rows}
         self.assertEqual(len(net_rows), 2)
         self.assertEqual(sheets, {"Foo", "Bar"})
@@ -210,10 +212,34 @@ class ApplyCalculationsTest(unittest.TestCase):
 
         viewer.apply_calculations()
 
-        net_rows = [row for row in viewer.results_data if row.get("CAReportName") == "Net"]
+        net_rows = [
+            row for row in viewer.results_data if row.get("CAReportName") == "Net"
+        ]
         self.assertEqual(len(net_rows), 1)
         self.assertEqual(net_rows[0].get("Sheet"), "Foo")
         self.assertIn("Sheet", viewer.columns)
+
+    def test_apply_calculations_uses_existing_sheetname(self):
+        parent = self.MainWindow.__new__(self.MainWindow)
+        parent.config = DummyConfig()
+        parent.config.set_account_categories("Test", {"CatA": ["1234-5678"]})
+        parent.config.set_account_formulas("Test", {"Net": "CatA"})
+        parent.config.report_type = "Test"
+        parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
+
+        viewer = self.ResultsViewer.__new__(self.ResultsViewer)
+        viewer.results_data = [
+            {"SheetName": "Foo", "CAReportName": "1234-5678", "Amount": 10}
+        ]
+        viewer.columns = ["SheetName", "CAReportName", "Amount"]
+        viewer.table_view = DummyTable()
+        viewer.status_label = DummyLabel()
+        viewer.window = lambda: parent
+
+        viewer.apply_calculations()
+
+        self.assertNotIn("Sheet", viewer.columns)
+        self.assertIn("SheetName", viewer.columns)
 
     def test_apply_calculations_prefixes_formula_rows(self):
         parent = self.MainWindow.__new__(self.MainWindow)
@@ -222,7 +248,9 @@ class ApplyCalculationsTest(unittest.TestCase):
             "AR Center",
             {"Bad debt": ["Bad debt"]},
         )
-        parent.config.set_account_formulas("AR Center", {"Bad debt percentage": "Bad debt"})
+        parent.config.set_account_formulas(
+            "AR Center", {"Bad debt percentage": "Bad debt"}
+        )
         parent.config.report_type = "AR Center"
         parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
         parent.sheet_selector = DummySelector("facility")
@@ -251,7 +279,9 @@ class ApplyCalculationsTest(unittest.TestCase):
             "AR Center",
             {"Bad debt": ["Bad debt"]},
         )
-        parent.config.set_account_formulas("AR Center", {"Bad debt percentage": "Bad debt"})
+        parent.config.set_account_formulas(
+            "AR Center", {"Bad debt percentage": "Bad debt"}
+        )
         parent.config.report_type = "AR Center"
         parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
         parent.sheet_selector = DummySelector("facility")
@@ -259,7 +289,11 @@ class ApplyCalculationsTest(unittest.TestCase):
         viewer = self.ResultsViewer.__new__(self.ResultsViewer)
         viewer.results_data = [
             {"Sheet": "facility", "CAReportName": "Facility: Bad debt", "Amount": 100},
-            {"Sheet": "anesthesia", "CAReportName": "Anesthesia: Bad debt", "Amount": 50},
+            {
+                "Sheet": "anesthesia",
+                "CAReportName": "Anesthesia: Bad debt",
+                "Amount": 50,
+            },
         ]
         viewer.columns = ["Sheet", "CAReportName", "Amount"]
         viewer.table_view = DummyTable()
@@ -269,11 +303,13 @@ class ApplyCalculationsTest(unittest.TestCase):
         viewer.apply_calculations()
 
         fac_row = any(
-            row.get("CAReportName") == "Facility: Bad debt percentage" and row.get("Sheet") == "facility"
+            row.get("CAReportName") == "Facility: Bad debt percentage"
+            and row.get("Sheet") == "facility"
             for row in viewer.results_data
         )
         ane_row = any(
-            row.get("CAReportName") == "Anesthesia: Bad debt percentage" and row.get("Sheet") == "anesthesia"
+            row.get("CAReportName") == "Anesthesia: Bad debt percentage"
+            and row.get("Sheet") == "anesthesia"
             for row in viewer.results_data
         )
         self.assertTrue(fac_row)
@@ -301,10 +337,12 @@ class SQLAccountExtractionTest(unittest.TestCase):
         self.assertEqual(accounts, ["1234-5678", "9999-0000"])
 
     def test_gather_accounts_sql_fallback(self):
-        df = pd.DataFrame({
-            "Acct": ["1234-5678", "9999-0000"],
-            "Amount": [1, 2],
-        })
+        df = pd.DataFrame(
+            {
+                "Acct": ["1234-5678", "9999-0000"],
+                "Amount": [1, 2],
+            }
+        )
         window = self.MainWindow.__new__(self.MainWindow)
         window.results_viewer = types.SimpleNamespace(
             results_data=df.to_dict(orient="records"),
@@ -321,7 +359,9 @@ class SQLAccountExtractionTest(unittest.TestCase):
         captured = {}
 
         class StubDialog:
-            def __init__(self, config, report_type, accounts, sheet_names=None, parent=None):
+            def __init__(
+                self, config, report_type, accounts, sheet_names=None, parent=None
+            ):
                 captured["accounts"] = accounts
                 captured["sheets"] = sheet_names
 
@@ -358,7 +398,9 @@ class ARCenterResultsLoadTest(unittest.TestCase):
         patch_qt_modules()
         sys.modules.pop("src.ui.results_viewer", None)
         sys.modules.pop("src.ui.main_window", None)
-        self.ResultsViewer = importlib.import_module("src.ui.results_viewer").ResultsViewer
+        self.ResultsViewer = importlib.import_module(
+            "src.ui.results_viewer"
+        ).ResultsViewer
         self.MainWindow = importlib.import_module("src.ui.main_window").MainWindow
 
     def _load(self, data, columns=None, sheet="facility"):
