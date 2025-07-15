@@ -23,6 +23,7 @@ from PyQt6.QtCore import Qt, QAbstractTableModel, QModelIndex, QVariant
 from PyQt6.QtGui import QFont, QColor, QBrush, QAction
 
 from src.utils.account_categories import CategoryCalculator
+from src.utils.logging_config import get_logger
 import numpy as np
 import qtawesome as qta
 
@@ -188,6 +189,7 @@ class ResultsTableModel(QAbstractTableModel):
 class ResultsViewer(QWidget):
     def __init__(self):
         super().__init__()
+        self.logger = get_logger(__name__)
         self.results_data = []
         self.original_data = []
         self.columns = []
@@ -349,13 +351,17 @@ class ResultsViewer(QWidget):
             self.columns = [str(col) for col in columns] if columns else []
 
         # Debug information
-        print(f"Loading results with {len(data)} rows and {len(self.columns)} columns")
+        self.logger.debug(
+            "Loading results with %d rows and %d columns",
+            len(data),
+            len(self.columns),
+        )
         if data and self.columns:
-            # Debug: print first row data structure
+            # Debug: log first row data structure
             first_row = data[0]
-            print(f"First row type: {type(first_row).__name__}")
-            print(f"First row data: {first_row}")
-            print(f"Columns: {self.columns}")
+            self.logger.debug("First row type: %s", type(first_row).__name__)
+            self.logger.debug("First row data: %s", first_row)
+            self.logger.debug("Columns: %s", self.columns)
 
         # Create model and set it on table view
         self.model = ResultsTableModel(self.results_data, self.columns)
