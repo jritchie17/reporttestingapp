@@ -166,7 +166,9 @@ class ComparisonEngine:
             "sql": sql_dup_keys.value_counts().to_dict() if not sql_dup_keys.empty else {}
         }
         
-        # Add keys to dataframes
+        # Add keys to dataframes without mutating the originals
+        excel_df = excel_df.copy()
+        sql_df = sql_df.copy()
         excel_df['_join_key'] = excel_keys
         sql_df['_join_key'] = sql_keys
         
