@@ -56,7 +56,7 @@ def create_modern_pie_chart(match_count: int, mismatch_count: int) -> str:
     
     plt.axis('equal')
     chart_path = os.path.join(BASE_DIR, "match_pie_chart.png")
-    plt.savefig(chart_path, bbox_inches='tight', dpi=150, transparent=True)
+    plt.savefig(chart_path, bbox_inches="tight", dpi=150, transparent=True)
     plt.close()
     return chart_path
 
@@ -310,24 +310,26 @@ def main() -> None:
     
     # Render HTML
     template = Template(html_template)
+
+    # Use paths relative to the HTML output so the report works on any machine
+    output_dir = os.path.dirname(OUTPUT_HTML)
+    relative_logo_path = os.path.relpath(LOGO_PATH, start=output_dir)
+    relative_chart_path = os.path.relpath(pie_chart_path, start=output_dir)
+
     html_content = template.render(
         title=REPORT_TITLE,
         logo_exists=os.path.exists(LOGO_PATH),
-        logo_path=LOGO_PATH,
+        logo_path=relative_logo_path,
         total_points=total_points,
         match_count=match_count,
         mismatch_count=mismatch_count,
-        chart_path=pie_chart_path,
+        chart_path=relative_chart_path,
         table_data=table_data
     )
     
     # Save HTML file
     with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
         f.write(html_content)
-    
-    # Clean up temporary files
-    if os.path.exists(pie_chart_path):
-        os.remove(pie_chart_path)
     
     print(f"HTML report generated: {OUTPUT_HTML}")
     print("Open this file in your browser and use Ctrl+P to save as PDF")
