@@ -24,7 +24,7 @@ class TestARCenterCleaning(unittest.TestCase):
     def setUp(self):
         patch_qt_modules()
 
-    def test_careportname_prefixed_with_sheet(self):
+    def test_sheet_column_added_without_prefix(self):
         from src.ui.excel_viewer import ExcelViewer
         viewer = ExcelViewer.__new__(ExcelViewer)
         viewer.report_config = {
@@ -43,12 +43,12 @@ class TestARCenterCleaning(unittest.TestCase):
 
         cleaned = ExcelViewer._clean_dataframe(viewer, df, 'facility')
         self.assertIsNotNone(cleaned)
-        self.assertEqual(list(cleaned.columns), ['CAReportName', 'Val1'])
-        self.assertEqual(cleaned.iloc[0].tolist(), ['Facility: 0 - 30 days', 1.0])
-        self.assertEqual(cleaned.iloc[1].tolist(), ['Facility: 31 - 60 days', 2.0])
+        self.assertEqual(list(cleaned.columns), ['Sheet', 'CAReportName', 'Val1'])
+        self.assertEqual(cleaned.iloc[0].tolist(), ['facility', '0 - 30 days', 1.0])
+        self.assertEqual(cleaned.iloc[1].tolist(), ['facility', '31 - 60 days', 2.0])
 
-    def test_comparison_with_prefixed_sql(self):
-        """Comparison should succeed when SQL rows are prefixed like Excel."""
+    def test_comparison_with_sheet_column(self):
+        """Comparison should succeed when both sources use a Sheet column."""
         from src.ui.excel_viewer import ExcelViewer
         from src.analyzer.comparison_engine import ComparisonEngine
 
@@ -70,19 +70,17 @@ class TestARCenterCleaning(unittest.TestCase):
         excel_df = ExcelViewer._clean_dataframe(viewer, df, 'facility')
 
         sql_df = pd.DataFrame({
+            'Sheet': ['facility', 'facility'],
             'CAReportName': ['0 - 30 days', '31 - 60 days'],
             'Val1': [1, 2]
         })
-        sql_df['CAReportName'] = sql_df['CAReportName'].apply(
-            lambda v: f"Facility: {v}"
-        )
 
         engine = ComparisonEngine()
         result = engine.compare_dataframes(excel_df, sql_df)
         self.assertTrue(result['summary']['overall_match'])
 
-    def test_compare_results_with_prefixed_sql_rows(self):
-        """MainWindow.compare_results should handle already-prefixed SQL."""
+    def test_compare_results_with_sheet_column(self):
+        """MainWindow.compare_results should handle data with a Sheet column."""
         from src.ui.excel_viewer import ExcelViewer
         from src.analyzer.comparison_engine import ComparisonEngine
         from src.analyzer.excel_analyzer import ExcelAnalyzer
@@ -110,7 +108,8 @@ class TestARCenterCleaning(unittest.TestCase):
         analyzer.sheet_data['facility'] = {'dataframe': excel_df}
 
         sql_df = pd.DataFrame({
-            'CAReportName': ['Facility: 0 - 30 days', 'Facility: 31 - 60 days'],
+            'Sheet': ['facility', 'facility'],
+            'CAReportName': ['0 - 30 days', '31 - 60 days'],
             'Val1': [1, 2]
         })
 

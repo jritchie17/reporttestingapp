@@ -339,6 +339,8 @@ class ComparisonEngine:
             "facility",
             "facilitynumber",
             "facility number",
+            "sheet",
+            "sheetname",
         }
         acct_synonyms = {
             "careportname",
@@ -352,6 +354,7 @@ class ComparisonEngine:
             "facility",
             "department",
             "dept",
+            "sheet",
         ]
         acct_keywords = [
             "account",
