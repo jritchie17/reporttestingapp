@@ -379,7 +379,12 @@ class ResultsViewer(QWidget):
             report_type = parent.config.get("excel", "report_type")
             if report_type:
                 categories = parent.config.get_account_categories(report_type)
-                formulas = parent.config.get_account_formulas(report_type)
+                lib = parent.config.get_formula_library()
+                formulas = {
+                    n: info
+                    for n, info in lib.items()
+                    if not info.get("sheets") or sheet_val in info.get("sheets")
+                }
                 if categories:
                     sheet_col = None
                     sheet_val = ""

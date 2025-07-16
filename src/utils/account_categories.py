@@ -16,7 +16,7 @@ class CategoryCalculator:
     def __init__(
         self,
         categories: Dict[str, Iterable[str]] | None = None,
-        formulas: Dict[str, str] | None = None,
+        formulas: Dict[str, Dict[str, str]] | None = None,
         account_column: str = "CAReportName",
         group_column: str | None = "Center",
         sign_flip_accounts: Iterable[str] | None = None,
@@ -28,8 +28,8 @@ class CategoryCalculator:
         categories:
             Mapping of category name to a collection of account numbers.
         formulas:
-            Optional mapping of formula name to a Python expression using the
-            category names as variables.
+            Optional mapping of formula name to a mapping with ``expr`` and
+            optional ``display_name`` values.
         account_column:
             Name of the column containing the account identifier in ``rows``.
         group_column:
@@ -150,7 +150,8 @@ class CategoryCalculator:
 
         # Identify account numbers referenced directly in formulas
         account_refs = set()
-        for expr in self.formulas.values():
+        for info in self.formulas.values():
+            expr = info.get("expr", "")
             for pat in ACCOUNT_PATTERNS:
                 for match in re.findall(pat, expr):
                     account_refs.add(match)
@@ -255,7 +256,9 @@ class CategoryCalculator:
                         row_vals[self.group_column] = g
                     result.append(row_vals)
 
-            for form_name, expr in self.formulas.items():
+            for form_name, info in self.formulas.items():
+                expr = info.get("expr", "")
+                display = info.get("display_name") or form_name
                 # Replace category names and account refs with safe identifiers
                 safe_expr = expr
                 for name, safe in sorted(
@@ -277,7 +280,7 @@ class CategoryCalculator:
                         values[col] = eval(safe_expr, {}, local)
                     except Exception:
                         values[col] = None
-                row_vals = {account_col: form_name, **values}
+                row_vals = {account_col: display, **values}
                 if group_exists:
                     row_vals[self.group_column] = g
                 result.append(row_vals)

@@ -16,6 +16,7 @@ class DummyConfig:
     def __init__(self):
         self.categories = {}
         self.formulas = {}
+        self.formula_library = {}
 
     def get_account_categories(self, report_type, sheet_name=None):
         mapping = self.categories.get(report_type, {})
@@ -26,8 +27,14 @@ class DummyConfig:
     def get_account_formulas(self, report_type, sheet_name=None):
         mapping = self.formulas.get(report_type, {})
         if sheet_name is None:
-            return mapping.get("__default__", {})
-        return mapping.get(sheet_name, {})
+            result = mapping.get("__default__", {}).copy()
+        else:
+            result = mapping.get(sheet_name, {}).copy()
+        for name, info in self.formula_library.items():
+            sheets = info.get("sheets") or []
+            if sheet_name is None or sheet_name in sheets or "__default__" in sheets:
+                result.setdefault(name, info.get("expr", ""))
+        return result
 
     def set_account_categories(self, report_type, cats, sheet_name=None):
         sheet_name = sheet_name or "__default__"
@@ -36,6 +43,12 @@ class DummyConfig:
     def set_account_formulas(self, report_type, formulas, sheet_name=None):
         sheet_name = sheet_name or "__default__"
         self.formulas.setdefault(report_type, {})[sheet_name] = formulas
+
+    def get_formula_library(self):
+        return self.formula_library
+
+    def set_formula_library(self, lib):
+        self.formula_library = lib
 
 
 class TestCategoryCalculator(unittest.TestCase):
@@ -46,7 +59,7 @@ class TestCategoryCalculator(unittest.TestCase):
             "CatA": ["1234-5678"],
             "CatB": ["9999-0000"],
         }
-        self.formulas = {"Net": "CatA + CatB"}
+        self.formulas = {"Net": {"expr": "CatA + CatB", "display_name": "Net"}}
 
     def test_compute_totals_and_formulas(self):
         calc = CategoryCalculator(self.categories, self.formulas)
@@ -68,6 +81,12 @@ class TestCategoryCalculator(unittest.TestCase):
         self.assertEqual(cat_a["Amount"], 100)
         net = next(r for r in result if r["CAReportName"] == "Net")
         self.assertEqual(net["Amount"], 150)
+
+    def test_formula_display_name_used(self):
+        formulas = {"Net": {"expr": "CatA + CatB", "display_name": "Net Profit"}}
+        calc = CategoryCalculator(self.categories, formulas)
+        result = calc.compute(list(self.rows))
+        self.assertTrue(any(r["CAReportName"] == "Net Profit" for r in result))
 
     def test_compute_detects_account_column(self):
         rows = [
@@ -95,7 +114,7 @@ class TestCategoryCalculator(unittest.TestCase):
             "CatB": ["9999-0000"],
             "GI": ["61016001"],
         }
-        formulas = {"Net": "CatA + CatB + GI"}
+        formulas = {"Net": {"expr": "CatA + CatB + GI", "display_name": "Net"}}
         calc = CategoryCalculator(categories, formulas)
         result = calc.compute(rows)
 
@@ -246,7 +265,7 @@ class TestCategoryCalculator(unittest.TestCase):
             {"CAReportName": "5555-5555", "Amount": 20},
         ]
         categories = {"CatA": ["1234-5678"]}
-        formulas = {"NetAcct": "CatA + 5555-5555"}
+        formulas = {"NetAcct": {"expr": "CatA + 5555-5555", "display_name": "NetAcct"}}
         calc = CategoryCalculator(categories, formulas)
         result = calc.compute(list(rows))
 
@@ -302,7 +321,12 @@ class TestCategoryCalculator(unittest.TestCase):
             "Revenue Accounts": ["1234-5678"],
             "Expense-Accounts": ["9999-0000"],
         }
-        formulas = {"Net Profit": "Revenue Accounts + Expense-Accounts"}
+        formulas = {
+            "Net Profit": {
+                "expr": "Revenue Accounts + Expense-Accounts",
+                "display_name": "Net Profit",
+            }
+        }
         calc = CategoryCalculator(categories, formulas)
         result = calc.compute(list(self.rows))
         profit = next(r for r in result if r["CAReportName"] == "Net Profit")
@@ -315,7 +339,7 @@ class TestCategoryCalculator(unittest.TestCase):
             {"CAReportName": "Other", "Amount": 10},
         ]
         categories = {"Labor": ["Salaries", "Benefits"]}
-        formulas = {"Total": "Labor"}
+        formulas = {"Total": {"expr": "Labor", "display_name": "Total"}}
 
         calc = CategoryCalculator(categories, formulas)
         result = calc.compute(rows)
@@ -421,7 +445,7 @@ class TestAccountCategoryDialog(unittest.TestCase):
     def test_reject_discards_changes(self):
         config = DummyConfig()
         config.set_account_categories("Test", {"Orig": ["1"]})
-        config.set_account_formulas("Test", {"F": "Orig"})
+        config.set_formula_library({"F": {"expr": "Orig", "display_name": "F", "sheets": ["Sheet1"]}})
 
         dialog = self.Dialog(config, "Test", [], sheet_names=["Sheet1"])
 
@@ -441,7 +465,7 @@ class TestAccountCategoryDialog(unittest.TestCase):
     def test_rename_category_updates_formula(self):
         config = DummyConfig()
         config.set_account_categories("Test", {"Orig": ["1"]})
-        config.set_account_formulas("Test", {"F": "Orig"})
+        config.set_formula_library({"F": {"expr": "Orig", "display_name": "F", "sheets": ["Sheet1"]}})
 
         dialog = self.Dialog(config, "Test", [], sheet_names=["Sheet1"])
         dialog.category_list.setCurrentRow(0)
@@ -457,7 +481,7 @@ class TestAccountCategoryDialog(unittest.TestCase):
 
     def test_rename_formula(self):
         config = DummyConfig()
-        config.set_account_formulas("Test", {"Old": "1"})
+        config.set_formula_library({"Old": {"expr": "1", "display_name": "Old", "sheets": ["Sheet1"]}})
 
         dialog = self.Dialog(config, "Test", [], sheet_names=["Sheet1"])
         dialog.formula_list.setCurrentRow(0)
@@ -469,6 +493,36 @@ class TestAccountCategoryDialog(unittest.TestCase):
         dialog.save()
 
         self.assertEqual(config.get_account_formulas("Test"), {"New": "1"})
+
+class MigrationTests(unittest.TestCase):
+    def test_formula_migrated_to_library(self):
+        import json, tempfile
+        from src.utils.config import AppConfig
+
+        with tempfile.TemporaryDirectory() as tmp:
+            old_home = os.environ.get("HOME")
+            os.environ["HOME"] = tmp
+
+            cfg_path = os.path.join(tmp, ".soo_preclose_tester.json")
+            with open(cfg_path, "w") as f:
+                json.dump(
+                    {
+                        "account_formulas": {"Test": {"__default__": {"Net": "A+B"}}},
+                        "account_categories": {},
+                    },
+                    f,
+                )
+
+            cfg = AppConfig()
+            lib = cfg.get_formula_library()
+            self.assertIn("Net", lib)
+            self.assertEqual(lib["Net"]["expr"], "A+B")
+            self.assertIn("__default__", lib["Net"].get("sheets", []))
+
+            if old_home is not None:
+                os.environ["HOME"] = old_home
+            else:
+                del os.environ["HOME"]
 
 
 if __name__ == "__main__":
