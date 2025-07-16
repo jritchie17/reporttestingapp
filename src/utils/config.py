@@ -76,6 +76,7 @@ class AppConfig:
             },
             "account_categories": {},
             "account_formulas": {},
+            "formula_library": {},
             "report_configs": self.initialize_report_configs()
         }
         
@@ -126,7 +127,8 @@ class AppConfig:
             return default_config
 
     def _migrate_account_data(self, cfg: dict) -> bool:
-        """Migrate account categories/formulas to sheet-aware structure."""
+        """Migrate account categories/formulas to sheet-aware structure and
+        populate the global formula library."""
         updated = False
 
         for key in ["account_categories", "account_formulas"]:
@@ -137,6 +139,40 @@ class AppConfig:
                     section[rpt] = {DEFAULT_SHEET_NAME: mapping}
                     updated = True
             cfg[key] = section
+
+        # Migrate existing per-report formulas into the global library
+        lib = cfg.setdefault("formula_library", {})
+        acc_forms = cfg.get("account_formulas", {})
+        for rpt, by_sheet in acc_forms.items():
+            for sheet, mapping in by_sheet.items():
+                for name, expr in mapping.items():
+                    entry = lib.setdefault(
+                        name,
+                        {"expr": expr, "display_name": name, "sheets": [sheet]},
+                    )
+                    if entry.get("expr") == expr:
+                        sheets = entry.setdefault("sheets", [])
+                        if sheet not in sheets:
+                            sheets.append(sheet)
+                            updated = True
+                    else:
+                        # Formula name collision with different expression
+                        idx = 1
+                        new_name = name
+                        while new_name in lib and lib[new_name].get("expr") != expr:
+                            idx += 1
+                            new_name = f"{name}_{idx}"
+                        if new_name not in lib:
+                            lib[new_name] = {
+                                "expr": expr,
+                                "display_name": name,
+                                "sheets": [sheet],
+                            }
+                            updated = True
+
+        if acc_forms:
+            cfg["account_formulas"] = {}
+            updated = True
 
         return updated
 
@@ -278,19 +314,33 @@ class AppConfig:
         self.save_config()
 
     def get_account_formulas(self, report_type, sheet_name=None):
-        """Return account formulas for ``report_type`` and optional ``sheet_name``."""
+        """Return account formulas for ``report_type`` and optional ``sheet_name``.
+
+        Formulas defined directly under ``account_formulas`` take precedence.
+        Formulas from the global ``formula_library`` that apply to the requested
+        sheet are merged in.
+        """
         formulas_by_type = self.config.get("account_formulas", {}).get(report_type, {})
 
         if sheet_name is None:
             if DEFAULT_SHEET_NAME in formulas_by_type and len(formulas_by_type) == 1:
-                return formulas_by_type.get(DEFAULT_SHEET_NAME, {})
-            combined = {}
-            for _sheet, forms in formulas_by_type.items():
-                if isinstance(forms, dict):
-                    combined.update(forms)
-            return combined
+                result = dict(formulas_by_type.get(DEFAULT_SHEET_NAME, {}))
+            else:
+                result = {}
+                for _sheet, forms in formulas_by_type.items():
+                    if isinstance(forms, dict):
+                        result.update(forms)
+        else:
+            result = formulas_by_type.get(sheet_name) or formulas_by_type.get(DEFAULT_SHEET_NAME, {})
+            result = dict(result)
 
-        return formulas_by_type.get(sheet_name) or formulas_by_type.get(DEFAULT_SHEET_NAME, {})
+        lib = self.get_formula_library()
+        for name, info in lib.items():
+            sheets = info.get("sheets") or []
+            if sheet_name is None or sheet_name in sheets or DEFAULT_SHEET_NAME in sheets:
+                result.setdefault(name, info.get("expr", ""))
+
+        return result
 
     def set_account_formulas(self, report_type, formulas, sheet_name=None):
         """Set account formulas for a report type and persist the config"""
@@ -301,6 +351,17 @@ class AppConfig:
             sheet_name = DEFAULT_SHEET_NAME
 
         self.config["account_formulas"].setdefault(report_type, {})[sheet_name] = formulas
+        self.save_config()
+
+    # Formula library helpers -------------------------------------------------
+
+    def get_formula_library(self):
+        """Return the global formula library."""
+        return self.config.get("formula_library", {})
+
+    def set_formula_library(self, library: dict):
+        """Replace the global formula library and persist it."""
+        self.config["formula_library"] = library
         self.save_config()
 
     # Report configuration helpers -------------------------------------------------

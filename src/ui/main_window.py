@@ -1809,7 +1809,12 @@ class MainWindow(QMainWindow):
             report_type = self.config.get("excel", "report_type")
             if report_type:
                 categories = self.config.get_account_categories(report_type)
-                formulas = self.config.get_account_formulas(report_type)
+                lib = self.config.get_formula_library()
+                formulas = {
+                    n: info
+                    for n, info in lib.items()
+                    if not info.get("sheets") or sheet_name in info.get("sheets")
+                }
                 if categories:
                     group_col = None
                     cols_lower = {c.lower(): c for c in filtered_sql_df.columns}
@@ -1957,7 +1962,12 @@ class MainWindow(QMainWindow):
             report_type = self.config.get("excel", "report_type")
             if report_type:
                 categories = self.config.get_account_categories(report_type)
-                formulas = self.config.get_account_formulas(report_type)
+                lib = self.config.get_formula_library()
+                formulas = {
+                    n: info
+                    for n, info in lib.items()
+                    if not info.get("sheets") or sheet_name in info.get("sheets")
+                }
                 if categories:
                     group_col = None
                     cols_lower = {c.lower(): c for c in filtered_sql_df.columns}
@@ -2081,7 +2091,12 @@ class MainWindow(QMainWindow):
             report_type = self.config.get("excel", "report_type")
             if report_type:
                 categories = self.config.get_account_categories(report_type)
-                formulas = self.config.get_account_formulas(report_type)
+                lib = self.config.get_formula_library()
+                formulas = {
+                    n: info
+                    for n, info in lib.items()
+                    if not info.get("sheets") or sheet_name in info.get("sheets")
+                }
                 if categories:
                     group_col = None
                     cols_lower = {c.lower(): c for c in filtered_sql_df.columns}
