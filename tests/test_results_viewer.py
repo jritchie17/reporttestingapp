@@ -454,7 +454,7 @@ class ARCenterResultsLoadTest(unittest.TestCase):
         viewer = self._load(data, ["Sheet", "CAReportName"], sheet="facility")
         self.assertEqual(
             [row["CAReportName"] for row in viewer.results_data],
-            ["Facility: 0 - 30 days", "Anesthesia: Bad debt"],
+            ["0 - 30 days", "Bad debt"],
         )
 
 

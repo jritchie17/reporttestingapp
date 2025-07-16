@@ -295,43 +295,24 @@ class ResultsViewer(QWidget):
                 sheet_name = parent.config.get("excel", "sheet_name") or ""
 
         if report_type == "AR Center" and self.results_data:
+            # Ensure a sheet column is present so later calculations can group
+            # by sheet. Do not modify ``CAReportName`` values.
             first_row = self.results_data[0]
             if isinstance(first_row, dict):
-                ca_col = None
                 sheet_col = None
                 for col in first_row:
                     normalized = str(col).strip().replace(" ", "").lower()
-                    if normalized == "careportname":
-                        ca_col = col
-                    elif normalized in ("sheet", "sheetname", "sheet_name"):
+                    if normalized in ("sheet", "sheetname", "sheet_name"):
                         sheet_col = col
-                if ca_col is None:
-                    ca_col = next(iter(first_row), None)
-
-                if ca_col:
-                    # Use sheet prefix from a dedicated column when available.
-                    # If no such column exists we no longer prepend the Excel
-                    # sheet name because SQL results already contain the full
-                    # prefix in ``CAReportName``.
-
-                    def _row_prefix(row):
-                        if sheet_col and row.get(sheet_col):
-                            return f"{str(row[sheet_col]).strip().title()}: "
-                        return ""
-
+                        break
+                if sheet_col is None:
+                    sheet_col = "Sheet"
                     for row in self.results_data:
-                        prefix = _row_prefix(row)
-                        if not prefix:
-                            continue
-                        val = row.get(ca_col)
-                        if pd.isna(val) or str(val).strip() == "":
-                            row[ca_col] = prefix.strip()
-                        else:
-                            val_str = str(val).strip()
-                            if not val_str.lower().startswith(prefix.strip().lower()):
-                                row[ca_col] = f"{prefix}{val_str}"
-                            else:
-                                row[ca_col] = val_str
+                        row[sheet_col] = sheet_name
+                else:
+                    for row in self.results_data:
+                        if not row.get(sheet_col):
+                            row[sheet_col] = sheet_name
 
         # If columns not provided, try to get them from the first row
         if not columns and data:
