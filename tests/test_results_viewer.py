@@ -241,7 +241,7 @@ class ApplyCalculationsTest(unittest.TestCase):
         self.assertNotIn("Sheet", viewer.columns)
         self.assertIn("SheetName", viewer.columns)
 
-    def test_apply_calculations_prefixes_formula_rows(self):
+    def test_apply_calculations_formula_rows_unprefixed(self):
         parent = self.MainWindow.__new__(self.MainWindow)
         parent.config = DummyConfig()
         parent.config.set_account_categories(
@@ -266,13 +266,14 @@ class ApplyCalculationsTest(unittest.TestCase):
 
         viewer.apply_calculations()
 
-        has_prefixed_formula = any(
-            row.get("CAReportName") == "Facility: Bad debt percentage"
+        # Formula rows should not be prefixed with the sheet name
+        has_formula = any(
+            row.get("CAReportName") == "Bad debt percentage"
             for row in viewer.results_data
         )
-        self.assertTrue(has_prefixed_formula)
+        self.assertTrue(has_formula)
 
-    def test_apply_calculations_uses_row_sheet_prefix(self):
+    def test_apply_calculations_respects_row_sheet(self):
         parent = self.MainWindow.__new__(self.MainWindow)
         parent.config = DummyConfig()
         parent.config.set_account_categories(
@@ -303,13 +304,11 @@ class ApplyCalculationsTest(unittest.TestCase):
         viewer.apply_calculations()
 
         fac_row = any(
-            row.get("CAReportName") == "Facility: Bad debt percentage"
-            and row.get("Sheet") == "facility"
+            row.get("CAReportName") == "Bad debt percentage" and row.get("Sheet") == "facility"
             for row in viewer.results_data
         )
         ane_row = any(
-            row.get("CAReportName") == "Anesthesia: Bad debt percentage"
-            and row.get("Sheet") == "anesthesia"
+            row.get("CAReportName") == "Bad debt percentage" and row.get("Sheet") == "anesthesia"
             for row in viewer.results_data
         )
         self.assertTrue(fac_row)
