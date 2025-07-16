@@ -708,6 +708,22 @@ class ComparisonEngine:
                 for val_type, field in pivot_df.columns
             ]
             pivot_df = pivot_df.reset_index()
-            return pivot_df
+            df = pivot_df
+
+        # Normalize sheet column to ensure consistent output
+        sheet_synonyms = [
+            c for c in df.columns
+            if re.sub(r"[\s_]+", "", str(c)).lower() in ("sheet", "sheetname")
+        ]
+        if sheet_synonyms:
+            main_col = sheet_synonyms[0]
+            for col in sheet_synonyms[1:]:
+                if col != main_col:
+                    df = df.drop(columns=col)
+            if main_col != 'Sheet':
+                df = df.rename(columns={main_col: 'Sheet'})
+            df['Sheet'] = sheet_name
+        else:
+            df.insert(0, 'Sheet', sheet_name)
 
         return df
