@@ -442,45 +442,10 @@ class ResultsViewer(QWidget):
                         include_categories=False,
                     )
 
-                    if report_type == "AR Center" and self.results_data:
-                        first = self.results_data[0]
-                        if isinstance(first, dict):
-                            ca_col = None
-                            for col in first:
-                                normalized = str(col).strip().replace(" ", "").lower()
-                                if normalized == "careportname":
-                                    ca_col = col
-                                    break
-                            if ca_col is None:
-                                ca_col = next(iter(first), None)
 
-                            if ca_col:
-
-                                def _row_prefix(row):
-                                    name = None
-                                    if sheet_col and row.get(sheet_col):
-                                        name = row.get(sheet_col)
-                                    else:
-                                        name = sheet_val
-                                    if not name:
-                                        return ""
-                                    return f"{str(name).strip().title()}: "
-
-                                for row in self.results_data:
-                                    prefix = _row_prefix(row)
-                                    if not prefix:
-                                        continue
-                                    val = row.get(ca_col)
-                                    if pd.isna(val) or str(val).strip() == "":
-                                        row[ca_col] = prefix.strip()
-                                    else:
-                                        val_str = str(val).strip()
-                                        if not val_str.lower().startswith(
-                                            prefix.strip().lower()
-                                        ):
-                                            row[ca_col] = f"{prefix}{val_str}"
-                                        else:
-                                            row[ca_col] = val_str
+                    # Do not prefix account names with the sheet name. The sheet
+                    # column is already present in the data and can be used
+                    # directly for any grouping logic.
 
         # Refresh the table model with new rows
         self.model = ResultsTableModel(self.results_data, self.columns)
