@@ -15,8 +15,7 @@ FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 class DummyConfig:
     def __init__(self):
         self.categories = {}
-        self.formulas = {}
-        self.formula_library = {}
+        self.report_formulas = {}
 
     def get_account_categories(self, report_type, sheet_name=None):
         mapping = self.categories.get(report_type, {})
@@ -24,31 +23,21 @@ class DummyConfig:
             return mapping.get("__default__", {})
         return mapping.get(sheet_name, {})
 
-    def get_account_formulas(self, report_type, sheet_name=None):
-        mapping = self.formulas.get(report_type, {})
-        if sheet_name is None:
-            result = mapping.get("__default__", {}).copy()
-        else:
-            result = mapping.get(sheet_name, {}).copy()
-        for name, info in self.formula_library.items():
+    def get_report_formulas(self, report_type, sheet_name=None):
+        mapping = self.report_formulas.get(report_type, {})
+        result = {}
+        for name, info in mapping.items():
             sheets = info.get("sheets") or []
-            if sheet_name is None or sheet_name in sheets or "__default__" in sheets:
-                result.setdefault(name, info.get("expr", ""))
+            if sheet_name is None or not sheets or sheet_name in sheets or "__default__" in sheets:
+                result[name] = info
         return result
 
     def set_account_categories(self, report_type, cats, sheet_name=None):
         sheet_name = sheet_name or "__default__"
         self.categories.setdefault(report_type, {})[sheet_name] = cats
 
-    def set_account_formulas(self, report_type, formulas, sheet_name=None):
-        sheet_name = sheet_name or "__default__"
-        self.formulas.setdefault(report_type, {})[sheet_name] = formulas
-
-    def get_formula_library(self):
-        return self.formula_library
-
-    def set_formula_library(self, lib):
-        self.formula_library = lib
+    def set_report_formulas(self, report_type, formulas):
+        self.report_formulas[report_type] = formulas
 
 
 class TestCategoryCalculator(unittest.TestCase):
@@ -440,12 +429,12 @@ class TestAccountCategoryDialog(unittest.TestCase):
         dialog.save()
 
         self.assertEqual(config.get_account_categories("Test"), {})
-        self.assertEqual(config.get_account_formulas("Test"), {})
+        self.assertEqual(config.get_report_formulas("Test"), {})
 
     def test_reject_discards_changes(self):
         config = DummyConfig()
         config.set_account_categories("Test", {"Orig": ["1"]})
-        config.set_formula_library({"F": {"expr": "Orig", "display_name": "F", "sheets": ["Sheet1"]}})
+        config.set_report_formulas("Test", {"F": {"expr": "Orig", "display_name": "F", "sheets": ["Sheet1"]}})
 
         dialog = self.Dialog(config, "Test", [], sheet_names=["Sheet1"])
 
@@ -460,12 +449,12 @@ class TestAccountCategoryDialog(unittest.TestCase):
         dialog.reject()
 
         self.assertEqual(config.get_account_categories("Test"), {"Orig": ["1"]})
-        self.assertEqual(config.get_account_formulas("Test"), {"F": "Orig"})
+        self.assertEqual(config.get_report_formulas("Test"), {"F": {"expr": "Orig", "display_name": "F", "sheets": ["Sheet1"]}})
 
     def test_rename_category_updates_formula(self):
         config = DummyConfig()
         config.set_account_categories("Test", {"Orig": ["1"]})
-        config.set_formula_library({"F": {"expr": "Orig", "display_name": "F", "sheets": ["Sheet1"]}})
+        config.set_report_formulas("Test", {"F": {"expr": "Orig", "display_name": "F", "sheets": ["Sheet1"]}})
 
         dialog = self.Dialog(config, "Test", [], sheet_names=["Sheet1"])
         dialog.category_list.setCurrentRow(0)
@@ -477,11 +466,11 @@ class TestAccountCategoryDialog(unittest.TestCase):
         dialog.save()
 
         self.assertEqual(config.get_account_categories("Test"), {"New": ["1"]})
-        self.assertEqual(config.get_account_formulas("Test"), {"F": "New"})
+        self.assertEqual(config.get_report_formulas("Test"), {"F": {"expr": "Orig", "display_name": "F", "sheets": ["Sheet1"]}})
 
     def test_rename_formula(self):
         config = DummyConfig()
-        config.set_formula_library({"Old": {"expr": "1", "display_name": "Old", "sheets": ["Sheet1"]}})
+        config.set_report_formulas("Test", {"Old": {"expr": "1", "display_name": "Old", "sheets": ["Sheet1"]}})
 
         dialog = self.Dialog(config, "Test", [], sheet_names=["Sheet1"])
         dialog.formula_list.setCurrentRow(0)
@@ -492,7 +481,7 @@ class TestAccountCategoryDialog(unittest.TestCase):
         dialog._rename_formula()
         dialog.save()
 
-        self.assertEqual(config.get_account_formulas("Test"), {"New": "1"})
+        self.assertEqual(config.get_report_formulas("Test"), {"New": {"expr": "1", "display_name": "Old", "sheets": ["Sheet1"]}})
 
 class MigrationTests(unittest.TestCase):
     def test_formula_migrated_to_library(self):
@@ -514,10 +503,10 @@ class MigrationTests(unittest.TestCase):
                 )
 
             cfg = AppConfig()
-            lib = cfg.get_formula_library()
-            self.assertIn("Net", lib)
-            self.assertEqual(lib["Net"]["expr"], "A+B")
-            self.assertIn("__default__", lib["Net"].get("sheets", []))
+            forms = cfg.get_report_formulas("Test")
+            self.assertIn("Net", forms)
+            self.assertEqual(forms["Net"]["expr"], "A+B")
+            self.assertIn("__default__", forms["Net"].get("sheets", []))
 
             if old_home is not None:
                 os.environ["HOME"] = old_home

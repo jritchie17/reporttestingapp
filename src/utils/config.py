@@ -76,6 +76,7 @@ class AppConfig:
             "account_categories": {},
             "account_formulas": {},
             "formula_library": {},
+            "report_formulas": {},
             "report_configs": self.initialize_report_configs(),
         }
 
@@ -128,8 +129,7 @@ class AppConfig:
             return default_config
 
     def _migrate_account_data(self, cfg: dict) -> bool:
-        """Migrate account categories/formulas to sheet-aware structure and
-        populate the global formula library."""
+        """Migrate account data to newer structures."""
         updated = False
 
         for key in ["account_categories", "account_formulas"]:
@@ -141,15 +141,19 @@ class AppConfig:
                     updated = True
             cfg[key] = section
 
-        # Migrate existing per-report formulas into the global library
-        lib = cfg.setdefault("formula_library", {})
+        rpt_forms = cfg.setdefault("report_formulas", {})
         acc_forms = cfg.get("account_formulas", {})
         for rpt, by_sheet in acc_forms.items():
+            dest = rpt_forms.setdefault(rpt, {})
             for sheet, mapping in by_sheet.items():
                 for name, expr in mapping.items():
-                    entry = lib.setdefault(
+                    entry = dest.setdefault(
                         name,
-                        {"expr": expr, "display_name": name, "sheets": [sheet]},
+                        {
+                            "expr": expr,
+                            "display_name": name,
+                            "sheets": [sheet],
+                        },
                     )
                     if entry.get("expr") == expr:
                         sheets = entry.setdefault("sheets", [])
@@ -157,14 +161,13 @@ class AppConfig:
                             sheets.append(sheet)
                             updated = True
                     else:
-                        # Formula name collision with different expression
                         idx = 1
                         new_name = name
-                        while new_name in lib and lib[new_name].get("expr") != expr:
+                        while new_name in dest and dest[new_name].get("expr") != expr:
                             idx += 1
                             new_name = f"{name}_{idx}"
-                        if new_name not in lib:
-                            lib[new_name] = {
+                        if new_name not in dest:
+                            dest[new_name] = {
                                 "expr": expr,
                                 "display_name": name,
                                 "sheets": [sheet],
@@ -173,6 +176,40 @@ class AppConfig:
 
         if acc_forms:
             cfg["account_formulas"] = {}
+            updated = True
+
+        lib = cfg.get("formula_library", {})
+        if lib:
+            for rpt in cfg.get("report_configs", {}).keys():
+                dest = rpt_forms.setdefault(rpt, {})
+                for name, info in lib.items():
+                    entry = dest.setdefault(
+                        name,
+                        {
+                            "expr": info.get("expr", ""),
+                            "display_name": info.get("display_name", name),
+                            "sheets": list(info.get("sheets") or []),
+                        },
+                    )
+                    if entry.get("expr") == info.get("expr", ""):
+                        for sheet in info.get("sheets") or []:
+                            if sheet not in entry.setdefault("sheets", []):
+                                entry["sheets"].append(sheet)
+                                updated = True
+                    else:
+                        idx = 1
+                        new_name = name
+                        while new_name in dest and dest[new_name].get("expr") != info.get("expr", ""):
+                            idx += 1
+                            new_name = f"{name}_{idx}"
+                        if new_name not in dest:
+                            dest[new_name] = {
+                                "expr": info.get("expr", ""),
+                                "display_name": info.get("display_name", name),
+                                "sheets": list(info.get("sheets") or []),
+                            }
+                            updated = True
+            cfg["formula_library"] = {}
             updated = True
 
         return updated
@@ -366,6 +403,32 @@ class AppConfig:
         self.config["account_formulas"].setdefault(report_type, {})[
             sheet_name
         ] = formulas
+        self.save_config()
+
+    # Report formulas helpers -------------------------------------------------
+
+    def get_report_formulas(self, report_type: str, sheet_name: str | None = None) -> dict:
+        """Return formulas for ``report_type`` filtered by ``sheet_name``."""
+        mapping = self.config.get("report_formulas", {}).get(report_type, {})
+
+        def _copy(src: dict) -> dict:
+            return {k: dict(v) for k, v in src.items()}
+
+        if sheet_name is None:
+            result = _copy(mapping)
+        else:
+            result = {}
+            for name, info in mapping.items():
+                sheets = info.get("sheets") or []
+                if (not sheets or sheet_name in sheets or DEFAULT_SHEET_NAME in sheets):
+                    result[name] = dict(info)
+        return result
+
+    def set_report_formulas(self, report_type: str, formulas: dict) -> None:
+        """Set formulas for ``report_type`` and persist the config."""
+        if "report_formulas" not in self.config:
+            self.config["report_formulas"] = {}
+        self.config["report_formulas"][report_type] = formulas
         self.save_config()
 
     # Formula library helpers -------------------------------------------------
