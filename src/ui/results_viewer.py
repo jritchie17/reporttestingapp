@@ -378,6 +378,15 @@ class ResultsViewer(QWidget):
         ):
             report_type = parent.config.get("excel", "report_type")
             if report_type:
+                sheet_val = ""
+                if parent and hasattr(parent, "sheet_selector"):
+                    try:
+                        sheet_val = parent.sheet_selector.currentText()
+                    except Exception:
+                        sheet_val = ""
+                if not sheet_val and hasattr(parent, "config"):
+                    sheet_val = parent.config.get("excel", "sheet_name") or ""
+
                 categories = parent.config.get_account_categories(report_type)
                 lib = parent.config.get_formula_library()
                 formulas = {
@@ -387,14 +396,6 @@ class ResultsViewer(QWidget):
                 }
                 if categories:
                     sheet_col = None
-                    sheet_val = ""
-                    if parent and hasattr(parent, "sheet_selector"):
-                        try:
-                            sheet_val = parent.sheet_selector.currentText()
-                        except Exception:
-                            sheet_val = ""
-                    if not sheet_val and hasattr(parent, "config"):
-                        sheet_val = parent.config.get("excel", "sheet_name") or ""
 
                     if self.results_data and isinstance(self.results_data[0], dict):
                         first_row = self.results_data[0]
