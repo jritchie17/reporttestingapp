@@ -6,6 +6,7 @@ from typing import Dict, Iterable, List, Any
 from decimal import Decimal
 import re
 from .account_patterns import ACCOUNT_PATTERNS
+from .logging_config import get_logger
 
 from src.analyzer import sign_flip
 
@@ -46,6 +47,7 @@ class CategoryCalculator:
         self.account_column = account_column
         self.group_column = group_column
         self.sign_flip_accounts = {str(a).strip() for a in sign_flip_accounts or []}
+        self.logger = get_logger(__name__)
 
         # Map original category names to safe Python identifiers for formula evaluation
         self._safe_names: Dict[str, str] = {}
@@ -278,8 +280,9 @@ class CategoryCalculator:
                         )
                     try:
                         values[col] = eval(safe_expr, {}, local)
-                    except Exception:
-                        values[col] = None
+                    except Exception as exc:
+                        self.logger.exception("Error evaluating formula '%s'", form_name)
+                        values[col] = f"Error evaluating formula '{form_name}': {exc}"
                 row_vals = {account_col: display, **values}
                 if group_exists:
                     row_vals[self.group_column] = g

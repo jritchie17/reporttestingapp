@@ -77,6 +77,14 @@ class TestCategoryCalculator(unittest.TestCase):
         result = calc.compute(list(self.rows))
         self.assertTrue(any(r["CAReportName"] == "Net Profit" for r in result))
 
+    def test_invalid_formula_returns_error_message(self):
+        formulas = {"Bad": {"expr": "CatA +", "display_name": "Bad"}}
+        calc = CategoryCalculator(self.categories, formulas)
+        result = calc.compute(list(self.rows))
+        bad = next(r for r in result if r["CAReportName"] == "Bad")
+        self.assertIsInstance(bad["Amount"], str)
+        self.assertIn("Bad", bad["Amount"])
+
     def test_compute_detects_account_column(self):
         rows = [
             {"Center": 1, "Account": "1234-5678", "Amount": -100},
