@@ -428,7 +428,13 @@ class AppConfig:
         """Set formulas for ``report_type`` and persist the config."""
         if "report_formulas" not in self.config:
             self.config["report_formulas"] = {}
-        self.config["report_formulas"][report_type] = formulas
+        cleaned = {}
+        for name, info in (formulas or {}).items():
+            entry = dict(info)
+            if not entry.get("sheets"):
+                entry.pop("sheets", None)
+            cleaned[name] = entry
+        self.config["report_formulas"][report_type] = cleaned
         self.save_config()
 
     # Formula library helpers -------------------------------------------------

@@ -187,7 +187,7 @@ class ApplyCalculationsTest(unittest.TestCase):
         self.assertEqual(sheets, {"Foo", "Bar"})
         self.assertIn("Sheet", viewer.columns)
 
-    def test_apply_calculations_adds_sheet_column(self):
+    def test_apply_calculations_without_sheet_column(self):
         parent = self.MainWindow.__new__(self.MainWindow)
         parent.config = DummyConfig()
         parent.config.set_account_categories(
@@ -216,8 +216,7 @@ class ApplyCalculationsTest(unittest.TestCase):
             row for row in viewer.results_data if row.get("CAReportName") == "Net"
         ]
         self.assertEqual(len(net_rows), 1)
-        self.assertEqual(net_rows[0].get("Sheet"), "Foo")
-        self.assertIn("Sheet", viewer.columns)
+        self.assertNotIn("Sheet", viewer.columns)
 
     def test_apply_calculations_uses_existing_sheetname(self):
         parent = self.MainWindow.__new__(self.MainWindow)

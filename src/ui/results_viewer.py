@@ -386,18 +386,23 @@ class ResultsViewer(QWidget):
                     except Exception:
                         sheet_val = ""
 
-                categories = parent.config.get_account_categories(report_type, sheet_val or None)
-                formulas = parent.config.get_report_formulas(report_type, sheet_val or None)
-                if categories:
-                    sheet_col = None
+                sheet_col = None
 
-                    base_first = self.original_data[0] if self.original_data else {}
-                    if base_first:
-                        lower_map = {re.sub(r"[\s_]+", "", k).lower(): k for k in base_first}
-                        for cand in ["sheetname", "sheet"]:
-                            if cand in lower_map:
-                                sheet_col = lower_map[cand]
-                                break
+                base_first = self.original_data[0] if self.original_data else {}
+                if base_first:
+                    lower_map = {re.sub(r"[\s_]+", "", k).lower(): k for k in base_first}
+                    for cand in ["sheetname", "sheet"]:
+                        if cand in lower_map:
+                            sheet_col = lower_map[cand]
+                            break
+
+                categories = parent.config.get_account_categories(
+                    report_type, sheet_val or None
+                )
+                formulas = parent.config.get_report_formulas(
+                    report_type, sheet_val if sheet_col else None
+                )
+                if categories:
 
                     if sheet_col:
                         self.display_base = [
@@ -405,12 +410,7 @@ class ResultsViewer(QWidget):
                             for row in self.original_data
                         ]
                     else:
-                        sheet_col = "Sheet"
-                        if sheet_col not in self.columns:
-                            self.columns.append(sheet_col)
-                        self.display_base = [
-                            {**row, sheet_col: sheet_val} for row in self.original_data
-                        ]
+                        self.display_base = list(self.original_data)
 
                     group_col = sheet_col
                     if (

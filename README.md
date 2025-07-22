@@ -83,6 +83,12 @@ Net = Gross - Discounts
 
 The above shows both category references (`Revenue`, `CostOfSales`) and direct column references (`Gross`, `Discounts`).
 
+Formulas can optionally be restricted to specific sheets by listing the sheet
+names in the **Sheets** column of the *Manage Account Categories* dialog.  When
+no sheet is specified, a formula is treated as global and applies to every sheet
+of the report.  If calculations are run on results without a sheet column,
+all formulas are considered global.
+
 ### Report Configurations
 Open **Tools → Report Configurations** to define how each report type should be parsed. For every report you can set:
 - `header_rows` – the rows that contain column headers
