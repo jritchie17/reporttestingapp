@@ -1305,17 +1305,24 @@ class ExcelViewer(QWidget):
             clean_df.columns = unique_cols
 
             # Detect rows that simply repeat the column headers. These often
-            # appear in exported files when the header row is duplicated.
+            # appear in exported files when the header row is duplicated. The
+            # comparison ignores any numeric suffixes that were added to make
+            # column names unique.
             header_vals = [str(c).strip().lower() for c in clean_df.columns]
+            header_base = [re.sub(r"(_\d+)+$", "", h) for h in header_vals]
             start_idx = (
-                1 if header_vals and header_vals[0] in ("sheet_name", "sheet") else 0
+                1 if header_base and header_base[0] in ("sheet_name", "sheet") else 0
             )
-            header_core = header_vals[start_idx:]
-            dup_row_mask = clean_df.apply(
-                lambda r: [str(v).strip().lower() for v in r.tolist()][start_idx:]
-                == header_core,
-                axis=1,
-            )
+            header_core = header_base[start_idx:]
+
+            def _row_matches_header(row):
+                row_vals = [
+                    re.sub(r"(_\d+)+$", "", str(v).strip().lower())
+                    for v in row.tolist()
+                ]
+                return row_vals[start_idx:] == header_core
+
+            dup_row_mask = clean_df.apply(_row_matches_header, axis=1)
 
             # Remove blank rows
             if self.report_type == "Corp SOO":
@@ -1342,15 +1349,27 @@ class ExcelViewer(QWidget):
                 remove_rows = remove_rows | dup_row_mask
                 clean_df = clean_df.loc[~remove_rows]
             else:
-                remove_rows = (
-                    clean_df.isna().all(axis=1)
-                    | (
-                        clean_df.astype(str)
-                        .apply(lambda x: x.str.strip() == "")
-                        .all(axis=1)
-                    )
-                    | dup_row_mask
+                data_start = self.report_config.get("first_data_column", 2)
+                data_part = clean_df.iloc[:, data_start:]
+                numeric_part = data_part.apply(pd.to_numeric, errors="coerce")
+
+                blank_mask = data_part.isna() | (
+                    data_part.astype(str).apply(lambda x: x.str.strip() == "")
                 )
+                numeric_zero_mask = (numeric_part == 0) & numeric_part.notna()
+
+                first_col = clean_df.iloc[:, 0]
+                first_col_blank = first_col.isna() | (
+                    first_col.astype(str).str.strip() == ""
+                )
+
+                all_data_blank = blank_mask.all(axis=1)
+                all_blank_or_zero = (blank_mask | numeric_zero_mask).all(axis=1)
+
+                remove_rows = (first_col_blank & all_blank_or_zero) | (
+                    (~first_col_blank) & all_data_blank
+                )
+                remove_rows = remove_rows | dup_row_mask
                 clean_df = clean_df.loc[~remove_rows]
 
             # Convert all columns to numeric starting from first_data_column
