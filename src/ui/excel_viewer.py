@@ -1032,12 +1032,6 @@ class ExcelViewer(QWidget):
                 row = row.ffill()
                 header_rows.append(row)
 
-            # Check if there are any non-empty values in the header rows
-            header_has_values = []
-            for row in header_rows:
-                has_values = sum(1 for x in row if pd.notna(x) and str(x).strip()) > 0
-                header_has_values.append(has_values)
-
             # Create a copy of the data portion of the dataframe (after headers)
             data_df = df.iloc[skip_rows:].copy()
 
