@@ -1,7 +1,11 @@
 import pandas as pd
 import os
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableView, 
-                             QLabel, QPushButton, QComboBox, QLineEdit, 
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QTableView,
+                             QLabel, QPushButton, QComboBox, QLineEdit,
                              QHeaderView, QSplitter, QCheckBox, QGroupBox,
                              QFormLayout, QSpinBox, QTabWidget, QStyledItemDelegate,
                              QInputDialog, QListWidget, QDialog, QTextEdit,
@@ -10,6 +14,7 @@ from PyQt6.QtCore import Qt, QAbstractTableModel, QModelIndex, QVariant, pyqtSig
 from PyQt6.QtGui import QFont, QColor, QBrush, QIcon, QGuiApplication, QCursor
 import numpy as np
 import re  # For regex pattern matching
+from src.utils.logging_config import get_logger
 
 
 def _dedupe_columns(cols):
@@ -178,6 +183,7 @@ class ExcelViewer(QWidget):
     
     def __init__(self):
         super().__init__()
+        self.logger = get_logger(__name__)
         self.df = None
         self.sheet_name = None
         self.filtered_df = None
@@ -561,7 +567,7 @@ class ExcelViewer(QWidget):
                 f"add sheet name column"
             )
             
-        print(f"ExcelViewer: Set report config to {config}")
+        self.logger.info("ExcelViewer: Set report config to %s", config)
         
     def clean_data(self):
         """Clean data based on selected scope - current sheet or all sheets"""
@@ -1008,7 +1014,9 @@ class ExcelViewer(QWidget):
 
             # Make sure we have enough rows
             if len(df) <= max(header_row_indices):
-                print(f"Sheet {sheet_name} doesn't have enough rows for cleaning")
+                self.logger.info(
+                    "Sheet %s doesn't have enough rows for cleaning", sheet_name
+                )
                 return None
 
             # Get header rows from the configuration
@@ -1023,12 +1031,6 @@ class ExcelViewer(QWidget):
                 # processing.
                 row = row.ffill()
                 header_rows.append(row)
-
-            # Check if there are any non-empty values in the header rows
-            header_has_values = []
-            for row in header_rows:
-                has_values = sum(1 for x in row if pd.notna(x) and str(x).strip()) > 0
-                header_has_values.append(has_values)
 
             # Create a copy of the data portion of the dataframe (after headers)
             data_df = df.iloc[skip_rows:].copy()
@@ -1079,8 +1081,11 @@ class ExcelViewer(QWidget):
             else:
                 # If there's a mismatch, just create default headers
                 clean_df.columns = [f"Column_{i+1}" for i in range(len(clean_df.columns))]
-                print(
-                    f"Warning: Header count mismatch for {sheet_name}: {len(new_headers)} headers for {len(clean_df.columns)} columns"
+                self.logger.info(
+                    "Warning: Header count mismatch for %s: %d headers for %d columns",
+                    sheet_name,
+                    len(new_headers),
+                    len(clean_df.columns),
                 )
 
             # Ensure column names are unique to avoid pandas returning DataFrame slices
@@ -1150,7 +1155,7 @@ class ExcelViewer(QWidget):
             return clean_df
 
         except Exception as e:
-            print(f"Error cleaning sheet {sheet_name}: {str(e)}")
+            self.logger.error("Error cleaning sheet %s: %s", sheet_name, str(e))
             import traceback
             traceback.print_exc()
             return None
@@ -1483,7 +1488,9 @@ class ExcelViewer(QWidget):
                         else:
                             missing_column_sheets.append(sheet_name)
                     except Exception as e:
-                        print(f"Error processing sheet {sheet_name}: {str(e)}")
+                        self.logger.error(
+                            "Error processing sheet %s: %s", sheet_name, str(e)
+                        )
                         missing_column_sheets.append(sheet_name)
             
             # Step 7: Generate SQL IN clauses and display
@@ -1983,7 +1990,7 @@ class ExcelViewer(QWidget):
             return True
             
         except Exception as e:
-            print(f"Error cleaning sheet: {str(e)}")
+            self.logger.error("Error cleaning sheet: %s", str(e))
             import traceback
             traceback.print_exc()
             from PyQt6.QtWidgets import QMessageBox

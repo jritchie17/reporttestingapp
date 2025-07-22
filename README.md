@@ -31,10 +31,20 @@ A high-quality application for testing Excel reports against SQL databases.
 
 1. Clone this repository
 2. Install the project into your environment:
-   ```
-   pip install .
-   ```
+ ```
+  pip install .
+  ```
 3. Configure your database settings in the application
+
+### Database Settings
+
+The `DatabaseConnector` class accepts the following parameters:
+
+- `server` – SQL Server hostname
+- `database` – default database name
+- `trusted_connection` – set to `False` to use SQL authentication
+- `uid` – SQL username when `trusted_connection` is `False`
+- `pwd` – SQL password when `trusted_connection` is `False`
 
 ### Using the Executable
 
