@@ -88,6 +88,7 @@ Open **Tools → Report Configurations** to define how each report type should b
 - `header_rows` – the rows that contain column headers
 - `skip_rows` – how many rows to skip before reading data
 - `first_data_column` – the first column index treated as numeric data
+- `center_cell` – optional cell reference used to read the center code
 
 These options control how the `_clean_dataframe` helper processes sheets for that report type.
 
