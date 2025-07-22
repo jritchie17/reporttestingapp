@@ -8,11 +8,21 @@ import re
 from src.utils.logging_config import get_logger
 
 class DatabaseConnector:
-    def __init__(self, server="adwtest", database="cognostesting", trusted_connection=True):
-        """Initialize database connection using Windows Authentication"""
+    def __init__(self, server="adwtest", database="cognostesting", trusted_connection=True, uid=None, pwd=None):
+        """Initialize database connection
+
+        Args:
+            server: SQL Server hostname
+            database: Default database name
+            trusted_connection: Use Windows authentication when True
+            uid: SQL username when trusted_connection is False
+            pwd: SQL password when trusted_connection is False
+        """
         self.server = server
         self.database = database
         self.trusted_connection = trusted_connection
+        self.uid = uid
+        self.pwd = pwd
         self.engine = None
         self.Session = None
         self.logger = get_logger(__name__)
@@ -24,6 +34,9 @@ class DatabaseConnector:
             connection_string = f"mssql+pyodbc://{self.server}/{self.database}?driver=ODBC+Driver+17+for+SQL+Server"
             if self.trusted_connection:
                 connection_string += "&trusted_connection=yes"
+            else:
+                if self.uid is not None and self.pwd is not None:
+                    connection_string += f"&uid={self.uid}&pwd={self.pwd}"
             
             self.engine = create_engine(connection_string)
             self.Session = sessionmaker(bind=self.engine)
@@ -404,7 +417,8 @@ class DatabaseConnector:
                 conn_str += ";Trusted_Connection=yes"
             else:
                 # Add credentials if not using Windows auth
-                conn_str += ";UID={uid};PWD={pwd}".format(uid=self.uid, pwd=self.pwd)
+                if self.uid is not None and self.pwd is not None:
+                    conn_str += ";UID={uid};PWD={pwd}".format(uid=self.uid, pwd=self.pwd)
                 
             self.logger.info(f"Connecting with direct ODBC and autocommit")
             
