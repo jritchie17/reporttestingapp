@@ -117,14 +117,13 @@ class CategoryCalculator:
         default_group: Any | None = None,
         include_categories: bool = True,
     ) -> List[Dict[str, Any]]:
-        """Return rows extended with category totals and formula rows.
+        """Return computed category totals and formula rows.
 
         If ``group_column`` was supplied and is present in the data, totals are
         calculated separately for each value of that column and the resulting
         rows include the grouping value.  When ``group_column`` is specified but
         missing from ``rows``, the value of ``default_group`` will be used for
-        all generated rows and inserted into the original rows so that the
-        output always includes the grouping column.
+        all generated rows.  The input ``rows`` are never modified.
 
         Parameters
         ----------
@@ -141,12 +140,13 @@ class CategoryCalculator:
         # the provided default value so downstream logic can rely on its
         # existence.
         group_exists = bool(self.group_column and self.group_column in rows[0])
+        proc_rows = rows
         if self.group_column and not group_exists:
-            rows = [{**row, self.group_column: default_group} for row in rows]
+            proc_rows = [{**row, self.group_column: default_group} for row in rows]
             group_exists = True
 
-        result = list(rows)
-        numeric_cols = self._numeric_columns(rows)
+        result: List[Dict[str, Any]] = []
+        numeric_cols = self._numeric_columns(proc_rows)
 
         # Identify account numbers referenced directly in formulas
         account_refs = set()
@@ -172,7 +172,7 @@ class CategoryCalculator:
                 safe_names[acct] = safe
 
         if group_exists:
-            groups = sorted({row[self.group_column] for row in rows})
+            groups = sorted({row[self.group_column] for row in proc_rows})
         else:
             groups = [None]
 
@@ -191,7 +191,7 @@ class CategoryCalculator:
             for g in groups
         }
 
-        for row in rows:
+        for row in proc_rows:
             group_val = row.get(self.group_column) if group_exists else None
             acct_raw = str(row.get(account_col, ""))
             acct_code = self._extract_account_code(acct_raw)

@@ -64,7 +64,7 @@ class TestCategoryCalculator(unittest.TestCase):
     def test_compute_totals_and_formulas(self):
         calc = CategoryCalculator(self.categories, self.formulas)
         result = calc.compute(list(self.rows))
-        self.assertEqual(len(result), len(self.rows) + 3)
+        self.assertEqual(len(result), 3)
         cat_a = next(r for r in result if r["CAReportName"] == "CatA")
         self.assertEqual(cat_a["Amount"], -100)
         cat_b = next(r for r in result if r["CAReportName"] == "CatB")
@@ -95,7 +95,7 @@ class TestCategoryCalculator(unittest.TestCase):
         ]
         calc = CategoryCalculator(self.categories, self.formulas)
         result = calc.compute(rows)
-        self.assertEqual(len(result), len(rows) + 3)
+        self.assertEqual(len(result), 3)
         cat_a = next(r for r in result if r["Account"] == "CatA")
         self.assertEqual(cat_a["Amount"], -100)
         cat_b = next(r for r in result if r["Account"] == "CatB")
@@ -118,7 +118,7 @@ class TestCategoryCalculator(unittest.TestCase):
         calc = CategoryCalculator(categories, formulas)
         result = calc.compute(rows)
 
-        self.assertEqual(len(result), len(rows) + 4)
+        self.assertEqual(len(result), 4)
         gi = next(r for r in result if r["CAReportName"] == "GI")
         self.assertEqual(gi["Amount"], 30)
         net = next(r for r in result if r["CAReportName"] == "Net")
@@ -132,7 +132,7 @@ class TestCategoryCalculator(unittest.TestCase):
     def test_grouped_totals_and_formulas(self):
         calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
         result = calc.compute(list(self.rows))
-        self.assertEqual(len(result), len(self.rows) + 6)
+        self.assertEqual(len(result), 6)
 
         cat_a_c1 = next(
             r for r in result if r["CAReportName"] == "CatA" and r["Center"] == 1
@@ -172,7 +172,7 @@ class TestCategoryCalculator(unittest.TestCase):
         calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
         result = calc.compute(rows)
 
-        self.assertEqual(len(result), len(rows) + 6)
+        self.assertEqual(len(result), 6)
 
         cat_a_c1 = next(
             r for r in result if r["CAReportName"] == "CatA" and r["Center"] == 1
@@ -284,7 +284,7 @@ class TestCategoryCalculator(unittest.TestCase):
         calc = CategoryCalculator(self.categories, self.formulas, group_column="Center")
         result = calc.compute(rows)
 
-        self.assertEqual(len(result), len(rows) + 6)
+        self.assertEqual(len(result), 6)
 
         cat_a_c1 = next(
             r for r in result if r["CAReportName"] == "CatA" and r["Center"] == 1

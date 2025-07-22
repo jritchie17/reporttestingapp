@@ -126,23 +126,11 @@ class ApplyCalculationsTest(unittest.TestCase):
             {"Net": "CatA + CatB"},
             group_column="Sheet",
         )
-        expected = calc.compute(
-            [
-                {
-                    "Sheet": "Foo",
-                    "Center": 1,
-                    "CAReportName": "1234-5678",
-                    "Amount": -100,
-                },
-                {
-                    "Sheet": "Foo",
-                    "Center": 2,
-                    "CAReportName": "9999-0000",
-                    "Amount": 50,
-                },
-            ],
-            include_categories=False,
-        )
+        base = [
+            {"Sheet": "Foo", "Center": 1, "CAReportName": "1234-5678", "Amount": -100},
+            {"Sheet": "Foo", "Center": 2, "CAReportName": "9999-0000", "Amount": 50},
+        ]
+        expected = base + calc.compute(base, include_categories=False)
 
         self.assertEqual(viewer.results_data, expected)
         self.assertIsInstance(viewer.model, self.ResultsTableModel)
@@ -189,13 +177,11 @@ class ApplyCalculationsTest(unittest.TestCase):
             {"Net": "CatA + CatB"},
             group_column="Sheet",
         )
-        expected = calc.compute(
-            [
-                {"Sheet": "Foo", "CAReportName": "1234-5678", "Amount": -100},
-                {"Sheet": "Bar", "CAReportName": "9999-0000", "Amount": 50},
-            ],
-            include_categories=False,
-        )
+        base = [
+            {"Sheet": "Foo", "CAReportName": "1234-5678", "Amount": -100},
+            {"Sheet": "Bar", "CAReportName": "9999-0000", "Amount": 50},
+        ]
+        expected = base + calc.compute(base, include_categories=False)
 
         self.assertEqual(viewer.results_data, expected)
         net_rows = [
@@ -334,6 +320,34 @@ class ApplyCalculationsTest(unittest.TestCase):
         )
         self.assertTrue(fac_row)
         self.assertTrue(ane_row)
+
+    def test_apply_calculations_no_duplicates(self):
+        parent = self.MainWindow.__new__(self.MainWindow)
+        parent.config = DummyConfig()
+        parent.config.set_account_categories(
+            "Test", {"CatA": ["1234"], "CatB": ["5678"]}
+        )
+        parent.config.set_formula_library(
+            {"Net": {"expr": "CatA + CatB", "display_name": "Net"}}
+        )
+        parent.config.report_type = "Test"
+        parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
+        parent.sheet_selector = DummySelector("Foo")
+
+        viewer = self.ResultsViewer.__new__(self.ResultsViewer)
+        viewer.results_data = [
+            {"Sheet": "Foo", "CAReportName": "1234", "Amount": 1},
+            {"Sheet": "Foo", "CAReportName": "5678", "Amount": 2},
+        ]
+        viewer.columns = ["Sheet", "CAReportName", "Amount"]
+        viewer.table_view = DummyTable()
+        viewer.status_label = DummyLabel()
+        viewer.window = lambda: parent
+
+        viewer.apply_calculations()
+        first_len = len(viewer.results_data)
+        viewer.apply_calculations()
+        self.assertEqual(len(viewer.results_data), first_len)
 
 
 class SQLAccountExtractionTest(unittest.TestCase):
