@@ -83,7 +83,7 @@ class AccountCategoryDialog(QDialog):
             for sheet in self.sheet_names
         }
         self.categories = deepcopy(self.categories_by_sheet.get(self.current_sheet, {}))
-        self.formulas = deepcopy(config.get_formula_library())
+        self.formulas = deepcopy(config.get_report_formulas(report_type))
 
         category_accounts = {acct for lst in self.categories.values() for acct in lst}
         self.all_accounts = sorted(set(accounts or []) | category_accounts)
@@ -495,7 +495,7 @@ class AccountCategoryDialog(QDialog):
             cats = self.categories_by_sheet.get(sheet, {})
             self.config.set_account_categories(self.report_type, cats, sheet)
 
-        self.config.set_formula_library(self.formulas)
+        self.config.set_report_formulas(self.report_type, self.formulas)
 
         self._original_categories = deepcopy(self.categories_by_sheet)
         self._original_formulas = deepcopy(self.formulas)

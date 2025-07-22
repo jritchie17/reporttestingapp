@@ -14,35 +14,27 @@ FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 class DummyConfig:
     def __init__(self):
         self.categories = {}
-        self.formulas = {}
-        self.formula_library = {}
+        self.report_formulas = {}
         self.report_type = ""
 
     def get_account_categories(self, report_type, sheet_name=None):
         return self.categories.get(report_type, {}).get(sheet_name or "__default__", {})
 
-    def get_account_formulas(self, report_type, sheet_name=None):
-        mapping = self.formulas.get(report_type, {}).get(sheet_name or "__default__", {})
-        result = dict(mapping)
-        for name, info in self.formula_library.items():
+    def get_report_formulas(self, report_type, sheet_name=None):
+        mapping = self.report_formulas.get(report_type, {})
+        result = {}
+        for name, info in mapping.items():
             sheets = info.get("sheets") or []
-            if sheet_name is None or sheet_name in sheets or "__default__" in sheets:
-                result.setdefault(name, info.get("expr", ""))
+            if sheet_name is None or not sheets or sheet_name in sheets or "__default__" in sheets:
+                result[name] = info
         return result
 
     def set_account_categories(self, report_type, cats, sheet_name=None):
         sheet_name = sheet_name or "__default__"
         self.categories.setdefault(report_type, {})[sheet_name] = cats
 
-    def set_account_formulas(self, report_type, formulas, sheet_name=None):
-        sheet_name = sheet_name or "__default__"
-        self.formulas.setdefault(report_type, {})[sheet_name] = formulas
-
-    def get_formula_library(self):
-        return self.formula_library
-
-    def set_formula_library(self, lib):
-        self.formula_library = lib
+    def set_report_formulas(self, report_type, formulas):
+        self.report_formulas[report_type] = formulas
 
     def get(self, section, key=None):
         if section == "excel" and key == "report_type":
@@ -101,8 +93,8 @@ class ApplyCalculationsTest(unittest.TestCase):
         parent.config.set_account_categories(
             "Test", {"CatA": ["1234-5678"], "CatB": ["9999-0000"]}
         )
-        parent.config.set_formula_library(
-            {"Net": {"expr": "CatA + CatB", "display_name": "Net"}}
+        parent.config.set_report_formulas(
+            "Test", {"Net": {"expr": "CatA + CatB", "display_name": "Net"}}
         )
         parent.config.report_type = "Test"
         parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
@@ -146,8 +138,8 @@ class ApplyCalculationsTest(unittest.TestCase):
         parent.config.set_account_categories(
             "Test", {"CatA": ["1234-5678"], "CatB": ["9999-0000"]}
         )
-        parent.config.set_formula_library(
-            {"Net": {"expr": "CatA + CatB", "display_name": "Net"}}
+        parent.config.set_report_formulas(
+            "Test", {"Net": {"expr": "CatA + CatB", "display_name": "Net"}}
         )
         parent.config.report_type = "Test"
         parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
@@ -198,8 +190,8 @@ class ApplyCalculationsTest(unittest.TestCase):
         parent.config.set_account_categories(
             "Test", {"CatA": ["1234-5678"], "CatB": ["9999-0000"]}
         )
-        parent.config.set_formula_library(
-            {"Net": {"expr": "CatA + CatB", "display_name": "Net"}}
+        parent.config.set_report_formulas(
+            "Test", {"Net": {"expr": "CatA + CatB", "display_name": "Net"}}
         )
         parent.config.report_type = "Test"
         parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
@@ -228,8 +220,8 @@ class ApplyCalculationsTest(unittest.TestCase):
         parent = self.MainWindow.__new__(self.MainWindow)
         parent.config = DummyConfig()
         parent.config.set_account_categories("Test", {"CatA": ["1234-5678"]})
-        parent.config.set_formula_library(
-            {"Net": {"expr": "CatA", "display_name": "Net"}}
+        parent.config.set_report_formulas(
+            "Test", {"Net": {"expr": "CatA", "display_name": "Net"}}
         )
         parent.config.report_type = "Test"
         parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
@@ -255,8 +247,9 @@ class ApplyCalculationsTest(unittest.TestCase):
             "AR Center",
             {"Bad debt": ["Bad debt"]},
         )
-        parent.config.set_formula_library(
-            {"Bad debt percentage": {"expr": "Bad debt", "display_name": "Bad debt percentage", "sheets": ["facility"]}}
+        parent.config.set_report_formulas(
+            "AR Center",
+            {"Bad debt percentage": {"expr": "Bad debt", "display_name": "Bad debt percentage", "sheets": ["facility"]}},
         )
         parent.config.report_type = "AR Center"
         parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
@@ -287,8 +280,15 @@ class ApplyCalculationsTest(unittest.TestCase):
             "AR Center",
             {"Bad debt": ["Bad debt"]},
         )
-        parent.config.set_formula_library(
-            {"Bad debt percentage": {"expr": "Bad debt", "display_name": "Bad debt percentage", "sheets": ["facility", "anesthesia"]}}
+        parent.config.set_report_formulas(
+            "AR Center",
+            {
+                "Bad debt percentage": {
+                    "expr": "Bad debt",
+                    "display_name": "Bad debt percentage",
+                    "sheets": ["facility", "anesthesia"],
+                }
+            },
         )
         parent.config.report_type = "AR Center"
         parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
@@ -327,8 +327,8 @@ class ApplyCalculationsTest(unittest.TestCase):
         parent.config.set_account_categories(
             "Test", {"CatA": ["1234"], "CatB": ["5678"]}
         )
-        parent.config.set_formula_library(
-            {"Net": {"expr": "CatA + CatB", "display_name": "Net"}}
+        parent.config.set_report_formulas(
+            "Test", {"Net": {"expr": "CatA + CatB", "display_name": "Net"}}
         )
         parent.config.report_type = "Test"
         parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
