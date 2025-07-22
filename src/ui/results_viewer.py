@@ -192,6 +192,8 @@ class ResultsViewer(QWidget):
         self.logger = get_logger(__name__)
         self.results_data = []
         self.original_data = []
+        self.summary_rows = []
+        self.display_base = []
         self.columns = []
         self.init_ui()
 
@@ -258,6 +260,11 @@ class ResultsViewer(QWidget):
         self.filter_field.textChanged.connect(self.apply_filter)
         toolbar.addWidget(self.filter_field)
 
+        self.include_original_cb = QCheckBox("Include original")
+        self.include_original_cb.setChecked(True)
+        self.include_original_cb.stateChanged.connect(self.refresh_display)
+        toolbar.addWidget(self.include_original_cb)
+
         main_layout.addWidget(toolbar)
 
     def load_results(self, data, columns=None):
@@ -269,6 +276,8 @@ class ResultsViewer(QWidget):
         # Store the raw results so calculations can be applied later
         self.results_data = list(data)
         self.original_data = list(data)
+        self.summary_rows = []
+        self.display_base = list(data)
 
         # Determine if we need to prefix account names with the sheet name
         parent = self.window()
@@ -344,17 +353,7 @@ class ResultsViewer(QWidget):
             self.logger.debug("First row data: %s", first_row)
             self.logger.debug("Columns: %s", self.columns)
 
-        # Create model and set it on table view
-        self.model = ResultsTableModel(self.results_data, self.columns)
-        self.table_view.setModel(self.model)
-
-        # Auto-resize columns to contents
-        self.table_view.resizeColumnsToContents()
-
-        # Update status
-        self.status_label.setText(
-            f"{len(data)} rows, {len(self.columns)} columns returned"
-        )
+        self.refresh_display()
 
     def apply_calculations(self):
         """Append category totals and formulas to the current results."""
@@ -363,6 +362,8 @@ class ResultsViewer(QWidget):
 
         if not self.original_data:
             self.original_data = list(self.results_data)
+        self.summary_rows = []
+        self.display_base = []
 
         parent = self.window()
         try:
@@ -397,33 +398,34 @@ class ResultsViewer(QWidget):
                 if categories:
                     sheet_col = None
 
-                    if self.results_data and isinstance(self.results_data[0], dict):
-                        first_row = self.results_data[0]
-                        lower_map = {
-                            re.sub(r"[\s_]+", "", k).lower(): k for k in first_row
-                        }
+                    base_first = self.original_data[0] if self.original_data else {}
+                    if base_first:
+                        lower_map = {re.sub(r"[\s_]+", "", k).lower(): k for k in base_first}
                         for cand in ["sheetname", "sheet"]:
                             if cand in lower_map:
                                 sheet_col = lower_map[cand]
                                 break
 
-                        if sheet_col:
-                            for row in self.results_data:
-                                if not row.get(sheet_col):
-                                    row[sheet_col] = sheet_val
-
-                    if sheet_col is None:
+                    if sheet_col:
+                        self.display_base = [
+                            {**row} if row.get(sheet_col) else {**row, sheet_col: sheet_val}
+                            for row in self.original_data
+                        ]
+                    else:
                         sheet_col = "Sheet"
                         if sheet_col not in self.columns:
                             self.columns.append(sheet_col)
+                        self.display_base = [
+                            {**row, sheet_col: sheet_val} for row in self.original_data
+                        ]
 
                     group_col = sheet_col
                     if (
                         group_col is None
-                        and self.results_data
-                        and isinstance(self.results_data[0], dict)
+                        and self.original_data
+                        and isinstance(self.original_data[0], dict)
                     ):
-                        first_row = self.results_data[0]
+                        first_row = self.original_data[0]
                         if "Center" in first_row:
                             group_col = "Center"
 
@@ -438,27 +440,26 @@ class ResultsViewer(QWidget):
                         group_column=group_col,
                         sign_flip_accounts=sign_flip,
                     )
-                    default_group = None
-                    if sheet_col and sheet_col not in self.results_data[0]:
-                        default_group = sheet_val
-                    base_data = self.original_data or self.results_data
-                    self.results_data = calc.compute(
-                        list(base_data),
-                        default_group=default_group,
+
+                    rows_for_calc = list(self.display_base)
+                    self.summary_rows = calc.compute(
+                        rows_for_calc,
                         include_categories=False,
                     )
 
+        self.refresh_display()
 
-                    # Do not prefix account names with the sheet name. The sheet
-                    # column is already present in the data and can be used
-                    # directly for any grouping logic.
+    def refresh_display(self):
+        """Refresh table based on checkbox state."""
+        if self.include_original_cb.isChecked():
+            base = self.display_base if self.display_base else list(self.original_data)
+            self.results_data = list(base) + list(self.summary_rows)
+        else:
+            self.results_data = list(self.summary_rows)
 
-        # Refresh the table model with new rows
         self.model = ResultsTableModel(self.results_data, self.columns)
         self.table_view.setModel(self.model)
         self.table_view.resizeColumnsToContents()
-
-        # Update status
         self.status_label.setText(
             f"{len(self.results_data)} rows, {len(self.columns)} columns returned"
         )
