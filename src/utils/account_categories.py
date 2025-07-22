@@ -124,11 +124,16 @@ class CategoryCalculator:
         If ``group_column`` was supplied and is present in the data, totals are
         calculated separately for each value of that column and the resulting
         rows include the grouping value.  When ``group_column`` is specified but
-        missing from ``rows``, the value of ``default_group`` will be used for
-        all generated rows.  The input ``rows`` are never modified.
+        missing from ``rows``, all calculations are performed as a single group
+        and no grouping column is added to the results.  The input ``rows`` are
+        never modified.
 
         Parameters
         ----------
+        default_group:
+            Unused when ``group_column`` is missing.  Previously a sheet column
+            was inserted using this value; calculations now simply run without
+            grouping.
         include_categories:
             When ``True`` (default), append totals for each configured
             category.  When ``False``, only rows for formulas are returned.
@@ -138,14 +143,8 @@ class CategoryCalculator:
 
         account_col = self._resolve_account_column(rows)
 
-        # If grouping is requested but the column is missing, insert it using
-        # the provided default value so downstream logic can rely on its
-        # existence.
         group_exists = bool(self.group_column and self.group_column in rows[0])
         proc_rows = rows
-        if self.group_column and not group_exists:
-            proc_rows = [{**row, self.group_column: default_group} for row in rows]
-            group_exists = True
 
         result: List[Dict[str, Any]] = []
         numeric_cols = self._numeric_columns(proc_rows)

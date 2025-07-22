@@ -347,7 +347,7 @@ class TestCategoryCalculator(unittest.TestCase):
         total = next(r for r in result if r["CAReportName"] == "Total")
         self.assertEqual(total["Amount"], 150)
 
-    def test_sheet_column_added_when_missing(self):
+    def test_sheet_column_not_added_when_missing(self):
         rows = [
             {"CAReportName": "1234-5678", "Amount": -100},
             {"CAReportName": "9999-0000", "Amount": 50},
@@ -357,10 +357,10 @@ class TestCategoryCalculator(unittest.TestCase):
         result = calc.compute(list(rows), default_group="Foo")
 
         cat_row = next(r for r in result if r["CAReportName"] == "CatA")
-        self.assertEqual(cat_row["Sheet"], "Foo")
+        self.assertNotIn("Sheet", cat_row)
 
         net_row = next(r for r in result if r["CAReportName"] == "Net")
-        self.assertEqual(net_row["Sheet"], "Foo")
+        self.assertNotIn("Sheet", net_row)
 
     def test_sheet_column_preserved_when_present(self):
         rows = [
