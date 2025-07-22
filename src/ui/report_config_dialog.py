@@ -145,6 +145,7 @@ class ReportConfigDialog(QDialog):
     def save(self) -> None:
         if self.config_list.currentItem():
             self._save_config(self.config_list.currentItem().text())
-        self.config.config["report_configs"] = self.configs
-        self.config.save_config()
+
+        for name, cfg in self.configs.items():
+            self.config.set_report_config(name, cfg)
         self.accept()

@@ -23,10 +23,13 @@ class ReportConfigTests(unittest.TestCase):
             cfg = AppConfig()
             rc = cfg.get_report_config('SOO PreClose')
             rc['skip_rows'] = 99
+            rc['center_cell'] = 'B2'
             cfg.set_report_config('SOO PreClose', rc)
 
             cfg2 = AppConfig()
-            self.assertEqual(cfg2.get_report_config('SOO PreClose')['skip_rows'], 99)
+            loaded = cfg2.get_report_config('SOO PreClose')
+            self.assertEqual(loaded['skip_rows'], 99)
+            self.assertEqual(loaded['center_cell'], 'B2')
 
             if old_home is not None:
                 os.environ['HOME'] = old_home
@@ -40,6 +43,7 @@ class ReportConfigTests(unittest.TestCase):
             'header_rows': [0],
             'skip_rows': 1,
             'first_data_column': 1,
+            'center_cell': None,
             'description': ''
         }
 
@@ -55,6 +59,29 @@ class ReportConfigTests(unittest.TestCase):
         self.assertEqual(cleaned.iloc[0, 1], 1)
         self.assertEqual(cleaned.iloc[1, 1], 3)
 
+    def test_center_cell_overrides_sheet_name(self):
+        from src.ui.excel_viewer import ExcelViewer
+        viewer = ExcelViewer.__new__(ExcelViewer)
+        viewer.report_type = 'SOO PreClose'
+        viewer.report_config = {
+            'header_rows': [0],
+            'skip_rows': 2,
+            'first_data_column': 1,
+            'center_cell': 'B2',
+            'description': ''
+        }
+
+        import pandas as pd
+        df = pd.DataFrame([
+            ['H1', 'H2'],
+            ['x', 'NewName'],
+            ['desc', '1'],
+            ['desc2', '2']
+        ])
+
+        cleaned = ExcelViewer._clean_dataframe(viewer, df, 'Orig')
+        self.assertEqual(cleaned.iloc[0, 0], 'NewName')
+
     def test_soo_mfr_default_config(self):
         from src.utils.config import AppConfig
 
@@ -69,6 +96,7 @@ class ReportConfigTests(unittest.TestCase):
                     'header_rows': [9],
                     'skip_rows': 10,
                     'first_data_column': 4,
+                    'center_cell': None,
                     'description': 'SOO MFR report with header on row 10'
                 }
             )
@@ -92,6 +120,7 @@ class ReportConfigTests(unittest.TestCase):
                     'header_rows': [9],
                     'skip_rows': 10,
                     'first_data_column': 4,
+                    'center_cell': None,
                     'description': 'MFR PreClose report with header on row 10'
                 }
             )
@@ -115,6 +144,7 @@ class ReportConfigTests(unittest.TestCase):
                     'header_rows': [5],
                     'skip_rows': 7,
                     'first_data_column': 2,
+                    'center_cell': None,
                     'description': 'Corporate SOO report with header on row 6'
                 }
             )
