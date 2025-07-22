@@ -1,6 +1,6 @@
-# SOO PreClose Report Tester
+# IBM Cognos Report Tester
 
-A high-quality application for testing Excel reports against SQL databases, especially designed for SOO (Statement of Operations) PreClose reports.
+A high-quality application for testing Excel reports against SQL databases.
 
 ## Features
 
@@ -8,6 +8,7 @@ A high-quality application for testing Excel reports against SQL databases, espe
 - SQL query execution with special handling for temporary tables
 - Detailed comparison between Excel and SQL data
 - Support for all Excel sheets and formats
+- Ability to define sheet structure for proper naming and defining of sheet name and account number
 - Intelligent data matching algorithms
 - Configurable report types and parameters
 - Quick **Start Testing** button to launch the automated workflow
@@ -199,7 +200,7 @@ If you're experiencing issues with temp tables, try:
 - Using the specialized scripts in the `src/analyzer/` directory
 
 ### Key Column Detection
-
+Note: This is no longer needed as the 'import headers' feature matches column names exactly
 The comparison engine looks for common keywords when trying to identify the
 "Center" and "Account" columns. After normalizing column names, any name
 containing the following keywords will be treated as a potential match:
