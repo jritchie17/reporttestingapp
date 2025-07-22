@@ -18,7 +18,10 @@ class DummyConfig:
         self.report_type = ""
 
     def get_account_categories(self, report_type, sheet_name=None):
-        return self.categories.get(report_type, {}).get(sheet_name or "__default__", {})
+        mapping = self.categories.get(report_type, {})
+        if sheet_name is None:
+            return mapping.get("__default__", {})
+        return mapping.get(sheet_name) or mapping.get("__default__", {})
 
     def get_report_formulas(self, report_type, sheet_name=None):
         mapping = self.report_formulas.get(report_type, {})
@@ -320,6 +323,56 @@ class ApplyCalculationsTest(unittest.TestCase):
         )
         self.assertTrue(fac_row)
         self.assertTrue(ane_row)
+
+    def test_apply_calculations_sheet_specific_formulas(self):
+        parent = self.MainWindow.__new__(self.MainWindow)
+        parent.config = DummyConfig()
+        parent.config.set_account_categories(
+            "AR Center",
+            {"Bad debt": ["Facility: Bad debt"]},
+            sheet_name="facility",
+        )
+        parent.config.set_account_categories(
+            "AR Center",
+            {"Bad debt": ["Anesthesia: Bad debt"]},
+            sheet_name="anesthesia",
+        )
+        parent.config.set_report_formulas(
+            "AR Center",
+            {
+                "Bad debt percentage": {
+                    "expr": "Bad debt",
+                    "display_name": "Bad debt percentage",
+                    "sheets": ["facility"],
+                }
+            },
+        )
+        parent.config.report_type = "AR Center"
+        parent.comparison_engine = type("CE", (), {"sign_flip_accounts": []})()
+        parent.sheet_selector = DummySelector("facility")
+
+        viewer = self.ResultsViewer.__new__(self.ResultsViewer)
+        viewer.results_data = [
+            {"Sheet": "facility", "CAReportName": "Facility: Bad debt", "Amount": 100},
+            {"Sheet": "anesthesia", "CAReportName": "Anesthesia: Bad debt", "Amount": 50},
+        ]
+        viewer.columns = ["Sheet", "CAReportName", "Amount"]
+        viewer.table_view = DummyTable()
+        viewer.status_label = DummyLabel()
+        viewer.window = lambda: parent
+
+        viewer.apply_calculations()
+
+        fac_row = any(
+            row.get("CAReportName") == "Bad debt percentage" and row.get("Sheet") == "facility"
+            for row in viewer.results_data
+        )
+        ane_row = any(
+            row.get("CAReportName") == "Bad debt percentage" and row.get("Sheet") == "anesthesia"
+            for row in viewer.results_data
+        )
+        self.assertTrue(fac_row)
+        self.assertFalse(ane_row)
 
     def test_apply_calculations_no_duplicates(self):
         parent = self.MainWindow.__new__(self.MainWindow)

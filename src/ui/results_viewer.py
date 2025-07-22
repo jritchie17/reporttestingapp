@@ -385,10 +385,8 @@ class ResultsViewer(QWidget):
                         sheet_val = parent.sheet_selector.currentText()
                     except Exception:
                         sheet_val = ""
-                if not sheet_val and hasattr(parent, "config"):
-                    sheet_val = parent.config.get("excel", "sheet_name") or ""
 
-                categories = parent.config.get_account_categories(report_type)
+                categories = parent.config.get_account_categories(report_type, sheet_val or None)
                 formulas = parent.config.get_report_formulas(report_type, sheet_val or None)
                 if categories:
                     sheet_col = None
