@@ -1304,6 +1304,19 @@ class ExcelViewer(QWidget):
                     unique_cols.append(col)
             clean_df.columns = unique_cols
 
+            # Detect rows that simply repeat the column headers. These often
+            # appear in exported files when the header row is duplicated.
+            header_vals = [str(c).strip().lower() for c in clean_df.columns]
+            start_idx = (
+                1 if header_vals and header_vals[0] in ("sheet_name", "sheet") else 0
+            )
+            header_core = header_vals[start_idx:]
+            dup_row_mask = clean_df.apply(
+                lambda r: [str(v).strip().lower() for v in r.tolist()][start_idx:]
+                == header_core,
+                axis=1,
+            )
+
             # Remove blank rows
             if self.report_type == "Corp SOO":
                 data_part = clean_df.iloc[:, 1:]
@@ -1326,18 +1339,19 @@ class ExcelViewer(QWidget):
                 remove_rows = (first_col_blank & all_numeric_blank_or_zero) | (
                     (~first_col_blank) & all_numeric_blank
                 )
+                remove_rows = remove_rows | dup_row_mask
                 clean_df = clean_df.loc[~remove_rows]
             else:
-                clean_df = clean_df.loc[
-                    ~(
-                        (clean_df.isna().all(axis=1))
-                        | (
-                            clean_df.astype(str)
-                            .apply(lambda x: x.str.strip() == "")
-                            .all(axis=1)
-                        )
+                remove_rows = (
+                    clean_df.isna().all(axis=1)
+                    | (
+                        clean_df.astype(str)
+                        .apply(lambda x: x.str.strip() == "")
+                        .all(axis=1)
                     )
-                ]
+                    | dup_row_mask
+                )
+                clean_df = clean_df.loc[~remove_rows]
 
             # Convert all columns to numeric starting from first_data_column
             first_col = self.report_config.get("first_data_column", 2)
@@ -2137,7 +2151,7 @@ class ExcelViewer(QWidget):
             row_vals = [str(v).strip().lower() for v in clean_df.iloc[0].tolist()]
 
             # Ignore the sheet name column when comparing
-            if header_vals and header_vals[0] == "sheet_name":
+            if header_vals and header_vals[0] in ("sheet_name", "sheet"):
                 header_vals = header_vals[1:]
                 row_vals = row_vals[1:]
 
