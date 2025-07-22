@@ -126,9 +126,21 @@ class ComparisonEngine:
             except Exception as e:
                 self.logger.warning(f"Plugin {plugin.__class__.__name__} failed in pre_compare: {e}")
         
-        # If no column mappings provided, try to create them
+        # If no column mappings provided, check for exact header match first
         if column_mappings is None:
-            column_mappings = self.find_matching_columns(excel_df.columns, sql_df.columns)
+            if list(excel_df.columns) == list(sql_df.columns):
+                column_mappings = {
+                    i: {
+                        "excel_column": col,
+                        "sql_column": col,
+                        "match_score": 1.0,
+                    }
+                    for i, col in enumerate(excel_df.columns)
+                }
+            else:
+                column_mappings = self.find_matching_columns(
+                    excel_df.columns, sql_df.columns
+                )
         
         if not column_mappings:
             self.logger.warning("No matching columns found between Excel and SQL data")
@@ -330,8 +342,6 @@ class ComparisonEngine:
     
     def _identify_key_columns(self, excel_df, sql_df, column_mappings):
         """Identify key columns for joining Excel and SQL data"""
-        # First try to find Center and CAReportName columns
-        key_columns = {"excel": [], "sql": []}
 
         def _norm(name: str) -> str:
             return re.sub(r"[\s_]+", "", str(name)).lower()
@@ -365,6 +375,37 @@ class ComparisonEngine:
             "careport",
             "acct",
         ]
+
+        # Short-circuit if the headers already match exactly
+        if list(excel_df.columns) == list(sql_df.columns):
+            key_columns = [
+                col
+                for col in excel_df.columns
+                if _norm(col) in center_synonyms or _norm(col) in acct_synonyms
+            ]
+
+            if key_columns:
+                return {"excel": key_columns, "sql": key_columns}
+
+            def _is_non_numeric(series):
+                try:
+                    ratio = pd.to_numeric(series, errors="coerce").notna().mean()
+                    return ratio < 0.5
+                except Exception:
+                    return True
+
+            text_cols = [
+                col
+                for col in excel_df.columns
+                if _is_non_numeric(excel_df[col]) and _is_non_numeric(sql_df[col])
+            ]
+            if text_cols:
+                return {"excel": text_cols, "sql": text_cols}
+
+            return None
+
+        # First try to find Center and CAReportName columns
+        key_columns = {"excel": [], "sql": []}
 
         center_found = False
         acct_found = False

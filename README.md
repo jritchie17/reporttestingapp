@@ -217,8 +217,10 @@ If you're experiencing issues with temp tables, try:
 - Using the specialized scripts in the `src/analyzer/` directory
 
 ### Key Column Detection
-Note: This is no longer needed as the 'import headers' feature matches column names exactly
-The comparison engine looks for common keywords when trying to identify the
+If your Excel export includes the SQL header row (using the "import headers" feature),
+the column names will match exactly after loading. In this case the comparison
+engine skips its heuristic search entirely and maps columns directly by name.
+Otherwise, the engine looks for common keywords when trying to identify the
 "Center" and "Account" columns. After normalizing column names, any name
 containing the following keywords will be treated as a potential match:
 
