@@ -106,6 +106,10 @@ class ComparisonEngine:
         if excel_df.empty or sql_df.empty:
             self.logger.warning("One or both dataframes are empty")
             return {"error": "One or both dataframes are empty"}
+
+        # Store last compared dataframes for later report generation
+        self._last_excel_df = excel_df.copy()
+        self._last_sql_df = sql_df.copy()
         
         # Print DataFrame info for debugging
         self.logger.info(f"Excel DataFrame info: {excel_df.shape}, columns: {excel_df.columns.tolist()}")
@@ -534,19 +538,32 @@ class ComparisonEngine:
 
         return messages
 
-    def generate_comparison_report(self, sheet_name, comparison_results=None):
-        """Generate a markdown comparison report."""
+    def generate_comparison_report(self, sheet_name, comparison_results=None, mismatches_df=None, fmt="markdown"):
+        """Generate a comparison report in markdown or HTML format."""
         if comparison_results is None:
             comparison_results = self.comparison_results
         if not comparison_results:
             self.logger.warning("No comparison results available")
             return "No comparison results available."
+
+        if mismatches_df is None:
+            try:
+                mismatches_df = self.generate_detailed_comparison_dataframe(
+                    sheet_name,
+                    getattr(self, "_last_excel_df", None),
+                    getattr(self, "_last_sql_df", None),
+                )
+            except Exception:
+                mismatches_df = None
+
         suggested = comparison_results.get("suggested_sign_flips", set())
         return report_generator.generate_report(
             sheet_name,
             comparison_results,
+            mismatches_df,
             self.sign_flip_accounts,
             suggested,
+            fmt=fmt,
         )
 
     def generate_detailed_comparison_dataframe(

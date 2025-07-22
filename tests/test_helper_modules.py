@@ -37,9 +37,17 @@ class TestHelperModules(unittest.TestCase):
     def test_report_generator(self):
         comparison_results = {
             'summary': {'mismatch_percentage': 0, 'matching_cells': 3, 'total_cells': 3},
-            'row_counts': {'excel': 2, 'sql': 2, 'matched': 2}
+            'row_counts': {'excel': 2, 'sql': 2, 'matched': 2},
+            'column_comparisons': {'Amount': {'mismatch_count': 0}},
         }
-        report = report_generator.generate_report('Sheet1', comparison_results, ['1234-5678'], ['1111-2222'])
+        df = pd.DataFrame({'Result': ['Match']})
+        report = report_generator.generate_report(
+            'Sheet1',
+            comparison_results,
+            df,
+            ['1234-5678'],
+            ['1111-2222']
+        )
         self.assertIn('PERFECT MATCH', report)
         self.assertIn('Sign Flip Accounts Applied', report)
         self.assertIn('Suggested Sign Flip Accounts', report)

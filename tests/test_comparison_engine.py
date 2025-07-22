@@ -155,3 +155,12 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
             self.engine.generate_detailed_comparison_dataframe(
                 'Sheet1', excel_df, sql_df, column_mappings=column_mappings
             )
+
+    def test_generate_comparison_report_content(self):
+        self.engine.set_sign_flip_accounts(['1234-5678'])
+        results = self.engine.compare_dataframes(self.excel_df, self.sql_df)
+        df = self.engine.generate_detailed_comparison_dataframe('Sheet1', self.excel_df, self.sql_df)
+        report = self.engine.generate_comparison_report('Sheet1', results, mismatches_df=df)
+        self.assertIn('PERFECT MATCH', report)
+        self.assertIn('Per-Column Mismatches', report)
+        self.assertIn('## Mismatches', report)
