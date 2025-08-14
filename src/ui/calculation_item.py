@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt, QMimeData
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QDrag
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QComboBox,
-    QCheckBox,
     QFrame,
     QSizePolicy,
     QListWidget,
@@ -17,6 +13,8 @@ from PyQt6.QtWidgets import (
     QInputDialog,
     QMessageBox,
 )
+from PyQt6.QtWidgets import QLabel, QLineEdit, QComboBox
+
 
 
 class CalculationItem(QWidget):
@@ -38,28 +36,19 @@ class CalculationItem(QWidget):
         # Name
         name_layout = QHBoxLayout()
         name_layout.addWidget(QLabel("Name:"))
+
         self.name_edit = QLineEdit(self.name)
         name_layout.addWidget(self.name_edit)
         layout.addLayout(name_layout)
 
-        # Operator Buttons Layout
-        operator_layout = QHBoxLayout()
-        operators = ["+", "-", "*", "/"]
-        for op in operators:
-            op_button = QPushButton(op)
-            op_button.clicked.connect(lambda checked, operator=op: self._insert_operator(operator))
-            operator_layout.addWidget(op_button)
-        layout.addLayout(operator_layout)
+        # Account List (Assuming a QListWidget for accounts)
+        self.accounts_list = QListWidget()
+        self.accounts_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)  # Allow multiple accounts
 
-        # Expression
-        expr_layout = QHBoxLayout()
-        expr_layout.addWidget(QLabel("Expression:"))
-        self.expression_edit = QLineEdit(self.expression)
-        self.expression_edit.setDragEnabled(True)  # Enable drag for the expression
-        expr_layout.addWidget(self.expression_edit)
-        layout.addLayout(expr_layout)
+        # Placeholder: Replace with your actual account data
+        self.accounts_list.addItems(["Account 1", "Account 2", "Account 3"])
 
-
+        layout.addWidget(QLabel("Accounts:"))
         # Display Name
         display_name_layout = QHBoxLayout()
         display_name_layout.addWidget(QLabel("Display Name:"))
@@ -67,6 +56,7 @@ class CalculationItem(QWidget):
         display_name_layout.addWidget(self.display_name_edit)
         layout.addLayout(display_name_layout)
 
+        layout.addWidget(self.accounts_list)
         # Sheets
         sheets_layout = QHBoxLayout()
         sheets_layout.addWidget(QLabel("Sheets:"))
@@ -74,6 +64,7 @@ class CalculationItem(QWidget):
         self.sheets_combo.addItems(self.sheets)  # Initialize with available sheets
         self.sheets_combo.setEditable(True)  # Allow manual entry
         sheets_layout.addWidget(self.sheets_combo)
+
 
         sheets_btns = QHBoxLayout()
         add_sheet_btn = QPushButton("Add/Edit Sheet")
@@ -118,7 +109,7 @@ class CalculationItem(QWidget):
             "name": self.name_edit.text(),
             "expr": self.expression_edit.text(),
             "display_name": self.display_name_edit.text(),
-            "sheets": [self.sheets_combo.itemText(i) for i in range(self.sheets_combo.count())]
+            "sheets": [self.sheets_combo.itemText(i) for i in range(self.sheets_combo.count())],
         }
 
     def set_data(self, data: dict) -> None:
