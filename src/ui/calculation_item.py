@@ -113,12 +113,12 @@ class CalculationItem(QWidget):
             self.sheets_list.takeItem(row)
 
     def get_data(self) -> dict:
-            """Collect data from the UI."""
+        """Collect data from the UI."""
         return {
             "name": self.name_edit.text(),
             "expr": self.expression_edit.text(),
             "display_name": self.display_name_edit.text(),
-            "sheets": [self.sheets_combo.itemText(i) for i in range(self.sheets_combo.count())],
+            "sheets": [self.sheets_combo.itemText(i) for i in range(self.sheets_combo.count())]
         }
 
     def set_data(self, data: dict) -> None:
