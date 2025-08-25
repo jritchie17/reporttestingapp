@@ -1,6 +1,4 @@
 import os
-import sys
-import types
 import unittest
 from unittest.mock import MagicMock
 
@@ -13,9 +11,9 @@ from src.analyzer.excel_analyzer import ExcelAnalyzer
 class TestGatherAccountsSheetName(unittest.TestCase):
     def setUp(self):
         patch_qt_modules()
-        # Create dataframe where the account column is second and Sheet_Name is first
+        # Create dataframe where the account column is second and a Sheet column is first
         df = pd.DataFrame({
-            'Sheet_Name': ['Sheet1', 'Sheet1'],
+            'Sheet': ['Sheet1', 'Sheet1'],
             'ColA': ['1234-5678', '9999-0000'],
             'Other': [1, 2]
         })
