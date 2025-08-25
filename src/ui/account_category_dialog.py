@@ -6,11 +6,9 @@ from PyQt6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QPushButton,
-    QLineEdit,
     QInputDialog,
     QLabel,
     QComboBox,
-    QTabWidget,
     QWidget,
     QDialogButtonBox,
     QMessageBox,
@@ -19,39 +17,8 @@ from copy import deepcopy
 from src.utils.config import AppConfig, DEFAULT_SHEET_NAME
 
 
-class FormulaLineEdit(QLineEdit):
-    """QLineEdit that accepts drops of category names."""
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.setAcceptDrops(True)
-
-    def dragEnterEvent(self, event):  # type: ignore[override]
-        """Accept drags that contain text or come from a list widget."""
-
-        if event.mimeData().hasText() or isinstance(event.source(), QListWidget):
-
-            event.acceptProposedAction()
-        else:
-            super().dragEnterEvent(event)
-
-    def dropEvent(self, event):  # type: ignore[override]
-        """Insert dragged category name into the line edit."""
-
-        if event.mimeData().hasText():
-            self.insert(event.mimeData().text())
-
-            event.acceptProposedAction()
-        elif isinstance(event.source(), QListWidget) and event.source().currentItem():
-            self.insert(event.source().currentItem().text())
-
-            event.acceptProposedAction()
-        else:
-            super().dropEvent(event)
-
-
 class AccountCategoryDialog(QDialog):
-    """Dialog for managing account categories and formulas."""
+    """Dialog for managing account categories."""
 
     def __init__(
         self,
@@ -83,13 +50,11 @@ class AccountCategoryDialog(QDialog):
             for sheet in self.sheet_names
         }
         self.categories = deepcopy(self.categories_by_sheet.get(self.current_sheet, {}))
-        self.formulas = deepcopy(config.get_report_formulas(report_type))
 
         category_accounts = {acct for lst in self.categories.values() for acct in lst}
         self.all_accounts = sorted(set(accounts or []) | category_accounts)
 
         self._original_categories = deepcopy(self.categories_by_sheet)
-        self._original_formulas = deepcopy(self.formulas)
 
         self._init_ui()
 
@@ -100,26 +65,6 @@ class AccountCategoryDialog(QDialog):
         current = self._current_accounts()
         self._populate_account_list(current)
 
-    def _refresh_drag_categories(self) -> None:
-        """Update the list of categories available for drag-and-drop."""
-        if hasattr(self, "category_drag_list"):
-            self.category_drag_list.clear()
-            self.category_drag_list.addItems(sorted(self.categories.keys()))
-
-    def _refresh_formula_list(self) -> None:
-        if hasattr(self, "formula_list"):
-            current = self.formula_list.currentItem().text() if self.formula_list.currentItem() else None
-            self.formula_list.clear()
-            self.formula_list.addItems(sorted(self.formulas.keys()))
-            if current and current in self.formulas:
-                items = [self.formula_list.item(i) for i in range(self.formula_list.count()) if self.formula_list.item(i).text() == current]
-                if items:
-                    self.formula_list.setCurrentItem(items[0])
-            if self.formula_list.currentItem():
-                self.formula_edit.setText(self.formulas[self.formula_list.currentItem().text()].get("expr", ""))
-                self.display_edit.setText(self.formulas[self.formula_list.currentItem().text()].get("display_name", ""))
-                self._populate_sheet_checks(self.formulas[self.formula_list.currentItem().text()].get("sheets", []))
-
     def _save_current_sheet(self) -> None:
         """Store current edits into the per-sheet mappings."""
         if hasattr(self, "category_list") and self.category_list.currentItem():
@@ -127,7 +72,7 @@ class AccountCategoryDialog(QDialog):
         self.categories_by_sheet[self.current_sheet] = deepcopy(self.categories)
 
     def _load_sheet(self, sheet: str) -> None:
-        """Load categories and formulas for ``sheet`` into the UI."""
+        """Load categories for ``sheet`` into the UI."""
         self.current_sheet = sheet
         self.categories = deepcopy(self.categories_by_sheet.get(sheet, {}))
 
@@ -144,10 +89,7 @@ class AccountCategoryDialog(QDialog):
             else:
                 self._populate_account_list([])
 
-        if hasattr(self, "formula_list"):
-            self._refresh_formula_list()
-
-        self._refresh_drag_categories()
+        # no formula UI to refresh
 
     def _on_sheet_changed(self, sheet: str) -> None:
         self._save_current_sheet()
@@ -168,17 +110,15 @@ class AccountCategoryDialog(QDialog):
             sheet_layout.addWidget(self.sheet_selector)
             layout.addLayout(sheet_layout)
 
-        self.tabs = QTabWidget()
-        self._create_categories_tab()
-        self._create_formulas_tab()
-        layout.addWidget(self.tabs)
+        categories_widget = self._create_categories_widget()
+        layout.addWidget(categories_widget)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self.save)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-    def _create_categories_tab(self) -> None:
+    def _create_categories_widget(self) -> QWidget:
         tab = QWidget()
         layout = QHBoxLayout(tab)
 
@@ -210,7 +150,6 @@ class AccountCategoryDialog(QDialog):
         right.addLayout(btns)
 
         layout.addLayout(right)
-        self.tabs.addTab(tab, "Categories")
 
         if self.category_list.count() > 0:
             first = self.category_list.item(0)
@@ -218,83 +157,7 @@ class AccountCategoryDialog(QDialog):
             self._populate_account_list(self.categories.get(first.text(), []))
         else:
             self._populate_account_list([])
-        # Sync formula tab category list if it exists
-        if hasattr(self, "category_drag_list"):
-            self._refresh_drag_categories()
-
-    def _create_formulas_tab(self) -> None:
-        tab = QWidget()
-        layout = QHBoxLayout(tab)
-
-        self.formula_list = QListWidget()
-        self.formula_list.addItems(sorted(self.formulas.keys()))
-        self.formula_list.currentItemChanged.connect(self._on_formula_selected)
-        layout.addWidget(self.formula_list)
-
-        right = QVBoxLayout()
-
-        right.addWidget(QLabel("Categories:"))
-        self.category_drag_list = QListWidget()
-        self.category_drag_list.addItems(sorted(self.categories.keys()))
-        self.category_drag_list.setDragEnabled(True)
-        right.addWidget(self.category_drag_list)
-
-        right.addWidget(QLabel("Formula expression (use category names or account numbers):"))
-        self.formula_edit = FormulaLineEdit()
-        self.formula_edit.textChanged.connect(self._formula_changed)
-        right.addWidget(self.formula_edit)
-
-        right.addWidget(QLabel("Display name:"))
-        self.display_edit = QLineEdit()
-        self.display_edit.textChanged.connect(self._display_changed)
-        right.addWidget(self.display_edit)
-
-        right.addWidget(QLabel("Sheets:"))
-        self.sheet_check_list = QListWidget()
-        right.addWidget(self.sheet_check_list)
-        self.sheet_check_list.itemChanged.connect(self._sheets_changed)
-
-        ops = QHBoxLayout()
-        for label, text in [
-            ("+", "+"),
-            ("-", "-"),
-            ("*", "*"),
-            ("/", "/"),
-            ("*-1", "*-1"),
-            ("(", "("),
-            (")", ")"),
-        ]:
-            btn = QPushButton(label)
-            btn.clicked.connect(lambda _=False, t=text: self._insert_formula_text(t))
-            ops.addWidget(btn)
-        right.addLayout(ops)
-
-        btns = QHBoxLayout()
-        add_btn = QPushButton("Add")
-        add_btn.clicked.connect(self._add_formula)
-        del_btn = QPushButton("Delete")
-        del_btn.clicked.connect(self._delete_formula)
-        rename_btn = QPushButton("Rename")
-        rename_btn.clicked.connect(self._rename_formula)
-        btns.addWidget(add_btn)
-        btns.addWidget(del_btn)
-        btns.addWidget(rename_btn)
-        right.addLayout(btns)
-
-        layout.addLayout(right)
-        self.tabs.addTab(tab, "Formulas")
-
-        if self.formula_list.count() > 0:
-            first = self.formula_list.item(0)
-            self.formula_list.setCurrentItem(first)
-            info = self.formulas.get(first.text(), {})
-            self.formula_edit.setText(info.get("expr", ""))
-            self.display_edit.setText(info.get("display_name", ""))
-            self._populate_sheet_checks(info.get("sheets", []))
-        else:
-            self.formula_edit.clear()
-            self.display_edit.clear()
-            self._populate_sheet_checks([])
+        return tab
 
     # Category handlers
     def _on_category_selected(self, current, previous):
@@ -333,21 +196,6 @@ class AccountCategoryDialog(QDialog):
             self.account_list.addItem(item)
         self.account_list.blockSignals(False)
 
-    def _populate_sheet_checks(self, checked_sheets):
-        if not hasattr(self, "sheet_check_list"):
-            return
-        self.sheet_check_list.blockSignals(True)
-        self.sheet_check_list.clear()
-        for name in self.sheet_names:
-            item = QListWidgetItem(name)
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            if name in checked_sheets:
-                item.setCheckState(Qt.CheckState.Checked)
-            else:
-                item.setCheckState(Qt.CheckState.Unchecked)
-            self.sheet_check_list.addItem(item)
-        self.sheet_check_list.blockSignals(False)
-
     def _add_account(self):
         account, ok = QInputDialog.getText(self, "Add Account", "Account number:")
         if ok and account:
@@ -366,7 +214,6 @@ class AccountCategoryDialog(QDialog):
                 self.categories[name] = []
                 self.category_list.addItem(name)
                 self.category_list.setCurrentRow(self.category_list.count() - 1)
-                self._refresh_drag_categories()
 
     def _delete_category(self):
         item = self.category_list.currentItem()
@@ -378,7 +225,6 @@ class AccountCategoryDialog(QDialog):
         row = self.category_list.row(item)
         self.category_list.takeItem(row)
         self.account_list.clear()
-        self._refresh_drag_categories()
 
     def _rename_category(self):
         item = self.category_list.currentItem()
@@ -393,99 +239,6 @@ class AccountCategoryDialog(QDialog):
             self.categories[new_name] = accounts
             item.setText(new_name)
             self.category_list.setCurrentItem(item)
-            self._refresh_drag_categories()
-            # update formulas referencing the old name
-            for fname, expr in list(self.formulas.items()):
-                if old_name in expr:
-                    self.formulas[fname] = expr.replace(old_name, new_name)
-                    if (
-                        self.formula_list.currentItem()
-                        and self.formula_list.currentItem().text() == fname
-                    ):
-                        self.formula_edit.setText(self.formulas[fname])
-
-    # Formula handlers
-    def _on_formula_selected(self, current, previous):
-        if previous and previous.text() in self.formulas:
-            name = previous.text()
-            info = self.formulas.setdefault(name, {})
-            info["expr"] = self.formula_edit.text()
-            info["display_name"] = self.display_edit.text()
-            info["sheets"] = self._current_sheets()
-        if current:
-            info = self.formulas.get(current.text(), {})
-            self.formula_edit.setText(info.get("expr", ""))
-            self.display_edit.setText(info.get("display_name", ""))
-            self._populate_sheet_checks(info.get("sheets", []))
-        else:
-            self.formula_edit.clear()
-            self.display_edit.clear()
-            self._populate_sheet_checks([])
-
-    def _formula_changed(self):
-        item = self.formula_list.currentItem()
-        if item:
-            self.formulas.setdefault(item.text(), {})["expr"] = self.formula_edit.text()
-
-    def _display_changed(self):
-        item = self.formula_list.currentItem()
-        if item:
-            self.formulas.setdefault(item.text(), {})["display_name"] = self.display_edit.text()
-
-    def _current_sheets(self):
-        sheets = []
-        if hasattr(self, "sheet_check_list"):
-            for i in range(self.sheet_check_list.count()):
-                it = self.sheet_check_list.item(i)
-                if it.checkState() == Qt.CheckState.Checked:
-                    sheets.append(it.text())
-        return sheets
-
-    def _sheets_changed(self, *args):
-        item = self.formula_list.currentItem()
-        if item:
-            self.formulas.setdefault(item.text(), {})["sheets"] = self._current_sheets()
-
-    def _insert_formula_text(self, text: str) -> None:
-        """Insert ``text`` at the current cursor position in the formula field."""
-        cursor = self.formula_edit.cursorPosition()
-        current = self.formula_edit.text()
-        self.formula_edit.setText(current[:cursor] + text + current[cursor:])
-        self.formula_edit.setCursorPosition(cursor + len(text))
-        self._formula_changed()
-
-    def _add_formula(self):
-        name, ok = QInputDialog.getText(self, "Add Formula", "Formula name:")
-        if ok and name:
-            if name not in self.formulas:
-                self.formulas[name] = {"expr": "", "display_name": "", "sheets": []}
-                self.formula_list.addItem(name)
-                self.formula_list.setCurrentRow(self.formula_list.count() - 1)
-
-    def _delete_formula(self):
-        item = self.formula_list.currentItem()
-        if not item:
-            return
-        name = item.text()
-        if name in self.formulas:
-            del self.formulas[name]
-        row = self.formula_list.row(item)
-        self.formula_list.takeItem(row)
-        self.formula_edit.clear()
-
-    def _rename_formula(self):
-        item = self.formula_list.currentItem()
-        if not item:
-            return
-        old_name = item.text()
-        new_name, ok = QInputDialog.getText(
-            self, "Rename Formula", "New formula name:", text=old_name
-        )
-        if ok and new_name and new_name not in self.formulas:
-            info = self.formulas.pop(old_name, {})
-            self.formulas[new_name] = info
-            item.setText(new_name)
-            self.formula_list.setCurrentItem(item)
 
     def save(self):
         # ensure current edits saved
@@ -495,10 +248,7 @@ class AccountCategoryDialog(QDialog):
             cats = self.categories_by_sheet.get(sheet, {})
             self.config.set_account_categories(self.report_type, cats, sheet)
 
-        self.config.set_report_formulas(self.report_type, self.formulas)
-
         self._original_categories = deepcopy(self.categories_by_sheet)
-        self._original_formulas = deepcopy(self.formulas)
         self.accept()
 
     def reject(self):
@@ -554,4 +304,4 @@ class AccountCategoryDialog(QDialog):
             for key, accounts in mapping.items():
                 if sorted(accounts) != sorted(orig.get(key, [])):
                     return True
-        return self.formulas != self._original_formulas
+        return False
