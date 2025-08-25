@@ -1,6 +1,5 @@
-import pandas as pd
 import os
-import re
+import pandas as pd
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -11,20 +10,13 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QLineEdit,
     QHeaderView,
-    QCheckBox,
     QFileDialog,
     QMessageBox,
-    QGroupBox,
-    QFormLayout,
     QToolBar,
-    QAbstractItemView,
 )
 from PyQt6.QtCore import Qt, QAbstractTableModel, QModelIndex, QVariant
 from PyQt6.QtGui import QFont, QColor, QBrush, QAction
-
-from src.utils.account_categories import CategoryCalculator
 from src.utils.logging_config import get_logger
-import numpy as np
 import qtawesome as qta
 
 
@@ -191,9 +183,6 @@ class ResultsViewer(QWidget):
         super().__init__()
         self.logger = get_logger(__name__)
         self.results_data = []
-        self.original_data = []
-        self.summary_rows = []
-        self.display_base = []
         self.columns = []
         self.init_ui()
 
@@ -210,9 +199,9 @@ class ResultsViewer(QWidget):
         self.table_view.setSortingEnabled(True)
         self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.table_view.setEditTriggers(
-            QAbstractItemView.EditTrigger.DoubleClicked
-            | QAbstractItemView.EditTrigger.EditKeyPressed
-            | QAbstractItemView.EditTrigger.SelectedClicked
+            QTableView.EditTrigger.DoubleClicked
+            | QTableView.EditTrigger.EditKeyPressed
+            | QTableView.EditTrigger.SelectedClicked
         )
         self.table_view.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Interactive
@@ -247,11 +236,6 @@ class ResultsViewer(QWidget):
         clear_action.triggered.connect(self.clear_results)
         toolbar.addAction(clear_action)
 
-        # Apply calculations action
-        calc_action = QAction(qta.icon("fa5s.calculator"), "Apply Calculations", self)
-        calc_action.triggered.connect(self.apply_calculations)
-        toolbar.addAction(calc_action)
-
         # Add filter controls
         toolbar.addSeparator()
 
@@ -259,11 +243,6 @@ class ResultsViewer(QWidget):
         self.filter_field.setPlaceholderText("Filter results...")
         self.filter_field.textChanged.connect(self.apply_filter)
         toolbar.addWidget(self.filter_field)
-
-        self.include_original_cb = QCheckBox("Include original")
-        self.include_original_cb.setChecked(True)
-        self.include_original_cb.stateChanged.connect(self.refresh_display)
-        toolbar.addWidget(self.include_original_cb)
 
         main_layout.addWidget(toolbar)
 
@@ -273,11 +252,8 @@ class ResultsViewer(QWidget):
             self.status_label.setText("No results to display")
             return
 
-        # Store the raw results so calculations can be applied later
+        # Store the raw results for display
         self.results_data = list(data)
-        self.original_data = list(data)
-        self.summary_rows = []
-        self.display_base = list(data)
 
         # Determine if we need to prefix account names with the sheet name
         parent = self.window()
@@ -355,101 +331,8 @@ class ResultsViewer(QWidget):
 
         self.refresh_display()
 
-    def apply_calculations(self):
-        """Append category totals and formulas to the current results."""
-        if not self.results_data:
-            return
-
-        if not self.original_data:
-            self.original_data = list(self.results_data)
-        self.summary_rows = []
-        self.display_base = []
-
-        parent = self.window()
-        try:
-            from src.ui.main_window import MainWindow  # avoid circular import
-        except Exception:
-            MainWindow = None
-
-        if (
-            parent
-            and MainWindow
-            and isinstance(parent, MainWindow)
-            and hasattr(parent, "config")
-        ):
-            report_type = parent.config.get("excel", "report_type")
-            if report_type:
-                sheet_val = ""
-                if parent and hasattr(parent, "sheet_selector"):
-                    try:
-                        sheet_val = parent.sheet_selector.currentText()
-                    except Exception:
-                        sheet_val = ""
-
-                sheet_col = None
-
-                base_first = self.original_data[0] if self.original_data else {}
-                if base_first:
-                    lower_map = {re.sub(r"[\s_]+", "", k).lower(): k for k in base_first}
-                    for cand in ["sheetname", "sheet"]:
-                        if cand in lower_map:
-                            sheet_col = lower_map[cand]
-                            break
-
-                categories = parent.config.get_account_categories(
-                    report_type, sheet_val or None
-                )
-                formulas = parent.config.get_report_formulas(
-                    report_type, sheet_val if sheet_col else None
-                )
-                if categories:
-
-                    if sheet_col:
-                        self.display_base = [
-                            {**row} if row.get(sheet_col) else {**row, sheet_col: sheet_val}
-                            for row in self.original_data
-                        ]
-                    else:
-                        self.display_base = list(self.original_data)
-
-                    group_col = sheet_col
-                    if (
-                        group_col is None
-                        and self.original_data
-                        and isinstance(self.original_data[0], dict)
-                    ):
-                        first_row = self.original_data[0]
-                        if "Center" in first_row:
-                            group_col = "Center"
-
-                    sign_flip = []
-                    if parent and hasattr(parent, "comparison_engine"):
-                        sign_flip = list(
-                            getattr(parent.comparison_engine, "sign_flip_accounts", [])
-                        )
-                    calc = CategoryCalculator(
-                        categories,
-                        formulas,
-                        group_column=group_col,
-                        sign_flip_accounts=sign_flip,
-                    )
-
-                    rows_for_calc = list(self.display_base)
-                    self.summary_rows = calc.compute(
-                        rows_for_calc,
-                        include_categories=False,
-                    )
-
-        self.refresh_display()
-
     def refresh_display(self):
-        """Refresh table based on checkbox state."""
-        if self.include_original_cb.isChecked():
-            base = self.display_base if self.display_base else list(self.original_data)
-            self.results_data = list(base) + list(self.summary_rows)
-        else:
-            self.results_data = list(self.summary_rows)
-
+        """Refresh the table to show current results."""
         self.model = ResultsTableModel(self.results_data, self.columns)
         self.table_view.setModel(self.model)
         self.table_view.resizeColumnsToContents()
@@ -557,7 +440,6 @@ class ResultsViewer(QWidget):
     def clear_results(self):
         """Clear all results data"""
         self.results_data = []
-        self.original_data = []
         self.columns = []
 
         # Create empty model
