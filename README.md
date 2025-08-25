@@ -71,23 +71,7 @@ If you're using the executable version, simply double-click the `SOO_PreClose_Te
 You can customize the appearance under **Tools -> Settings -> User Interface**.
 The Theme drop-down defaults to *Brand* (applying the company's colors) but also allows Light, Dark, or System themes.
 
-To manage account mappings, open **Tools -> Manage Account Categories...**. When this dialog opens the application scans all currently loaded Excel sheets and pre-fills the account list automatically. Columns named `Account` or `CAReportName` are recognized without manual setup. Use the **Add**, **Delete**, and **Rename** buttons to organize both categories and formulas. Renaming a category will also update any formulas that reference it.
-
-### Account Formulas
-Formulas entered in this dialog can reference **any** of the category names you create and also any numeric column that exists in the sheet. This makes it easy to compute new values without additional mappings. For example you can define:
-
-```
-Gross Margin = Revenue - CostOfSales
-Net = Gross - Discounts
-```
-
-The above shows both category references (`Revenue`, `CostOfSales`) and direct column references (`Gross`, `Discounts`).
-
-Formulas can optionally be restricted to specific sheets by listing the sheet
-names in the **Sheets** column of the *Manage Account Categories* dialog.  When
-no sheet is specified, a formula is treated as global and applies to every sheet
-of the report.  If calculations are run on results without a sheet column,
-all formulas are considered global.
+To manage account mappings, open **Tools -> Manage Account Categories...**. When this dialog opens the application scans all currently loaded Excel sheets and pre-fills the account list automatically. Columns named `Account` or `CAReportName` are recognized without manual setup. Use the **Add**, **Delete**, and **Rename** buttons to organize categories.
 
 ### Report Configurations
 Open **Tools → Report Configurations** to define how each report type should be parsed. For every report you can set:
