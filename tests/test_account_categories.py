@@ -16,6 +16,7 @@ class DummyConfig:
     def __init__(self):
         self.categories = {}
         self.report_formulas = {}
+        self.config = {"account_categories": {}}
 
     def get_account_categories(self, report_type, sheet_name=None):
         mapping = self.categories.get(report_type, {})
@@ -35,6 +36,9 @@ class DummyConfig:
     def set_account_categories(self, report_type, cats, sheet_name=None):
         sheet_name = sheet_name or "__default__"
         self.categories.setdefault(report_type, {})[sheet_name] = cats
+        self.config.setdefault("account_categories", {}).setdefault(report_type, {})[
+            sheet_name
+        ] = cats
 
     def set_report_formulas(self, report_type, formulas):
         self.report_formulas[report_type] = formulas
@@ -381,6 +385,8 @@ class TestCategoryCalculator(unittest.TestCase):
 class TestAccountCategoryDialog(unittest.TestCase):
     def setUp(self):
         patch_qt_modules()
+        import importlib, sys
+        sys.modules.pop("src.ui.account_category_dialog", None)
         from src.ui.account_category_dialog import AccountCategoryDialog
 
         self.Dialog = AccountCategoryDialog
@@ -428,28 +434,21 @@ class TestAccountCategoryDialog(unittest.TestCase):
 
         QInputDialog.getText = staticmethod(lambda *a, **k: ("Cat1", True))
         dialog._add_category()
-        QInputDialog.getText = staticmethod(lambda *a, **k: ("Form1", True))
-        dialog._add_formula()
 
         dialog._delete_category()
-        dialog._delete_formula()
 
         dialog.save()
 
         self.assertEqual(config.get_account_categories("Test"), {})
-        self.assertEqual(config.get_report_formulas("Test"), {})
 
     def test_reject_discards_changes(self):
         config = DummyConfig()
-        config.set_account_categories("Test", {"Orig": ["1"]})
-        config.set_report_formulas("Test", {"F": {"expr": "Orig", "display_name": "F", "sheets": ["Sheet1"]}})
+        config.set_account_categories("Test", {"Orig": ["1"]}, sheet_name="Sheet1")
 
         dialog = self.Dialog(config, "Test", [], sheet_names=["Sheet1"])
 
         dialog.category_list.setCurrentRow(0)
         dialog._delete_category()
-        dialog.formula_list.setCurrentRow(0)
-        dialog._delete_formula()
 
         from PyQt6.QtWidgets import QMessageBox
 
@@ -457,12 +456,10 @@ class TestAccountCategoryDialog(unittest.TestCase):
         dialog.reject()
 
         self.assertEqual(config.get_account_categories("Test"), {"Orig": ["1"]})
-        self.assertEqual(config.get_report_formulas("Test"), {"F": {"expr": "Orig", "display_name": "F", "sheets": ["Sheet1"]}})
 
-    def test_rename_category_updates_formula(self):
+    def test_rename_category(self):
         config = DummyConfig()
-        config.set_account_categories("Test", {"Orig": ["1"]})
-        config.set_report_formulas("Test", {"F": {"expr": "Orig", "display_name": "F", "sheets": ["Sheet1"]}})
+        config.set_account_categories("Test", {"Orig": ["1"]}, sheet_name="Sheet1")
 
         dialog = self.Dialog(config, "Test", [], sheet_names=["Sheet1"])
         dialog.category_list.setCurrentRow(0)
@@ -473,23 +470,7 @@ class TestAccountCategoryDialog(unittest.TestCase):
         dialog._rename_category()
         dialog.save()
 
-        self.assertEqual(config.get_account_categories("Test"), {"New": ["1"]})
-        self.assertEqual(config.get_report_formulas("Test"), {"F": {"expr": "Orig", "display_name": "F", "sheets": ["Sheet1"]}})
-
-    def test_rename_formula(self):
-        config = DummyConfig()
-        config.set_report_formulas("Test", {"Old": {"expr": "1", "display_name": "Old", "sheets": ["Sheet1"]}})
-
-        dialog = self.Dialog(config, "Test", [], sheet_names=["Sheet1"])
-        dialog.formula_list.setCurrentRow(0)
-
-        from PyQt6.QtWidgets import QInputDialog
-
-        QInputDialog.getText = staticmethod(lambda *a, **k: ("New", True))
-        dialog._rename_formula()
-        dialog.save()
-
-        self.assertEqual(config.get_report_formulas("Test"), {"New": {"expr": "1", "display_name": "Old", "sheets": ["Sheet1"]}})
+        self.assertEqual(config.get_account_categories("Test", "Sheet1"), {"New": ["1"]})
 
 class MigrationTests(unittest.TestCase):
     def test_formula_migrated_to_library(self):

@@ -60,6 +60,9 @@ def patch_qt_modules():
         def text(self):
             return self._text
 
+        def setText(self, text):
+             self._text = text
+
         def setFlags(self, flags):
             self._flags = flags
 
@@ -135,11 +138,18 @@ def patch_qt_modules():
             pass
 
     class QDialog(QWidget):
+        def __init__(self, *args, **kwargs):
+            super().__init__()
+            self._title = ""
+
         def accept(self):
             pass
 
         def reject(self):
             pass
+
+        def setWindowTitle(self, title):
+            self._title = title
 
     class QVBoxLayout(QWidget):
         pass
@@ -170,6 +180,25 @@ def patch_qt_modules():
 
     class QLabel(QWidget):
         pass
+
+    class QComboBox(QWidget):
+        def __init__(self, *args, **kwargs):
+            super().__init__()
+            self.items = []
+            self.currentTextChanged = Signal()
+            self._current = ""
+
+        def addItems(self, items):
+            self.items.extend(items)
+            if items:
+                self._current = items[0]
+
+        def currentText(self):
+            return self._current
+
+        def clear(self):
+            self.items.clear()
+            self._current = ""
 
     class QTabWidget(QWidget):
         def addTab(self, *args, **kwargs):
@@ -225,6 +254,7 @@ def patch_qt_modules():
         "QListWidgetItem": QListWidgetItem,
         "QPushButton": QPushButton,
         "QLineEdit": QLineEdit,
+        "QComboBox": QComboBox,
         "QInputDialog": QInputDialog,
         "QMessageBox": QMessageBox,
         "QLabel": QLabel,
