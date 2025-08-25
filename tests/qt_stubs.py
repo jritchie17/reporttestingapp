@@ -24,11 +24,32 @@ def patch_qt_modules():
 
     class Qt:
         class ItemFlag:
+            NoItemFlags = 0
             ItemIsUserCheckable = 1
+            ItemIsSelectable = 2
+            ItemIsEnabled = 4
+            ItemIsEditable = 8
 
         class CheckState:
             Unchecked = 0
             Checked = 2
+
+        class ItemDataRole:
+            DisplayRole = 0
+            BackgroundRole = 1
+            ForegroundRole = 2
+            TextAlignmentRole = 3
+            FontRole = 4
+            EditRole = 5
+
+        class AlignmentFlag:
+            AlignRight = 0x0002
+            AlignVCenter = 0x0080
+            AlignLeft = 0x0001
+
+        class Orientation:
+            Horizontal = 0
+            Vertical = 1
 
     class QListWidgetItem:
         def __init__(self, text=""):
@@ -251,11 +272,12 @@ def patch_qt_modules():
     core.QAbstractTableModel = type("QAbstractTableModel", (), {})
     core.QModelIndex = type("QModelIndex", (), {})
     core.QVariant = type("QVariant", (), {})
+    core.QUrl = type("QUrl", (), {"fromLocalFile": staticmethod(lambda *a, **k: None)})
     core.pyqtSignal = Signal
     core.QEvent = type("QEvent", (), {})
 
-    for attr in ["QIcon", "QAction", "QFont", "QColor", "QBrush", "QGuiApplication", "QCursor"]:
-        setattr(gui, attr, type(attr, (), {}))
+    for attr in ["QIcon", "QAction", "QFont", "QColor", "QBrush", "QGuiApplication", "QCursor", "QDesktopServices"]:
+        setattr(gui, attr, type(attr, (), {"openUrl": staticmethod(lambda *a, **k: None)}) if attr == "QDesktopServices" else type(attr, (), {}))
 
     sys.modules.setdefault("PyQt6", types.ModuleType("PyQt6"))
     sys.modules["PyQt6.QtWidgets"] = widgets
@@ -275,6 +297,36 @@ def patch_qt_modules():
         "src.ui.account_category_dialog",
         "src.ui.report_config_dialog",
         "src.ui.hover_anim_filter",
+        "src.ui.workflow_wizard",
     ]:
         sys.modules.setdefault(name, types.ModuleType(name))
+
+    # Provide minimal HoverAnimationFilter stub
+    sys.modules["src.ui.hover_anim_filter"].HoverAnimationFilter = type(
+        "HoverAnimationFilter", (), {}
+    )
+    # Provide minimal ExcelViewer stub
+    sys.modules["src.ui.excel_viewer"].ExcelViewer = type(
+        "ExcelViewer", (), {}
+    )
+    # Provide minimal stubs for other UI components
+    sys.modules["src.ui.sql_editor"].SQLEditor = type("SQLEditor", (), {})
+    sys.modules["src.ui.comparison_view"].ComparisonView = type(
+        "ComparisonView", (), {}
+    )
+    sys.modules["src.ui.settings_dialog"].SettingsDialog = type(
+        "SettingsDialog", (), {}
+    )
+    sys.modules["src.ui.account_category_dialog"].AccountCategoryDialog = type(
+        "AccountCategoryDialog", (), {}
+    )
+    sys.modules["src.ui.report_config_dialog"].ReportConfigDialog = type(
+        "ReportConfigDialog", (), {}
+    )
+    sys.modules["src.ui.workflow_wizard"].WorkflowWizard = type(
+        "WorkflowWizard", (), {}
+    )
+    sys.modules["src.ui.results_viewer"].ResultsViewer = type(
+        "ResultsViewer", (), {}
+    )
 
