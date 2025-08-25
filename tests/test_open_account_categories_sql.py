@@ -13,9 +13,6 @@ class DummyConfig:
     def get_account_categories(self, report_type, sheet_name=None):
         return {}
 
-    def get_account_formulas(self, report_type, sheet_name=None):
-        return {}
-
 
 class DummySelector:
     def __init__(self, text):
@@ -53,6 +50,8 @@ class TestOpenAccountCategoriesSQL(unittest.TestCase):
             def __init__(self, config, report_type, accounts, sheet_names=None, parent=None):
                 captured['accounts'] = accounts
                 captured['sheets'] = sheet_names
+            def refresh_accounts(self, accounts):
+                captured['refresh'] = accounts
             def exec(self):
                 return True
 
@@ -73,6 +72,7 @@ class TestOpenAccountCategoriesSQL(unittest.TestCase):
 
         self.assertEqual(captured.get('accounts'), ['1234-5678', '9999-0000'])
         self.assertEqual(captured.get('sheets'), [])
+        self.assertEqual(captured.get('refresh'), ['1234-5678', '9999-0000'])
         self.assertEqual(window.status_bar.message, 'Account categories updated')
 
 

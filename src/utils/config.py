@@ -74,9 +74,6 @@ class AppConfig:
                 "comparison_threshold": 1.0,  # 1% difference allowed
             },
             "account_categories": {},
-            "account_formulas": {},
-            "formula_library": {},
-            "report_formulas": {},
             "report_configs": self.initialize_report_configs(),
         }
 
@@ -114,7 +111,7 @@ class AppConfig:
                 updated = True
             config["report_configs"] = merged_reports
 
-            # Migrate account categories/formulas to new sheet-aware structure
+            # Migrate account categories to new sheet-aware structure
             if self._migrate_account_data(config):
                 updated = True
 
@@ -129,88 +126,22 @@ class AppConfig:
             return default_config
 
     def _migrate_account_data(self, cfg: dict) -> bool:
-        """Migrate account data to newer structures."""
+        """Migrate account category data to newer structures."""
         updated = False
 
-        for key in ["account_categories", "account_formulas"]:
-            section = cfg.get(key, {})
-            for rpt, mapping in list(section.items()):
-                if mapping and all(not isinstance(v, dict) for v in mapping.values()):
-                    # Old style: mapping[category] -> values
-                    section[rpt] = {DEFAULT_SHEET_NAME: mapping}
-                    updated = True
-            cfg[key] = section
+        section = cfg.get("account_categories", {})
+        for rpt, mapping in list(section.items()):
+            if mapping and all(not isinstance(v, dict) for v in mapping.values()):
+                # Old style: mapping[category] -> values
+                section[rpt] = {DEFAULT_SHEET_NAME: mapping}
+                updated = True
+        cfg["account_categories"] = section
 
-        rpt_forms = cfg.setdefault("report_formulas", {})
-        acc_forms = cfg.get("account_formulas", {})
-        for rpt, by_sheet in acc_forms.items():
-            dest = rpt_forms.setdefault(rpt, {})
-            for sheet, mapping in by_sheet.items():
-                for name, expr in mapping.items():
-                    entry = dest.setdefault(
-                        name,
-                        {
-                            "expr": expr,
-                            "display_name": name,
-                            "sheets": [sheet],
-                        },
-                    )
-                    if entry.get("expr") == expr:
-                        sheets = entry.setdefault("sheets", [])
-                        if sheet not in sheets:
-                            sheets.append(sheet)
-                            updated = True
-                    else:
-                        idx = 1
-                        new_name = name
-                        while new_name in dest and dest[new_name].get("expr") != expr:
-                            idx += 1
-                            new_name = f"{name}_{idx}"
-                        if new_name not in dest:
-                            dest[new_name] = {
-                                "expr": expr,
-                                "display_name": name,
-                                "sheets": [sheet],
-                            }
-                            updated = True
-
-        if acc_forms:
-            cfg["account_formulas"] = {}
-            updated = True
-
-        lib = cfg.get("formula_library", {})
-        if lib:
-            for rpt in cfg.get("report_configs", {}).keys():
-                dest = rpt_forms.setdefault(rpt, {})
-                for name, info in lib.items():
-                    entry = dest.setdefault(
-                        name,
-                        {
-                            "expr": info.get("expr", ""),
-                            "display_name": info.get("display_name", name),
-                            "sheets": list(info.get("sheets") or []),
-                        },
-                    )
-                    if entry.get("expr") == info.get("expr", ""):
-                        for sheet in info.get("sheets") or []:
-                            if sheet not in entry.setdefault("sheets", []):
-                                entry["sheets"].append(sheet)
-                                updated = True
-                    else:
-                        idx = 1
-                        new_name = name
-                        while new_name in dest and dest[new_name].get("expr") != info.get("expr", ""):
-                            idx += 1
-                            new_name = f"{name}_{idx}"
-                        if new_name not in dest:
-                            dest[new_name] = {
-                                "expr": info.get("expr", ""),
-                                "display_name": info.get("display_name", name),
-                                "sheets": list(info.get("sheets") or []),
-                            }
-                            updated = True
-            cfg["formula_library"] = {}
-            updated = True
+        # Remove deprecated sections if present
+        for key in ["account_formulas", "report_formulas", "formula_library"]:
+            if key in cfg:
+                cfg.pop(key, None)
+                updated = True
 
         return updated
 
@@ -355,97 +286,6 @@ class AppConfig:
         self.config["account_categories"].setdefault(report_type, {})[
             sheet_name
         ] = categories
-        self.save_config()
-
-    def get_account_formulas(self, report_type, sheet_name=None):
-        """Return account formulas for ``report_type`` and optional ``sheet_name``.
-
-        Formulas defined directly under ``account_formulas`` take precedence.
-        Formulas from the global ``formula_library`` that apply to the requested
-        sheet are merged in.
-        """
-        formulas_by_type = self.config.get("account_formulas", {}).get(report_type, {})
-
-        if sheet_name is None:
-            if DEFAULT_SHEET_NAME in formulas_by_type and len(formulas_by_type) == 1:
-                result = dict(formulas_by_type.get(DEFAULT_SHEET_NAME, {}))
-            else:
-                result = {}
-                for _sheet, forms in formulas_by_type.items():
-                    if isinstance(forms, dict):
-                        result.update(forms)
-        else:
-            result = formulas_by_type.get(sheet_name) or formulas_by_type.get(
-                DEFAULT_SHEET_NAME, {}
-            )
-            result = dict(result)
-
-        lib = self.get_formula_library()
-        for name, info in lib.items():
-            sheets = info.get("sheets") or []
-            if (
-                sheet_name is None
-                or sheet_name in sheets
-                or DEFAULT_SHEET_NAME in sheets
-            ):
-                result.setdefault(name, info.get("expr", ""))
-
-        return result
-
-    def set_account_formulas(self, report_type, formulas, sheet_name=None):
-        """Set account formulas for a report type and persist the config"""
-        if "account_formulas" not in self.config:
-            self.config["account_formulas"] = {}
-
-        if sheet_name is None:
-            sheet_name = DEFAULT_SHEET_NAME
-
-        self.config["account_formulas"].setdefault(report_type, {})[
-            sheet_name
-        ] = formulas
-        self.save_config()
-
-    # Report formulas helpers -------------------------------------------------
-
-    def get_report_formulas(self, report_type: str, sheet_name: str | None = None) -> dict:
-        """Return formulas for ``report_type`` filtered by ``sheet_name``."""
-        mapping = self.config.get("report_formulas", {}).get(report_type, {})
-
-        def _copy(src: dict) -> dict:
-            return {k: dict(v) for k, v in src.items()}
-
-        if sheet_name is None:
-            result = _copy(mapping)
-        else:
-            result = {}
-            for name, info in mapping.items():
-                sheets = info.get("sheets") or []
-                if (not sheets or sheet_name in sheets or DEFAULT_SHEET_NAME in sheets):
-                    result[name] = dict(info)
-        return result
-
-    def set_report_formulas(self, report_type: str, formulas: dict) -> None:
-        """Set formulas for ``report_type`` and persist the config."""
-        if "report_formulas" not in self.config:
-            self.config["report_formulas"] = {}
-        cleaned = {}
-        for name, info in (formulas or {}).items():
-            entry = dict(info)
-            if not entry.get("sheets"):
-                entry.pop("sheets", None)
-            cleaned[name] = entry
-        self.config["report_formulas"][report_type] = cleaned
-        self.save_config()
-
-    # Formula library helpers -------------------------------------------------
-
-    def get_formula_library(self):
-        """Return the global formula library."""
-        return self.config.get("formula_library", {})
-
-    def set_formula_library(self, library: dict):
-        """Replace the global formula library and persist it."""
-        self.config["formula_library"] = library
         self.save_config()
 
     # Report configuration helpers -------------------------------------------------

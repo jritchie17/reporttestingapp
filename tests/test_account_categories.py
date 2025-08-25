@@ -15,7 +15,6 @@ FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 class DummyConfig:
     def __init__(self):
         self.categories = {}
-        self.report_formulas = {}
         self.config = {"account_categories": {}}
 
     def get_account_categories(self, report_type, sheet_name=None):
@@ -24,24 +23,12 @@ class DummyConfig:
             return mapping.get("__default__", {})
         return mapping.get(sheet_name, {})
 
-    def get_report_formulas(self, report_type, sheet_name=None):
-        mapping = self.report_formulas.get(report_type, {})
-        result = {}
-        for name, info in mapping.items():
-            sheets = info.get("sheets") or []
-            if sheet_name is None or not sheets or sheet_name in sheets or "__default__" in sheets:
-                result[name] = info
-        return result
-
     def set_account_categories(self, report_type, cats, sheet_name=None):
         sheet_name = sheet_name or "__default__"
         self.categories.setdefault(report_type, {})[sheet_name] = cats
         self.config.setdefault("account_categories", {}).setdefault(report_type, {})[
             sheet_name
         ] = cats
-
-    def set_report_formulas(self, report_type, formulas):
-        self.report_formulas[report_type] = formulas
 
 
 class TestCategoryCalculator(unittest.TestCase):
@@ -471,37 +458,6 @@ class TestAccountCategoryDialog(unittest.TestCase):
         dialog.save()
 
         self.assertEqual(config.get_account_categories("Test", "Sheet1"), {"New": ["1"]})
-
-class MigrationTests(unittest.TestCase):
-    def test_formula_migrated_to_library(self):
-        import json, tempfile
-        from src.utils.config import AppConfig
-
-        with tempfile.TemporaryDirectory() as tmp:
-            old_home = os.environ.get("HOME")
-            os.environ["HOME"] = tmp
-
-            cfg_path = os.path.join(tmp, ".soo_preclose_tester.json")
-            with open(cfg_path, "w") as f:
-                json.dump(
-                    {
-                        "account_formulas": {"Test": {"__default__": {"Net": "A+B"}}},
-                        "account_categories": {},
-                    },
-                    f,
-                )
-
-            cfg = AppConfig()
-            forms = cfg.get_report_formulas("Test")
-            self.assertIn("Net", forms)
-            self.assertEqual(forms["Net"]["expr"], "A+B")
-            self.assertIn("__default__", forms["Net"].get("sheets", []))
-
-            if old_home is not None:
-                os.environ["HOME"] = old_home
-            else:
-                del os.environ["HOME"]
-
 
 if __name__ == "__main__":
     unittest.main()
