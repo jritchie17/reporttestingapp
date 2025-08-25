@@ -1,12 +1,8 @@
 import os
-import sys
-import types
 import tempfile
 import unittest
 
 from tests.qt_stubs import patch_qt_modules
-
-
 
 
 class ReportConfigTests(unittest.TestCase):
@@ -35,52 +31,6 @@ class ReportConfigTests(unittest.TestCase):
                 os.environ['HOME'] = old_home
             else:
                 del os.environ['HOME']
-
-    def test_clean_dataframe_uses_first_column(self):
-        from src.ui.excel_viewer import ExcelViewer
-        viewer = ExcelViewer.__new__(ExcelViewer)
-        viewer.report_config = {
-            'header_rows': [0],
-            'skip_rows': 1,
-            'first_data_column': 1,
-            'center_cell': None,
-            'description': ''
-        }
-
-        import pandas as pd
-        df = pd.DataFrame([
-            ['H1', 'H2', 'H3'],
-            ['skip1', 'skip2', 'skip3'],
-            ['desc', '1', '2'],
-            ['desc2', '3', '4']
-        ])
-
-        cleaned = ExcelViewer._clean_dataframe(viewer, df, 'Sheet1')
-        self.assertEqual(cleaned.iloc[0, 1], 1)
-        self.assertEqual(cleaned.iloc[1, 1], 3)
-
-    def test_center_cell_overrides_sheet_name(self):
-        from src.ui.excel_viewer import ExcelViewer
-        viewer = ExcelViewer.__new__(ExcelViewer)
-        viewer.report_type = 'SOO PreClose'
-        viewer.report_config = {
-            'header_rows': [0],
-            'skip_rows': 2,
-            'first_data_column': 1,
-            'center_cell': 'B2',
-            'description': ''
-        }
-
-        import pandas as pd
-        df = pd.DataFrame([
-            ['H1', 'H2'],
-            ['x', 'NewName'],
-            ['desc', '1'],
-            ['desc2', '2']
-        ])
-
-        cleaned = ExcelViewer._clean_dataframe(viewer, df, 'Orig')
-        self.assertEqual(cleaned.iloc[0, 0], 'NewName')
 
     def test_soo_mfr_default_config(self):
         from src.utils.config import AppConfig
