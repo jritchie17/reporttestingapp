@@ -222,12 +222,6 @@ class MainWindow(QMainWindow):
         self.manage_cats_menu_action.triggered.connect(self.open_account_categories)
         tools_menu.addAction(self.manage_cats_menu_action)
 
-        self.manage_calcs_menu_action = QAction(
-            qta.icon("fa5s.calculator"), "Manage Calculations...", self
-        )
-        self.manage_calcs_menu_action.triggered.connect(self.open_calculations_manager)
-        tools_menu.addAction(self.manage_calcs_menu_action)
-
         manage_reports_action = QAction(
             qta.icon("fa5s.table"), "Manage Report Types...", self
         )
@@ -294,14 +288,6 @@ class MainWindow(QMainWindow):
         self._apply_hover_animation(
             toolbar.widgetForAction(self.manage_cats_toolbar_action)
         )
-
-        self.manage_calcs_toolbar_action = QAction(
-            qta.icon("fa5s.calculator"), "Manage Calculations...", self
-        )
-        self.manage_calcs_toolbar_action.setEnabled(False)
-        self.manage_calcs_toolbar_action.triggered.connect(self.open_calculations_manager)
-        toolbar.addAction(self.manage_calcs_toolbar_action)
-        self._apply_hover_animation(toolbar.widgetForAction(self.manage_calcs_toolbar_action))
 
         # Settings
         settings_action = QAction(qta.icon("fa5s.cog"), "Settings", self)
@@ -1442,25 +1428,6 @@ class MainWindow(QMainWindow):
         dialog.refresh_accounts(accounts)
         if dialog.exec():
             self.status_bar.showMessage("Account categories updated")
-
-    def open_calculations_manager(self):
-        """Open the calculations manager dialog for the current report."""
-        report_type = self.report_selector.currentText()
-        if self.results_viewer and self.results_viewer.has_results():
-            sheets = self._gather_sheet_names_from_sql()
-        else:
-            sheets = self.excel_analyzer.sheet_names if self.excel_analyzer else []
-
-        from src.ui.calculations_manager import CalculationsManager
-
-        dialog = CalculationsManager(
-            self.config,
-            report_type,
-            sheet_names=sheets,
-            parent=self,
-        )
-        if dialog.exec():
-            self.status_bar.showMessage("Calculations updated")
 
     def open_report_configs(self):
         """Open dialog to manage report configurations."""
