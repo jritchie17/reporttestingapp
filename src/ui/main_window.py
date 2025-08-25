@@ -44,7 +44,6 @@ from src.database.db_connector import DatabaseConnector
 from src.analyzer.excel_analyzer import ExcelAnalyzer
 from src.analyzer.comparison_engine import ComparisonEngine
 from src.utils.config import AppConfig
-from src.utils.account_categories import CategoryCalculator
 
 import qtawesome as qta
 import pandas as pd
@@ -1805,32 +1804,6 @@ class MainWindow(QMainWindow):
                         filtered_sql_df[sql_col].isin(excel_vals)
                     ]
 
-            # Apply account categories and formulas to SQL rows before comparison
-            report_type = self.config.get("excel", "report_type")
-            if report_type:
-                categories = self.config.get_account_categories(report_type)
-                formulas = self.config.get_report_formulas(report_type, sheet_name)
-                if categories:
-                    group_col = None
-                    cols_lower = {c.lower(): c for c in filtered_sql_df.columns}
-                    for cand in ["sheet", "sheet_name", "sheet name"]:
-                        if cand.lower() in cols_lower:
-                            group_col = cols_lower[cand.lower()]
-                            break
-                    if group_col is None and "Center" in filtered_sql_df.columns:
-                        group_col = "Center"
-                    sign_flip = list(
-                        getattr(self.comparison_engine, "sign_flip_accounts", [])
-                    )
-                    calc = CategoryCalculator(
-                        categories,
-                        formulas,
-                        group_column=group_col,
-                        sign_flip_accounts=sign_flip,
-                    )
-                    sql_rows = filtered_sql_df.to_dict(orient="records")
-                    filtered_sql_df = pd.DataFrame(calc.compute(sql_rows))
-
             # Generate detailed DataFrame
             report_type = self.config.get("excel", "report_type")
             column_mappings = None
@@ -1953,32 +1926,6 @@ class MainWindow(QMainWindow):
                         filtered_sql_df[sql_col].isin(excel_vals)
                     ]
 
-            # Apply account categories and formulas to SQL rows before comparison
-            report_type = self.config.get("excel", "report_type")
-            if report_type:
-                categories = self.config.get_account_categories(report_type)
-                formulas = self.config.get_report_formulas(report_type, sheet_name)
-                if categories:
-                    group_col = None
-                    cols_lower = {c.lower(): c for c in filtered_sql_df.columns}
-                    for cand in ["sheet", "sheet_name", "sheet name"]:
-                        if cand.lower() in cols_lower:
-                            group_col = cols_lower[cand.lower()]
-                            break
-                    if group_col is None and "Center" in filtered_sql_df.columns:
-                        group_col = "Center"
-                    sign_flip = list(
-                        getattr(self.comparison_engine, "sign_flip_accounts", [])
-                    )
-                    calc = CategoryCalculator(
-                        categories,
-                        formulas,
-                        group_column=group_col,
-                        sign_flip_accounts=sign_flip,
-                    )
-                    sql_rows = filtered_sql_df.to_dict(orient="records")
-                    filtered_sql_df = pd.DataFrame(calc.compute(sql_rows))
-
             report_type = self.config.get("excel", "report_type")
             try:
                 df = self.comparison_engine.generate_detailed_comparison_dataframe(
@@ -2077,32 +2024,6 @@ class MainWindow(QMainWindow):
                     filtered_sql_df = filtered_sql_df[
                         filtered_sql_df[sql_col].isin(excel_vals)
                     ]
-
-            report_type = self.config.get("excel", "report_type")
-            if report_type:
-                categories = self.config.get_account_categories(report_type)
-                formulas = self.config.get_report_formulas(report_type, sheet_name)
-                if categories:
-                    group_col = None
-                    cols_lower = {c.lower(): c for c in filtered_sql_df.columns}
-                    for cand in ["sheet", "sheet_name", "sheet name"]:
-                        if cand.lower() in cols_lower:
-                            group_col = cols_lower[cand.lower()]
-                            break
-                    if group_col is None and "Center" in filtered_sql_df.columns:
-                        group_col = "Center"
-                    sign_flip = list(
-                        getattr(self.comparison_engine, "sign_flip_accounts", [])
-                    )
-                    calc = CategoryCalculator(
-                        categories,
-                        formulas,
-                        group_column=group_col,
-                        sign_flip_accounts=sign_flip,
-                    )
-                    sql_rows = filtered_sql_df.to_dict(orient="records")
-                    filtered_sql_df = pd.DataFrame(calc.compute(sql_rows))
-
             report_type = self.config.get("excel", "report_type")
             try:
                 df = self.comparison_engine.generate_detailed_comparison_dataframe(
