@@ -13,6 +13,7 @@ from . import (
 )
 
 class ComparisonEngine:
+    _ROW_SEQUENCE_COLUMN = "__row_sequence__"
     def __init__(self, plugin_dirs=None):
         """Initialize the comparison engine"""
         self.logger = get_logger(__name__)
@@ -37,6 +38,13 @@ class ComparisonEngine:
         }
         acct_excel = None
         acct_sql = None
+        columns_list = list(columns)
+        try:
+            join_idx = columns_list.index('_join_key')
+        except ValueError:
+            join_idx = len(columns_list)
+        excel_segment = columns_list[:join_idx]
+        sql_segment = columns_list[join_idx + 1:]
         for col in columns:
             base = col.rsplit("_", 1)[0]
             suffix = col.rsplit("_", 1)[-1]
@@ -46,6 +54,18 @@ class ComparisonEngine:
                     acct_excel = col
                 elif suffix == "sql":
                     acct_sql = col
+        if acct_excel is None:
+            for col in excel_segment:
+                norm_full = re.sub(r"[\s_]+", "", str(col)).lower()
+                if norm_full in norm_map:
+                    acct_excel = col
+                    break
+        if acct_sql is None:
+            for col in sql_segment:
+                norm_full = re.sub(r"[\s_]+", "", str(col)).lower()
+                if norm_full in norm_map:
+                    acct_sql = col
+                    break
         return acct_excel, acct_sql
 
     def _setup_debug_logger(self):
@@ -156,37 +176,26 @@ class ComparisonEngine:
         if not key_columns:
             self.logger.warning("Could not identify key columns for joining")
             return {"error": "Could not identify key columns for joining"}
-            
+
         self.logger.info(f"Using key columns for joining: {key_columns}")
-        
-        # Create join keys with normalized case/whitespace
-        excel_keys = (
-            excel_df[key_columns['excel']]
-            .astype(str)
-            .apply(lambda s: s.str.strip().str.lower())
-            .agg('-'.join, axis=1)
+
+        excel_df, sql_df, duplicate_key_report = self._prepare_join_dataframes(
+            excel_df,
+            sql_df,
+            key_columns,
         )
-        sql_keys = (
-            sql_df[key_columns['sql']]
-            .astype(str)
-            .apply(lambda s: s.str.strip().str.lower())
-            .agg('-'.join, axis=1)
-        )
-        
-        # --- Duplicate key detection ---
-        excel_dup_keys = excel_keys[excel_keys.duplicated(keep=False)]
-        sql_dup_keys = sql_keys[sql_keys.duplicated(keep=False)]
-        
-        duplicate_key_report = {
-            "excel": excel_dup_keys.value_counts().to_dict() if not excel_dup_keys.empty else {},
-            "sql": sql_dup_keys.value_counts().to_dict() if not sql_dup_keys.empty else {}
+
+        excel_keys = excel_df['_join_key']
+        sql_keys = sql_df['_join_key']
+
+        key_excel_set = {
+            col for col in key_columns['excel']
+            if col != self._ROW_SEQUENCE_COLUMN
         }
-        
-        # Add keys to dataframes without mutating the originals
-        excel_df = excel_df.copy()
-        sql_df = sql_df.copy()
-        excel_df['_join_key'] = excel_keys
-        sql_df['_join_key'] = sql_keys
+        key_sql_set = {
+            col for col in key_columns['sql']
+            if col != self._ROW_SEQUENCE_COLUMN
+        }
         
         # Merge dataframes on join key
         merged_df = pd.merge(
@@ -265,12 +274,20 @@ class ComparisonEngine:
             matched_mask = merged_df['_join_key'].isin(excel_keys) & merged_df['_join_key'].isin(sql_keys)
             excel_series = excel_series[matched_mask]
             sql_series = sql_series[matched_mask]
-            account_series = account_series[matched_mask]
-            
+            account_series_matched = account_series[matched_mask]
+
+            if excel_col in key_excel_set or sql_col in key_sql_set:
+                account_series_for_compare = pd.Series(
+                    [None] * len(account_series_matched),
+                    index=account_series_matched.index,
+                )
+            else:
+                account_series_for_compare = account_series_matched
+
             col_results = row_comparison.compare_series(
                 excel_series,
                 sql_series,
-                account_series,
+                account_series_for_compare,
                 tolerance=self.tolerance,
                 sign_flip_accounts=self.sign_flip_accounts,
             )
@@ -339,7 +356,56 @@ class ComparisonEngine:
         self.comparison_results = results
 
         return results
-    
+
+    def _prepare_join_dataframes(self, excel_df, sql_df, key_columns):
+        """Return copies of the dataframes with a stable join key column."""
+
+        excel_copy = excel_df.copy()
+        sql_copy = sql_df.copy()
+
+        excel_keys = self._build_join_key_series(excel_copy, key_columns['excel'])
+        sql_keys = self._build_join_key_series(sql_copy, key_columns['sql'])
+
+        excel_copy['_join_key'] = excel_keys
+        sql_copy['_join_key'] = sql_keys
+
+        excel_dup_keys = excel_keys[excel_keys.duplicated(keep=False)]
+        sql_dup_keys = sql_keys[sql_keys.duplicated(keep=False)]
+
+        duplicate_key_report = {
+            "excel": excel_dup_keys.value_counts().to_dict() if not excel_dup_keys.empty else {},
+            "sql": sql_dup_keys.value_counts().to_dict() if not sql_dup_keys.empty else {},
+        }
+
+        return excel_copy, sql_copy, duplicate_key_report
+
+    def _build_join_key_series(self, df, columns):
+        """Construct a normalized join key from the provided columns."""
+
+        if not columns:
+            return pd.Series(index=df.index, dtype=str)
+
+        special_col = self._ROW_SEQUENCE_COLUMN
+        if special_col in columns:
+            base_columns = [col for col in columns if col != special_col]
+            if base_columns:
+                sequence = (
+                    df.groupby(base_columns, dropna=False)
+                    .cumcount()
+                )
+            else:
+                sequence = pd.Series(range(len(df)), index=df.index)
+            df[special_col] = sequence
+
+        normalized = (
+            df[columns]
+            .astype(str)
+            .apply(lambda s: s.str.strip().str.lower())
+            .agg('-'.join, axis=1)
+        )
+
+        return normalized
+
     def _identify_key_columns(self, excel_df, sql_df, column_mappings):
         """Identify key columns for joining Excel and SQL data"""
 
@@ -385,7 +451,12 @@ class ComparisonEngine:
             ]
 
             if key_columns:
-                return {"excel": key_columns, "sql": key_columns}
+                return self._ensure_unique_key_columns(
+                    excel_df,
+                    sql_df,
+                    {"excel": key_columns, "sql": key_columns},
+                    column_mappings,
+                )
 
             def _is_non_numeric(series):
                 try:
@@ -400,7 +471,12 @@ class ComparisonEngine:
                 if _is_non_numeric(excel_df[col]) and _is_non_numeric(sql_df[col])
             ]
             if text_cols:
-                return {"excel": text_cols, "sql": text_cols}
+                return self._ensure_unique_key_columns(
+                    excel_df,
+                    sql_df,
+                    {"excel": text_cols, "sql": text_cols},
+                    column_mappings,
+                )
 
             return None
 
@@ -444,7 +520,57 @@ class ComparisonEngine:
                     break
 
         if center_found or acct_found:
-            return key_columns
+            return self._ensure_unique_key_columns(
+                excel_df,
+                sql_df,
+                key_columns,
+                column_mappings,
+            )
+
+        def _match_direct(columns_a, columns_b, synonyms, keywords):
+            source_col = None
+            for col in columns_a:
+                norm = _norm(col)
+                if norm in synonyms or any(kw in norm for kw in keywords):
+                    source_col = col
+                    break
+            if not source_col:
+                return None, None
+            for col in columns_b:
+                norm = _norm(col)
+                if norm in synonyms or any(kw in norm for kw in keywords):
+                    return source_col, col
+            return source_col, None
+
+        excel_center, sql_center = _match_direct(
+            excel_df.columns,
+            sql_df.columns,
+            center_synonyms,
+            center_keywords,
+        )
+        if excel_center and sql_center:
+            key_columns["excel"].append(excel_center)
+            key_columns["sql"].append(sql_center)
+            center_found = True
+
+        excel_acct, sql_acct = _match_direct(
+            excel_df.columns,
+            sql_df.columns,
+            acct_synonyms,
+            acct_keywords,
+        )
+        if excel_acct and sql_acct:
+            key_columns["excel"].append(excel_acct)
+            key_columns["sql"].append(sql_acct)
+            acct_found = True
+
+        if center_found or acct_found:
+            return self._ensure_unique_key_columns(
+                excel_df,
+                sql_df,
+                key_columns,
+                column_mappings,
+            )
         
 
         # If we didn't find both key columns, try to find any columns that match
@@ -466,12 +592,89 @@ class ComparisonEngine:
                     text_matches.append({'excel': ec, 'sql': sc})
 
         if text_matches:
-            return {
-                'excel': [m['excel'] for m in text_matches],
-                'sql': [m['sql'] for m in text_matches]
-            }
+            return self._ensure_unique_key_columns(
+                excel_df,
+                sql_df,
+                {
+                    'excel': [m['excel'] for m in text_matches],
+                    'sql': [m['sql'] for m in text_matches],
+                },
+                column_mappings,
+            )
 
         return None
+
+    def _ensure_unique_key_columns(self, excel_df, sql_df, key_columns, column_mappings):
+        """Augment the provided key columns until join keys are unique."""
+
+        if not key_columns:
+            return None
+
+        excel_cols = list(key_columns.get('excel', []))
+        sql_cols = list(key_columns.get('sql', []))
+
+        if not excel_cols or not sql_cols:
+            return None
+
+        def build_keys(df, cols):
+            if not cols:
+                return pd.Series(dtype=str)
+            missing = [col for col in cols if col not in df.columns]
+            if missing:
+                raise KeyError(missing)
+            return (
+                df[cols]
+                .astype(str)
+                .apply(lambda s: s.str.strip().str.lower())
+                .agg('-'.join, axis=1)
+            )
+
+        def has_duplicates():
+            try:
+                excel_keys = build_keys(excel_df, excel_cols)
+                sql_keys = build_keys(sql_df, sql_cols)
+            except KeyError:
+                return False
+            return excel_keys.duplicated().any() or sql_keys.duplicated().any()
+
+        if not has_duplicates():
+            return {'excel': excel_cols, 'sql': sql_cols}
+
+        def is_non_numeric(series):
+            try:
+                ratio = pd.to_numeric(series, errors='coerce').notna().mean()
+                return ratio < 0.5
+            except Exception:
+                return True
+
+        def column_priority(name):
+            norm = re.sub(r"[\s_]+", "", str(name)).lower()
+            if any(keyword in norm for keyword in ("month", "period", "date", "year", "week", "quarter")):
+                return 0
+            return 1
+
+        candidate_pairs = []
+        for mapping in column_mappings.values():
+            excel_col = mapping['excel_column']
+            sql_col = mapping['sql_column']
+            if excel_col in excel_cols or sql_col in sql_cols:
+                continue
+            if excel_col not in excel_df.columns or sql_col not in sql_df.columns:
+                continue
+            if is_non_numeric(excel_df[excel_col]) and is_non_numeric(sql_df[sql_col]):
+                candidate_pairs.append((column_priority(excel_col), excel_col, sql_col))
+
+        candidate_pairs.sort()
+
+        for _, excel_candidate, sql_candidate in candidate_pairs:
+            excel_cols.append(excel_candidate)
+            sql_cols.append(sql_candidate)
+            if not has_duplicates():
+                return {'excel': excel_cols, 'sql': sql_cols}
+
+        excel_cols.append(self._ROW_SEQUENCE_COLUMN)
+        sql_cols.append(self._ROW_SEQUENCE_COLUMN)
+        return {'excel': excel_cols, 'sql': sql_cols}
 
     def identify_account_discrepancies(self, excel_df, sql_df, column_mappings=None):
         """Identify accounts with large variances or missing rows.
@@ -634,8 +837,17 @@ class ComparisonEngine:
             self.logger.warning("One or both dataframes are empty")
             return pd.DataFrame()
 
-        missing_excel = [col for col in key_columns['excel'] if col not in excel_df.columns]
-        missing_sql = [col for col in key_columns['sql'] if col not in sql_df.columns]
+        required_excel_cols = [
+            col for col in key_columns['excel']
+            if col != self._ROW_SEQUENCE_COLUMN
+        ]
+        required_sql_cols = [
+            col for col in key_columns['sql']
+            if col != self._ROW_SEQUENCE_COLUMN
+        ]
+
+        missing_excel = [col for col in required_excel_cols if col not in excel_df.columns]
+        missing_sql = [col for col in required_sql_cols if col not in sql_df.columns]
         if missing_excel or missing_sql:
             self.logger.warning(
                 "Key columns missing from dataframes. Excel missing: %s; SQL missing: %s",
@@ -647,25 +859,12 @@ class ComparisonEngine:
         # Prepare sign flip accounts as a set of stripped strings
         sign_flip_accounts_str = set(str(acct).strip() for acct in getattr(self, 'sign_flip_accounts', set()))
         
-        # Create join keys with normalized case/whitespace
-        excel_keys = (
-            excel_df[key_columns['excel']]
-            .astype(str)
-            .apply(lambda s: s.str.strip().str.lower())
-            .agg('-'.join, axis=1)
+        excel_df, sql_df, _ = self._prepare_join_dataframes(
+            excel_df,
+            sql_df,
+            key_columns,
         )
-        sql_keys = (
-            sql_df[key_columns['sql']]
-            .astype(str)
-            .apply(lambda s: s.str.strip().str.lower())
-            .agg('-'.join, axis=1)
-        )
-        
-        excel_df = excel_df.copy()
-        sql_df = sql_df.copy()
-        excel_df['_join_key'] = excel_keys
-        sql_df['_join_key'] = sql_keys
-        
+
         merged_df = pd.merge(
             excel_df,
             sql_df,
@@ -673,14 +872,23 @@ class ComparisonEngine:
             how='outer',
             suffixes=('_excel', '_sql')
         )
-        
+
         # Try to find the account column in the merged dataframe
         account_col_excel, account_col_sql = self._find_account_columns(merged_df.columns)
-        
+
         include_center = report_type not in ("SOO MFR", "Corp SOO")
         # Always include the sheet name so exports contain a reference to
         # which tab the result came from.
         include_sheet = True
+
+        key_excel_set = {
+            col for col in key_columns['excel']
+            if col != self._ROW_SEQUENCE_COLUMN
+        }
+        key_sql_set = {
+            col for col in key_columns['sql']
+            if col != self._ROW_SEQUENCE_COLUMN
+        }
 
         output_rows = []
         for excel_idx, mapping in column_mappings.items():
@@ -711,13 +919,16 @@ class ComparisonEngine:
                 acct_extracted = match.group(0) if match else acct_str
                 # Apply sign flip if needed
                 sql_val_flipped = sql_val
-                try:
-                    if sql_val is not None and sql_val != 'NULL' and acct_extracted in sign_flip_accounts_str and pd.notna(sql_val):
-                        sql_val_flipped = -float(sql_val)
-                    elif sql_val is not None and sql_val != 'NULL' and pd.notna(sql_val):
-                        sql_val_flipped = float(sql_val)
-                except Exception:
-                    pass
+                allow_sign_flip = not (excel_col in key_excel_set or sql_col in key_sql_set)
+                if sql_val is not None and sql_val != 'NULL' and pd.notna(sql_val):
+                    try:
+                        numeric_sql = float(sql_val)
+                        if allow_sign_flip and acct_extracted in sign_flip_accounts_str:
+                            sql_val_flipped = -numeric_sql
+                        else:
+                            sql_val_flipped = numeric_sql
+                    except Exception:
+                        sql_val_flipped = sql_val
                 # Determine result
                 if pd.isna(excel_val) and pd.isna(sql_val):
                     continue  # Both missing, skip
@@ -739,7 +950,9 @@ class ComparisonEngine:
                         is_match = abs(variance) <= self.tolerance
                     except Exception:
                         variance = ''
-                        is_match = str(excel_val).strip() == str(sql_val_flipped).strip()
+                        excel_str = str(excel_val).strip().lower()
+                        sql_str = str(sql_val_flipped).strip().lower()
+                        is_match = excel_str == sql_str
                     result = 'Match' if is_match else 'Does Not Match'
                     excel_val_out = excel_val
                     sql_val_out = sql_val_flipped
@@ -786,5 +999,8 @@ class ComparisonEngine:
             df['Sheet'] = sheet_name
         else:
             df.insert(0, 'Sheet', sheet_name)
+
+        if 'CAReport Name' in df.columns and 'CAReportName' not in df.columns:
+            df['CAReportName'] = df['CAReport Name']
 
         return df

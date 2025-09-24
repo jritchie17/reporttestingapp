@@ -64,7 +64,10 @@ def _build_summary_lines(
 
 
 def _df_to_markdown(df: pd.DataFrame) -> str:
-    return df.to_markdown(index=False)
+    try:
+        return df.to_markdown(index=False)
+    except (ImportError, ModuleNotFoundError):
+        return df.to_string(index=False)
 
 
 def _df_to_html(df: pd.DataFrame) -> str:
@@ -81,7 +84,7 @@ def generate_report(
 ) -> str:
     """Return a report string in the desired format."""
 
-    lines = _build_summary_lines(
+    base_lines = _build_summary_lines(
         sheet_name,
         comparison_results,
         sign_flip_accounts,
@@ -94,16 +97,24 @@ def generate_report(
     )
 
     if fmt == "markdown":
-        if not mismatch_table.empty:
-            lines.append("")
-            lines.append("## Mismatches")
+        lines = list(base_lines)
+        lines.append("")
+        lines.append("## Mismatches")
+        if mismatch_table.empty:
+            lines.append("No mismatches found.")
+        else:
             lines.append(_df_to_markdown(mismatch_table))
         return "\n".join(lines)
 
     if fmt == "html":
+        html_lines = list(base_lines)
+        html_lines.append("")
+        html_lines.append("## Mismatches")
+        if mismatch_table.empty:
+            html_lines.append("No mismatches found.")
         html_parts = []
         list_open = False
-        for ln in lines:
+        for ln in html_lines:
             if ln.startswith("# "):
                 if list_open:
                     html_parts.append("</ul>")
