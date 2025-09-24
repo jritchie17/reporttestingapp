@@ -1,0 +1,4 @@
+Field,Excel Value,DataBase Value,Variance,Result,Issue,Sheet,Center,CAReport Name
+Metric A,Alpha,Beta,Not Numeric,Does Not Match,,,Center 1,Revenue Quality
+Metric B,1000,Missing entry,500,Does Not Match,,,Center 2,Expense Quality
+Metric C,200,200,0,Match,,,Center 3,Ignore Me
