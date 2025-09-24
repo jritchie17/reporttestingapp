@@ -28,6 +28,27 @@ def truncate_text(text: str, max_length: int = 30) -> str:
     return text if len(str(text)) <= max_length else str(text)[:max_length-3] + "..."
 
 
+def format_mismatch_value(value) -> str:
+    """Format mismatch table values, falling back to the original text when not numeric."""
+    if pd.isna(value) or value is None:
+        return "N/A"
+
+    value_str = str(value).strip()
+    if value_str == "":
+        return "N/A"
+
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        # Try again after removing common currency formatting characters
+        cleaned = value_str.replace(",", "").replace("$", "")
+        try:
+            numeric_value = float(cleaned)
+        except (TypeError, ValueError):
+            return truncate_text(value_str, 30)
+    return f"${numeric_value:,.2f}"
+
+
 def create_modern_pie_chart(match_count: int, mismatch_count: int) -> str:
     plt.style.use('default')  # Use default style instead of seaborn
     fig, ax = plt.subplots(figsize=(4, 4))
@@ -83,9 +104,9 @@ def main() -> None:
         table_data.append({
             'field': truncate_text(row["Field"], 15),
             'report_name': truncate_text(row["CAReport Name"], 25),
-            'variance': f"${float(row['Variance']):,.2f}",
-            'excel_value': f"${float(row['Excel Value']):,.2f}",
-            'db_value': f"${float(row['DataBase Value']):,.2f}"
+            'variance': format_mismatch_value(row['Variance']),
+            'excel_value': format_mismatch_value(row['Excel Value']),
+            'db_value': format_mismatch_value(row['DataBase Value'])
         })
     
     # HTML template with modern styling
