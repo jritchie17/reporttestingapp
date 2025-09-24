@@ -26,7 +26,12 @@ def classify(discrepancies_df: pd.DataFrame) -> pd.DataFrame:
 
     if "Variance" in df.columns:
         abs_var = df["Variance"].abs().fillna(0)
-        threshold = abs_var.median() + abs_var.std()
+        if abs_var.count() <= 1:
+            threshold = 0
+        else:
+            threshold = abs_var.median() + abs_var.std()
+            if pd.isna(threshold):
+                threshold = abs_var.median()
         df.loc[abs_var > threshold, "Severity"] = "major"
 
     if set(["Missing in Excel", "Missing in SQL"]).issubset(df.columns):

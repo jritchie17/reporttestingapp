@@ -121,6 +121,21 @@ class TestComparisonEngineSignFlip(unittest.TestCase):
         df = engine.generate_detailed_comparison_dataframe('Sheet1', excel_df, sql_df)
         self.assertTrue((df['Result'] == 'Match').all())
 
+    def test_duplicate_keys_augmented_with_additional_columns(self):
+        excel_df = pd.read_csv(os.path.join(FIXTURES, 'excel_data_months.csv'))
+        sql_df = pd.read_csv(os.path.join(FIXTURES, 'sql_data_months.csv'))
+        engine = ComparisonEngine()
+
+        results = engine.compare_dataframes(excel_df, sql_df)
+        self.assertEqual(results['summary']['mismatch_percentage'], 0)
+        self.assertTrue(results['summary']['overall_match'])
+        self.assertEqual(results['row_counts']['matched'], len(excel_df))
+
+        detailed = engine.generate_detailed_comparison_dataframe('Sheet1', excel_df, sql_df)
+        amount_rows = detailed[detailed['Field'] == 'Amount']
+        self.assertEqual(len(amount_rows), len(excel_df))
+        self.assertTrue((amount_rows['Result'] == 'Match').all())
+
     def test_key_column_keyword_detection(self):
         excel_df = pd.DataFrame({
             'My Facility ID': [1],
